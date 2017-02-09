@@ -1,0 +1,19 @@
+1.1 09-02-2017 (2400 elo)
+- re-enabled mobility evaluation
+- knight outposts
+- implemented king safety (using Ed Schroders idea), but disabled for the moment
+- check-aware quiescence-search
+- bug fixes, of course
+
+
+1.0 13-01-2017 (2300 elo)
+- (magic) bitboards
+- transposition table
+- (internal) iterative-deepening
+- killer-moves and history-heuristics for move ordering
+- principal variation search
+- null-move pruning
+- late-move-reductions
+- static exchange evaluation
+- aspiration window
+- has NO mobility evaluation because the performance impact was too high

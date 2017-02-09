@@ -18,8 +18,6 @@ public class ChessConstants {
 	public static final int WHITE = 0;
 	public static final int BLACK = 1;
 
-	public static final int PAWN_2_MOVE_DEFAULT_COLUMN = 8;
-
 	public static final int[] COLOR_FACTOR = new int[] { 1, -1 };
 
 	public static final long[] MASKS_FILE = new long[] { 0x101010101010101L, 0x202020202020202L, 0x404040404040404L, 0x808080808080808L, 0x1010101010101010L,
@@ -29,16 +27,37 @@ public class ChessConstants {
 	public static final long[] MASK_ADJACENT_FILE = new long[] { 0x202020202020202L, 0x505050505050505L, 0xa0a0a0a0a0a0a0aL, 0x1414141414141414L,
 			0x2828282828282828L, 0x5050505050505050L, 0xa0a0a0a0a0a0a0a0L, 0x4040404040404040L };
 
-	public static final String FEN_WHITE_PIECES[] = { "", "P", "N", "B", "R", "Q", "K" };
-	public static final String FEN_BLACK_PIECES[] = { "", "p", "n", "b", "r", "q", "k" };
+	public static final long[] MASK_ADJACENT_FILE_UP = new long[64];
+	public static final long[] MASK_ADJACENT_FILE_DOWN = new long[64];
+	static {
+		for (int i = 0; i < 64; i++) {
+			long adjacentFile = MASK_ADJACENT_FILE[i % 8];
+			while (adjacentFile != 0) {
+				if (Long.numberOfTrailingZeros(adjacentFile) > i + 1) {
+					MASK_ADJACENT_FILE_UP[i] |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(adjacentFile)];
+				} else if (Long.numberOfTrailingZeros(adjacentFile) < i - 1) {
+					MASK_ADJACENT_FILE_DOWN[i] |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(adjacentFile)];
+				}
+				adjacentFile &= adjacentFile - 1;
+			}
+		}
+	}
+
+	public static final String FEN_WHITE_PIECES[] = { "1", "P", "N", "B", "R", "Q", "K" };
+	public static final String FEN_BLACK_PIECES[] = { "1", "p", "n", "b", "r", "q", "k" };
 
 	public static final long MASK_NOT_A_FILE = 0x7f7f7f7f7f7f7f7fL;
 	public static final long MASK_NOT_H_FILE = 0xfefefefefefefefeL;
+
+	public static final long MASK_RANK_4567 = 0xffffffff000000L;
+	public static final long MASK_RANK_2345 = 0xffffffff00L;
 
 	public static final long MASK_A1_B1 = 0xc0;
 	public static final long MASK_A8_B8 = 0xc000000000000000L;
 	public static final long MASK_G1_H1 = 0x3;
 	public static final long MASK_G8_H8 = 0x300000000000000L;
+
+	public static final long[] PROMOTION_RANK = { 0xff000000000000L, 0xff00 };
 
 	// public static final long[][] IN_BETWEEN = new long[64][64];
 	// static {

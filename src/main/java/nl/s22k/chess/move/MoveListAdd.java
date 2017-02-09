@@ -147,11 +147,11 @@ public class MoveListAdd {
 		MoveList.addMove(MoveUtil.createCastlingMove(fromIndex, toIndex));
 	}
 
-	public static void EPAttackMove(final int fromIndex, final int toIndex, final ChessBoard cb) {
+	public static void EPAttackMove(final int fromIndex, final ChessBoard cb) {
 		// pinned-pieces check not possible because a pawn can be attacked that is on the same row as the king:
 		// 5.P.pKpPr
-		if (cb.isLegalEPMove(fromIndex, toIndex)) {
-			MoveList.addMove(MoveUtil.createEPMove(fromIndex, toIndex));
+		if (cb.isLegalEPMove(fromIndex)) {
+			MoveList.addMove(MoveUtil.createEPMove(fromIndex, cb.epIndex));
 		}
 	}
 }

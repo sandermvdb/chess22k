@@ -10,6 +10,7 @@ import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
+import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.move.TreeMove;
 
 public class TTUtil {
@@ -76,7 +77,7 @@ public class TTUtil {
 		value = getTTValue(chessBoard.zobristKey);
 
 		int ply = 0;
-		while (value != 0 && depth >= 0) {
+		while (value != 0 && TTUtil.getFlag(value) == TTUtil.FLAG_EXACT && depth >= 0) {
 			ply++;
 			depth--;
 			move = getMove(value);
@@ -92,13 +93,13 @@ public class TTUtil {
 		Statistics.bestMove = bestMove;
 	}
 
-	public static void addValue(final long zobristKey, int score, final int ply, final int depth, final int flag, final int move) {
+	public static void addValue(final long zobristKey, int score, final int ply, final int depth, final int flag, final int cleanMove) {
 
 		if (EngineConstants.TEST_VALUES) {
 			if (depth < 1) {
 				System.out.println("Cannot add depth < 1 to TT");
 			}
-			if (move == 0) {
+			if (cleanMove == 0) {
 				System.out.println("Adding empty move to TT");
 			}
 			if (score > Util.SHORT_MAX) {
@@ -106,6 +107,9 @@ public class TTUtil {
 			}
 			if (score < Util.SHORT_MIN) {
 				System.out.println("Adding score to TT < MIN");
+			}
+			if (MoveUtil.getCleanMove(cleanMove) != cleanMove) {
+				System.out.println("Adding non-clean move to TT");
 			}
 		}
 
@@ -125,7 +129,7 @@ public class TTUtil {
 		}
 
 		final int ttIndex = getZobristIndex(zobristKey);
-		final long value = createValue(score, depth, flag, move);
+		final long value = createValue(score, depth, flag, cleanMove);
 
 		transpositionKeys[ttIndex] = (int) zobristKey;
 		transpositionValues[ttIndex] = value;

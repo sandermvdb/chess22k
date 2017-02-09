@@ -10,7 +10,6 @@ import static nl.s22k.chess.ChessConstants.ROOK;
 import static nl.s22k.chess.ChessConstants.WHITE;
 
 import java.util.Arrays;
-import java.util.BitSet;
 
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
@@ -57,9 +56,9 @@ public class ChessBoardUtil {
 
 		// 4: en-passant: -
 		if (fenArray[3].equals("-")) {
-			cb.pawn2MoveFromColumn = ChessConstants.PAWN_2_MOVE_DEFAULT_COLUMN;
+			cb.epIndex = 0;
 		} else {
-			cb.pawn2MoveFromColumn = 104 - fenArray[3].charAt(0);
+			cb.epIndex = 104 - fenArray[3].charAt(0) + 8 * (Integer.parseInt(fenArray[3].substring(1)) - 1);
 		}
 
 		if (fenArray.length > 4) {
@@ -86,7 +85,7 @@ public class ChessBoardUtil {
 		// history
 		Arrays.fill(cb.psqtScoreHistory, 0);
 		Arrays.fill(cb.castlingHistory, 0);
-		Arrays.fill(cb.pawn2MoveHistory, 0);
+		Arrays.fill(cb.epIndexHistory, 0);
 		Arrays.fill(cb.zobristKeyHistory, 0);
 		Arrays.fill(cb.pawnZobristKeyHistory, 0);
 		Arrays.fill(cb.checkingPiecesHistory, 0);
@@ -125,7 +124,7 @@ public class ChessBoardUtil {
 		if (cb.colorToMove == WHITE) {
 			cb.zobristKey ^= cb.zkWhiteToMove;
 		}
-		cb.zobristKey ^= cb.zk2Move[cb.pawn2MoveFromColumn];
+		cb.zobristKey ^= cb.zkEPIndex[cb.epIndex];
 
 		// pawn zobrist key
 		long pieces = cb.pieces[WHITE][PAWN];
@@ -241,50 +240,31 @@ public class ChessBoardUtil {
 	}
 
 	public static String toString(ChessBoard cb) {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < 64; i++) {
-			sb.append(".");
-		}
-
-		for (int i = 0; i < 64; i++) {
-			// white pieces
-			if (BitSet.valueOf(new long[] { cb.pieces[WHITE][KING] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_WHITE_PIECES[KING]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[WHITE][QUEEN] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_WHITE_PIECES[QUEEN]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[WHITE][PAWN] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_WHITE_PIECES[PAWN]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[WHITE][ROOK] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_WHITE_PIECES[ROOK]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[WHITE][BISHOP] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_WHITE_PIECES[BISHOP]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[WHITE][NIGHT] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_WHITE_PIECES[NIGHT]);
+		// TODO castling, EP, moves
+		StringBuilder sb = new StringBuilder();
+		for (int i = 63; i >= 0; i--) {
+			if ((cb.friendlyPieces[WHITE] & Util.POWER_LOOKUP[i]) != 0) {
+				sb.append(ChessConstants.FEN_WHITE_PIECES[cb.pieceIndexes[i]]);
+			} else {
+				sb.append(ChessConstants.FEN_BLACK_PIECES[cb.pieceIndexes[i]]);
 			}
-
-			// black pieces
-			else if (BitSet.valueOf(new long[] { cb.pieces[BLACK][KING] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_BLACK_PIECES[KING]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[BLACK][QUEEN] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_BLACK_PIECES[QUEEN]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[BLACK][PAWN] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_BLACK_PIECES[PAWN]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[BLACK][ROOK] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_BLACK_PIECES[ROOK]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[BLACK][BISHOP] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_BLACK_PIECES[BISHOP]);
-			} else if (BitSet.valueOf(new long[] { cb.pieces[BLACK][NIGHT] }).get(i)) {
-				sb.replace(63 - i, 63 - i + 1, ChessConstants.FEN_BLACK_PIECES[NIGHT]);
+			if (i % 8 == 0 && i != 0) {
+				sb.append("/");
 			}
 		}
+		String colorToMove = cb.colorToMove == WHITE ? "w" : "b";
+		sb.append(" ").append(colorToMove);
 
-		StringBuilder sb2 = new StringBuilder();
-		for (int i = 0; i < 8; i++) {
-			sb2.append(8 - i + sb.substring(i * 8, i * 8 + 8) + "\r\n");
-		}
+		String fen = sb.toString();
+		fen = fen.replaceAll("11111111", "8");
+		fen = fen.replaceAll("1111111", "7");
+		fen = fen.replaceAll("111111", "6");
+		fen = fen.replaceAll("11111", "5");
+		fen = fen.replaceAll("1111", "4");
+		fen = fen.replaceAll("111", "3");
+		fen = fen.replaceAll("11", "2");
 
-		sb2.append(" abcdefgh");
-		return sb2.toString();
+		return fen;
 	}
 
 }

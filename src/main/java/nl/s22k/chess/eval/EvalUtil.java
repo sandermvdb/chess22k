@@ -9,9 +9,12 @@ import static nl.s22k.chess.ChessConstants.QUEEN;
 import static nl.s22k.chess.ChessConstants.ROOK;
 import static nl.s22k.chess.ChessConstants.WHITE;
 
+import java.util.Arrays;
+
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
+import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.StaticMoves;
@@ -21,9 +24,33 @@ public class EvalUtil {
 	// TODO tropism?
 
 	// TODO fianchetto
-	// TODO extract constants
+	// TODO use constants
 	// TODO 50-move rule
-	// TODO knight outpost: 4,5,6,7th rank, protected by a pawn, cannot be attacked by enemy pawns
+
+	private static final int KING_MOVING_OPENINGGAME = 20;
+	private static final int KING_PINNED_PIECES = 15;
+	private static final int KING_IN_CHECK = 10;
+	private static final int KING_DEFENSE_HOLE = 40;
+
+	private static final int QUEEN_MOVING_OPENINGGAME = 10;
+
+	private static final int ROOK_PRISON = 40;
+	private static final int ROOK_FILE_SEMI_OPEN = 15;
+	private static final int ROOK_FILE_OPEN = 20;
+	private static final int BISHOP_DOUBLE = 50;
+
+	private static final int KNIGHT_OUTPOST_UNATTACKABLE = 10;
+	private static final int KNIGHT_OUTPOST = 15;
+
+	private static final int PAWN_PASSED = 20;
+	private static final int PAWN_DOUBLE = 10;
+	private static final int PAWN_ISOLATED = 15;
+
+	// borrowed from Ed Schroder
+	// k,q,r,bn,p,#
+	private static int[][] attackBoards = new int[2][64];
+
+	private static final int KING_SAFETY_ONLY_KING_ATTACK = 0x81;
 
 	public static int calculateScore(ChessBoard cb) {
 
@@ -38,7 +65,25 @@ public class EvalUtil {
 		}
 
 		int score = EngineConstants.ENABLE_INCREMENTAL_PSQT ? cb.psqtScore : calculatePositionScores(cb);
-		score += calculateMaterialScores(cb) + calculateMobilityScores(cb) + calculateBonusses(cb) + calculatePenalties(cb) + calculatePawnScores(cb);
+		score += calculateMaterialScores(cb) + calculateMobilityWithKingDefenseScores(cb) + calculateKingSafetyScores(cb) + calculateBonusses(cb)
+				+ calculatePenalties(cb) + calculatePawnScores(cb);
+
+		/* draw-by-material */
+		if (score > 0) {
+			if (cb.isDrawByMaterial(WHITE)) {
+				if (Statistics.ENABLED) {
+					Statistics.drawByMaterialCount++;
+				}
+				score = EvalConstants.SCORE_DRAW_MATERIAL;
+			}
+		} else {
+			if (cb.isDrawByMaterial(BLACK)) {
+				if (Statistics.ENABLED) {
+					Statistics.drawByMaterialCount++;
+				}
+				score = EvalConstants.SCORE_DRAW_MATERIAL;
+			}
+		}
 
 		EvalCache.addValue(cb.zobristKey, score);
 
@@ -191,6 +236,30 @@ public class EvalUtil {
 			piece &= piece - 1;
 		}
 
+		// knight outpost: 4,5,6,7th rank, protected by a pawn, cannot be attacked by enemy pawns
+		piece = cb.pieces[WHITE][NIGHT];
+		while (piece != 0) {
+			if ((ChessConstants.MASK_RANK_4567 & Util.POWER_LOOKUP[Long.numberOfTrailingZeros(piece)]) != 0
+					&& (StaticMoves.PAWN_ALL_ATTACKS[BLACK][Long.numberOfTrailingZeros(piece)] & cb.pieces[WHITE][PAWN]) != 0) {
+				score += 15;
+				if ((ChessConstants.MASK_ADJACENT_FILE_UP[Long.numberOfTrailingZeros(piece)] & cb.pieces[BLACK][PAWN]) == 0) {
+					score += 10;
+				}
+			}
+			piece &= piece - 1;
+		}
+		piece = cb.pieces[BLACK][NIGHT];
+		while (piece != 0) {
+			if ((ChessConstants.MASK_RANK_2345 & Util.POWER_LOOKUP[Long.numberOfTrailingZeros(piece)]) != 0
+					&& (StaticMoves.PAWN_ALL_ATTACKS[WHITE][Long.numberOfTrailingZeros(piece)] & cb.pieces[BLACK][PAWN]) != 0) {
+				score -= 15;
+				if ((ChessConstants.MASK_ADJACENT_FILE_DOWN[Long.numberOfTrailingZeros(piece)] & cb.pieces[WHITE][PAWN]) == 0) {
+					score -= 10;
+				}
+			}
+			piece &= piece - 1;
+		}
+
 		return score;
 	}
 
@@ -202,7 +271,7 @@ public class EvalUtil {
 			score -= cb.colorFactor * 10;
 		}
 
-		if (cb.moveCounter < 16) {
+		if (cb.moveCounter < 12) {
 			// penalty for moving queen in opening
 			if ((0x1818 & cb.pieces[WHITE][QUEEN]) == 0) {
 				score -= 10;
@@ -236,6 +305,41 @@ public class EvalUtil {
 			score += 40;
 		} else if ((cb.pieces[BLACK][ROOK] & 0x303000000000000L) != 0 && (cb.pieces[BLACK][KING] & 0x600000000000000L) != 0) {
 			score += 40;
+		}
+
+		// hanging pieces (undefended or attacking a bigger piece)
+		if (EngineConstants.ENABLE_EVAL_HANGING_PIECES && EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+			long piece = cb.friendlyPieces[cb.colorToMoveInverse];
+			while (piece != 0) {
+
+				int index = Long.numberOfTrailingZeros(piece);
+
+				// int schroderScore = SchroderUtil.getAttackScore(new int[] { attackBoards[WHITE][index],
+				// attackBoards[BLACK][index] }, cb.colorToMove,
+				// cb.pieceIndexes[index]);
+				// int seeScore = SEEUtil.getSeeScore(cb, cb.colorToMove, index, cb.pieceIndexes[index], cb.allPieces);
+
+				// TODO SEE vs schroder statistics
+				// TODO cache schroder-scores
+
+				// if (Math.abs(schroderScore - seeScore) > 150) {
+				// System.out.println("See-score != schroder-score: " + seeScore + " " + schroderScore);
+				// }
+
+				if ((attackBoards[cb.colorToMove][index] & 7) != 0) {
+					if ((attackBoards[cb.colorToMoveInverse][index] & 7) == 0) {
+						score += cb.colorFactor * EvalConstants.MATERIAL_SCORES[cb.pieceIndexes[index]];
+						// score += cb.colorFactor * seeScore;
+					}
+					// else if
+					// (SchroderUtil.PIECE_INDEXES[Integer.numberOfLeadingZeros(attackBoards[cb.colorToMove][index]) -
+					// 24] < cb.pieceIndexes[index]) {
+					// score += cb.colorFactor * schroderScore;
+					// }
+				}
+				piece &= piece - 1;
+			}
+
 		}
 
 		return score;
@@ -305,6 +409,269 @@ public class EvalUtil {
 			score -= EvalConstants.KNIGHT_MOBILITY[Long
 					.bitCount(StaticMoves.KNIGHT_MOVES[Long.numberOfTrailingZeros(piece)] & (cb.friendlyPieces[WHITE] | cb.emptySpaces))];
 			piece &= piece - 1;
+		}
+
+		return score;
+	}
+
+	public static int calculateMobilityWithKingDefenseScores(final ChessBoard cb) {
+
+		if (!EngineConstants.ENABLE_EVAL_MOBILITY) {
+			return 0;
+		}
+
+		if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+			Arrays.fill(attackBoards[WHITE], 0);
+			Arrays.fill(attackBoards[BLACK], 0);
+		}
+
+		int score = 0;
+		long moves;
+
+		// pawns
+		// TODO get ALL pawn attacks??
+		if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+			moves = cb.pieces[WHITE][PAWN] << 9 & ChessConstants.MASK_NOT_H_FILE | cb.pieces[WHITE][PAWN] << 7 & ChessConstants.MASK_NOT_A_FILE;
+			while (moves != 0) {
+				attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] = ++attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_PAWN;
+				moves &= moves - 1;
+			}
+			moves = cb.pieces[BLACK][PAWN] >>> 9 & ChessConstants.MASK_NOT_A_FILE | cb.pieces[BLACK][PAWN] >>> 7 & ChessConstants.MASK_NOT_H_FILE;
+			while (moves != 0) {
+				attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] = ++attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_PAWN;
+				moves &= moves - 1;
+			}
+		}
+
+		// knights
+		long piece = cb.pieces[WHITE][NIGHT];
+		while (piece != 0) {
+			moves = StaticMoves.KNIGHT_MOVES[Long.numberOfTrailingZeros(piece)];
+			score += EvalConstants.KNIGHT_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[WHITE])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] = ++attackBoards[WHITE][Long.numberOfTrailingZeros(moves)]
+							| SchroderUtil.MASK_NIGHT_BISHOP;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+		piece = cb.pieces[BLACK][NIGHT];
+		while (piece != 0) {
+			moves = StaticMoves.KNIGHT_MOVES[Long.numberOfTrailingZeros(piece)];
+			score -= EvalConstants.KNIGHT_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[BLACK])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] = ++attackBoards[BLACK][Long.numberOfTrailingZeros(moves)]
+							| SchroderUtil.MASK_NIGHT_BISHOP;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+
+		// bishops
+		piece = cb.pieces[WHITE][BISHOP];
+		while (piece != 0) {
+			moves = MagicUtil.getBishopMoves(Long.numberOfTrailingZeros(piece), cb.allPieces);
+			score += EvalConstants.BISHOP_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[WHITE])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] = ++attackBoards[WHITE][Long.numberOfTrailingZeros(moves)]
+							| SchroderUtil.MASK_NIGHT_BISHOP;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+		piece = cb.pieces[BLACK][BISHOP];
+		while (piece != 0) {
+			moves = MagicUtil.getBishopMoves(Long.numberOfTrailingZeros(piece), cb.allPieces);
+			score -= EvalConstants.BISHOP_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[BLACK])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] = ++attackBoards[BLACK][Long.numberOfTrailingZeros(moves)]
+							| SchroderUtil.MASK_NIGHT_BISHOP;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+
+		// rooks
+		piece = cb.pieces[WHITE][ROOK];
+		while (piece != 0) {
+			moves = MagicUtil.getRookMoves(Long.numberOfTrailingZeros(piece), cb.allPieces);
+			score += EvalConstants.ROOK_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[WHITE])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] = ++attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_ROOK;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+		piece = cb.pieces[BLACK][ROOK];
+		while (piece != 0) {
+			moves = MagicUtil.getRookMoves(Long.numberOfTrailingZeros(piece), cb.allPieces);
+			score -= EvalConstants.ROOK_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[BLACK])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] = ++attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_ROOK;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+
+		// queens
+		piece = cb.pieces[WHITE][QUEEN];
+		while (piece != 0) {
+			moves = MagicUtil.getRookMoves(Long.numberOfTrailingZeros(piece), cb.allPieces)
+					| MagicUtil.getBishopMoves(Long.numberOfTrailingZeros(piece), cb.allPieces);
+			score += EvalConstants.QUEEN_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[WHITE])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] = ++attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_QUEEN;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+		piece = cb.pieces[BLACK][QUEEN];
+		while (piece != 0) {
+			moves = MagicUtil.getRookMoves(Long.numberOfTrailingZeros(piece), cb.allPieces)
+					| MagicUtil.getBishopMoves(Long.numberOfTrailingZeros(piece), cb.allPieces);
+			score -= EvalConstants.QUEEN_MOBILITY[Long.bitCount(moves & ~cb.friendlyPieces[BLACK])];
+			if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+				while (moves != 0) {
+					attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] = ++attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_QUEEN;
+					moves &= moves - 1;
+				}
+			}
+			piece &= piece - 1;
+		}
+
+		// kings
+		if (EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+			moves = StaticMoves.KING_MOVES[cb.kingIndex[WHITE]];
+			while (moves != 0) {
+				attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] = ++attackBoards[WHITE][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_KING;
+				moves &= moves - 1;
+			}
+			moves = StaticMoves.KING_MOVES[cb.kingIndex[BLACK]];
+			while (moves != 0) {
+				attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] = ++attackBoards[BLACK][Long.numberOfTrailingZeros(moves)] | SchroderUtil.MASK_KING;
+				moves &= moves - 1;
+			}
+		}
+
+		return score;
+	}
+
+	public static int calculateKingSafetyScores(final ChessBoard cb) {
+
+		if (!EngineConstants.ENABLE_EVAL_MOBILITY_KING_DEFENSE) {
+			return 0;
+		}
+
+		int score = 0;
+
+		long nearbyPosition;
+		int counter;
+		int flag;
+
+		// WHITE
+		// TODO skip if only 1 queen?
+		if (cb.pieces[BLACK][QUEEN] != 0) {
+			// TODO counter = 0 if black has only 2 minor pieces
+			counter = EvalConstants.KING_SAFETY_COUNTER[WHITE][cb.kingIndex[WHITE]];
+			flag = 0;
+
+			// front-further
+			nearbyPosition = EvalConstants.KING_SAFETY_FRONT_FURTHER[WHITE][cb.kingIndex[WHITE]];
+			while (nearbyPosition != 0) {
+				flag |= attackBoards[BLACK][Long.numberOfTrailingZeros(nearbyPosition)];
+				nearbyPosition &= nearbyPosition - 1;
+			}
+			// front
+			nearbyPosition = EvalConstants.KING_SAFETY_FRONT[WHITE][cb.kingIndex[WHITE]];
+			while (nearbyPosition != 0) {
+				if (attackBoards[BLACK][Long.numberOfTrailingZeros(nearbyPosition)] != 0) {
+					counter++;
+					flag |= attackBoards[BLACK][Long.numberOfTrailingZeros(nearbyPosition)];
+					if ((cb.friendlyPieces[WHITE] & Util.POWER_LOOKUP[Long.numberOfTrailingZeros(nearbyPosition)]) == 0) {
+						// no friendlyPiece nearby
+						counter++;
+					}
+					if (attackBoards[WHITE][Long.numberOfTrailingZeros(nearbyPosition)] == KING_SAFETY_ONLY_KING_ATTACK) {
+						// no friendlyPiece protecting
+						counter++;
+					}
+				}
+				nearbyPosition &= nearbyPosition - 1;
+			}
+			// behind
+			nearbyPosition = EvalConstants.KING_SAFETY_BEHIND[WHITE][cb.kingIndex[WHITE]];
+			while (nearbyPosition != 0) {
+				if (attackBoards[BLACK][Long.numberOfTrailingZeros(nearbyPosition)] != 0) {
+					counter++;
+					flag |= attackBoards[BLACK][Long.numberOfTrailingZeros(nearbyPosition)];
+					if (attackBoards[WHITE][Long.numberOfTrailingZeros(nearbyPosition)] == KING_SAFETY_ONLY_KING_ATTACK) {
+						// no friendlyPiece protecting
+						counter++;
+					}
+				}
+				nearbyPosition &= nearbyPosition - 1;
+			}
+
+			score -= EvalConstants.KING_SAFETY_SCORES[counter + EvalConstants.KING_SAFETY_ATTACK_PATTERN_COUNTER[flag >> 3]];
+		}
+
+		// BLACK
+		if (cb.pieces[WHITE][QUEEN] != 0) {
+			counter = EvalConstants.KING_SAFETY_COUNTER[BLACK][cb.kingIndex[BLACK]];
+			flag = 0;
+
+			// front-further
+			nearbyPosition = EvalConstants.KING_SAFETY_FRONT_FURTHER[BLACK][cb.kingIndex[BLACK]];
+			while (nearbyPosition != 0) {
+				flag |= attackBoards[WHITE][Long.numberOfTrailingZeros(nearbyPosition)];
+				nearbyPosition &= nearbyPosition - 1;
+			}
+			// front
+			nearbyPosition = EvalConstants.KING_SAFETY_FRONT[BLACK][cb.kingIndex[BLACK]];
+			while (nearbyPosition != 0) {
+				if (attackBoards[WHITE][Long.numberOfTrailingZeros(nearbyPosition)] != 0) {
+					counter++;
+					flag |= attackBoards[WHITE][Long.numberOfTrailingZeros(nearbyPosition)];
+					if ((cb.friendlyPieces[BLACK] & Util.POWER_LOOKUP[Long.numberOfTrailingZeros(nearbyPosition)]) == 0) {
+						// no friendlyPiece nearby
+						counter++;
+					}
+					if (attackBoards[BLACK][Long.numberOfTrailingZeros(nearbyPosition)] == KING_SAFETY_ONLY_KING_ATTACK) {
+						// no friendlyPiece protecting
+						counter++;
+					}
+				}
+				nearbyPosition &= nearbyPosition - 1;
+			}
+			// behind
+			nearbyPosition = EvalConstants.KING_SAFETY_BEHIND[BLACK][cb.kingIndex[BLACK]];
+			while (nearbyPosition != 0) {
+				if (attackBoards[WHITE][Long.numberOfTrailingZeros(nearbyPosition)] != 0) {
+					counter++;
+					flag |= attackBoards[WHITE][Long.numberOfTrailingZeros(nearbyPosition)];
+					if (attackBoards[BLACK][Long.numberOfTrailingZeros(nearbyPosition)] == KING_SAFETY_ONLY_KING_ATTACK) {
+						// no friendlyPiece protecting
+						counter++;
+					}
+				}
+				nearbyPosition &= nearbyPosition - 1;
+			}
+
+			score += EvalConstants.KING_SAFETY_SCORES[counter + EvalConstants.KING_SAFETY_ATTACK_PATTERN_COUNTER[flag >> 3]];
 		}
 
 		return score;

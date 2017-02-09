@@ -40,7 +40,7 @@ public class MainEngine {
 			while (sc.hasNextLine()) {
 				String[] tokens = sc.nextLine().split(" ");
 				if (tokens[0].equals("uci")) {
-					System.out.println("id name chess22k");
+					System.out.println("id name chess22k " + getVersion());
 					System.out.println("id author Sander MvdB");
 					System.out.println("uciok");
 				} else if (tokens[0].equals("isready")) {
@@ -76,6 +76,9 @@ public class MainEngine {
 					if (tokens.length == 1 || tokens[1].equals("infinite")) {
 						// go infinite
 						go(Long.MAX_VALUE);
+					} else if (tokens[1].equals("depth")) {
+						// go infinite
+						go(Integer.parseInt(tokens[2]));
 					} else {
 						// go wtime 120000 btime 120000 winc 0 binc 0
 						if (chessBoard.colorToMove == ChessConstants.WHITE) {
@@ -125,17 +128,33 @@ public class MainEngine {
 
 		};
 		t.start();
+	}
 
+	public void go(int depth) {
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				Statistics.reset();
+				try {
+					NegamaxUtil.start(chessBoard, depth);
+				} catch (Throwable t) {
+					ErrorLogger.log(chessBoard, t);
+					System.exit(1);
+				}
+			}
+		};
+		t.start();
 	}
 
 	public void eval() {
-		System.out.println("Material : " + EvalUtil.calculateMaterialScores(chessBoard));
-		System.out.println("Position : " + chessBoard.psqtScore);
-		System.out.println("Mobility : " + EvalUtil.calculateMobilityScores(chessBoard));
-		System.out.println("Pawn     : " + EvalUtil.calculatePawnScores(chessBoard));
-		System.out.println("Bonus    : " + EvalUtil.calculateBonusses(chessBoard));
-		System.out.println("Penalties: " + EvalUtil.calculatePenalties(chessBoard));
-		System.out.println("Total    : " + EvalUtil.calculateScore(chessBoard));
+		System.out.println("Material (no pawn)	: " + EvalUtil.calculateMaterialScores(chessBoard));
+		System.out.println("Position   			: " + EvalUtil.calculatePositionScores(chessBoard));
+		System.out.println("Mobility    		: " + EvalUtil.calculateMobilityWithKingDefenseScores(chessBoard));
+		System.out.println("King-safety 		: " + EvalUtil.calculateKingSafetyScores(chessBoard));
+		System.out.println("Pawn        		: " + EvalUtil.calculatePawnScores(chessBoard));
+		System.out.println("Bonus       		: " + EvalUtil.calculateBonusses(chessBoard));
+		System.out.println("Penalties   		: " + EvalUtil.calculatePenalties(chessBoard));
+		System.out.println("Total       		: " + EvalUtil.calculateScore(chessBoard));
 	}
 
 	public void sendBestMove() {
@@ -147,7 +166,9 @@ public class MainEngine {
 	}
 
 	public void sendPlyInfo() {
-		if (!quiet) {
+		if (quiet) {
+			return;
+		}
 			TreeMove bestMove = Statistics.bestMove;
 
 			// TODO hash-usage
@@ -155,8 +176,19 @@ public class MainEngine {
 			// info depth 4 seldepth 10 score cp 40 upperbound pv d2d4 d7d5 e2e3 hashfull 0 nps 30000 nodes 1422
 			System.out.println("info depth " + Statistics.depth + " seldepth " + Statistics.maxDepth + " score cp " + bestMove.score + bestMove.scoreType
 					+ "pv " + bestMove + " hashfull " + 10 + " nps " + Statistics.calculateNps() + " nodes " + Statistics.moveCount);
-		}
+	}
 
+	private String getVersion() {
+		String version = null;
+		Package pkg = getClass().getPackage();
+		if (pkg != null) {
+			version = pkg.getImplementationVersion();
+			if (version == null) {
+				version = pkg.getSpecificationVersion();
+			}
+		}
+		version = version == null ? "" : version.trim();
+		return version.isEmpty() ? "v?" : version;
 	}
 
 }

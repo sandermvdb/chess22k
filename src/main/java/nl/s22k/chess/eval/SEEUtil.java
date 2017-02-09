@@ -22,8 +22,9 @@ public class SEEUtil {
 
 		// TODO EP?
 		// TODO skip 'semi'-pinned-pieces? (unless it is attacking the checking-piece...)
+		// TODO verify SEE-score against q-search?
 
-		// put 'super-piece' in see position. we ignore checks
+		// put 'super-piece' in see position. we ignore checks and pinned-pieces
 
 		// pawn non-promotion attacks
 		long attackMove = StaticMoves.PAWN_NON_PROMOTION_ATTACKS[colorToMove * -1 + 1][toIndex] & cb.pieces[colorToMove][PAWN] & allPieces;
@@ -80,7 +81,7 @@ public class SEEUtil {
 		return 0;
 	}
 
-	private static int getSeeScore(final ChessBoard cb, final int colorToMove, final int toIndex, final int attackedPieceIndex, long allPieces) {
+	public static int getSeeScore(final ChessBoard cb, final int colorToMove, final int toIndex, final int attackedPieceIndex, long allPieces) {
 
 		final int move = getSmallestAttackSeeMove(cb, colorToMove, toIndex, attackedPieceIndex, allPieces);
 

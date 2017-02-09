@@ -40,15 +40,6 @@ public final class MoveList {
 		return nextToGenerate[currentPly] != nextToMove[currentPly];
 	}
 
-	public static void addTTMove(final int ttMove) {
-		if (EngineConstants.TEST_VALUES) {
-			if (ttMove == 0) {
-				System.out.println("Adding empty move to tt");
-			}
-		}
-		moves[nextToGenerate[currentPly]++] = ttMove;
-	}
-
 	public static void addMove(final int cleanMove) {
 
 		if (EngineConstants.TEST_VALUES) {

@@ -3,14 +3,15 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>nl.s22k</groupId>
-	
-	<artifactId>chess22k</artifactId>
-	<version>1.0</version>
+
+	<!-- so we can simply build other (experimental) artifacts -->
+	<artifactId>${engineName}</artifactId>
+	<version>1.1</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<engineNaam>chess22k</engineNaam>
+		<engineName>chess22k</engineName>
 	</properties>
 
 	<build>
@@ -23,6 +24,8 @@
 					<archive>
 						<manifest>
 							<mainClass>nl.s22k.chess.engine.MainEngine</mainClass>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
 						</manifest>
 					</archive>
 					<excludes>

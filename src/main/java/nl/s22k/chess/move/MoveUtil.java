@@ -16,6 +16,8 @@ public class MoveUtil {
 	private static final int PROMOTION_NIGHT = 21; // 1
 	private static final int SCORE = 22; // 10 or 11
 
+	public static final int SEE_CAPTURE_DIVIDER = 6;
+
 	public static final int SCORE_MAX = 511;
 
 	private static final int CLEAN_MOVE_MASK = (1 << SCORE) - 1;
@@ -107,6 +109,7 @@ public class MoveUtil {
 			}
 		}
 
+		// TODO use constant
 		return move | (Math.min(SCORE_MAX,
 				100 * HeuristicUtil.HH_MOVES[colorToMove][getFromToIndex(move)] / HeuristicUtil.BF_MOVES[colorToMove][getFromToIndex(move)])) << SCORE;
 	}
@@ -117,7 +120,8 @@ public class MoveUtil {
 				System.out.println("Setting see-score to non-clean move");
 			}
 		}
-		seeCaptureScore /= 6;
+		// TODO use constant
+		seeCaptureScore /= SEE_CAPTURE_DIVIDER;
 		if (EngineConstants.TEST_VALUES) {
 			if (seeCaptureScore > MoveUtil.SCORE_MAX || seeCaptureScore < -1 * MoveUtil.SCORE_MAX) {
 				System.out.println("See-score out of range: " + seeCaptureScore);

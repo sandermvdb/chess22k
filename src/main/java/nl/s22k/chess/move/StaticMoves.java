@@ -6,6 +6,7 @@ public class StaticMoves {
 
 	public static final long[] KNIGHT_MOVES = new long[64];
 	public static final long[] KING_MOVES = new long[64];
+
 	private static final long[] WHITE_PAWN_MOVES_1 = new long[64];
 	private static final long[] BLACK_PAWN_MOVES_1 = new long[64];
 	private static final long[] WHITE_PAWN_MOVES_2 = new long[64];
@@ -95,7 +96,7 @@ public class StaticMoves {
 		}
 	}
 
-	// KNIGHT
+	// knight
 	static {
 		for (int currentPosition = 0; currentPosition < 64; currentPosition++) {
 
@@ -103,6 +104,18 @@ public class StaticMoves {
 				// check if newPosition is a correct move
 				if (isKnightMove(currentPosition, newPosition)) {
 					KNIGHT_MOVES[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+				}
+			}
+		}
+	}
+
+	// king
+	static {
+		for (int currentPosition = 0; currentPosition < 64; currentPosition++) {
+			for (int newPosition = 0; newPosition < 64; newPosition++) {
+				// check if newPosition is a correct move
+				if (isKingMove(currentPosition, newPosition)) {
+					KING_MOVES[currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 			}
 		}
@@ -122,18 +135,6 @@ public class StaticMoves {
 			return currentPosition + 17 == newPosition || currentPosition + 15 == newPosition;
 		}
 		return false;
-	}
-
-	// KING
-	static {
-		for (int currentPosition = 0; currentPosition < 64; currentPosition++) {
-			for (int newPosition = 0; newPosition < 64; newPosition++) {
-				// check if newPosition is a correct move
-				if (isKingMove(currentPosition, newPosition)) {
-					KING_MOVES[currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-			}
-		}
 	}
 
 	private static boolean isKingMove(int currentPosition, int newPosition) {

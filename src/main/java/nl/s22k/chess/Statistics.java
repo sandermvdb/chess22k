@@ -7,7 +7,7 @@ import nl.s22k.chess.search.TTUtil;
 
 public class Statistics {
 
-	public static final boolean ENABLED = true;
+	public static final boolean ENABLED = false;
 
 	public static long startTime;
 	public static long evalNodes, abNodes, seeNodes;
@@ -29,12 +29,14 @@ public class Statistics {
 	public static long movesGenerated;
 	public static int drawByMaterialCount;
 	public static int badBishopEndgameCount;
+	public static int qChecks;
 
 	public static int calculateNps() {
 		return (int) (moveCount / (System.currentTimeMillis() - startTime)) * 1000;
 	}
 
 	public static void reset() {
+		qChecks = 0;
 		badBishopEndgameCount = 0;
 		drawByMaterialCount = 0;
 		pawnEvalCacheMisses = 0;
@@ -78,6 +80,9 @@ public class Statistics {
 	}
 
 	public static void print() {
+		if (!Statistics.ENABLED) {
+			return;
+		}
 		System.out.println("Time        " + (System.currentTimeMillis() - startTime) + "ms");
 		if (bestMove != null) {
 			System.out.println("Bestmove    " + bestMove.toString());
@@ -87,6 +92,7 @@ public class Statistics {
 		System.out.println("AB-nodes    " + abNodes);
 		System.out.println("See-nodes   " + seeNodes);
 		System.out.println("Evaluated   " + evalNodes);
+		System.out.println("Q-Checks    " + qChecks);
 		System.out.println("Moves       " + moveCount + "/" + movesGenerated);
 
 		printPercentage(ttHits, ttMisses, "TT          ");
