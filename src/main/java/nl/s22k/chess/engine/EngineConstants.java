@@ -12,8 +12,7 @@ public class EngineConstants {
 	public static final boolean ENABLE_REPETITION_TABLE = true;
 
 	// TT values
-	public static final int POWER_2_TT_ENTRIES = 22; // 22
-	public static final boolean ENABLE_BUCKETS = false; // not used
+	public static int POWER_2_TT_ENTRIES = 23; // 23
 
 	// Search improvements
 	public static final boolean ENABLE_QUIESCENCE = true;
@@ -34,7 +33,7 @@ public class EngineConstants {
 	public static final boolean ENABLE_NULL_MOVE = true;
 	public static final int NULL_MOVE_R = 2;
 	public static final boolean ENABLE_LMR = true;
-	public static final int LMR_MOVE_COUNTER = 3;
+	public static final int LMR_MOVE_COUNTER = 2;
 	public static final boolean ENABLE_DELTA_PRUNING = false;
 	public static final int DELTA_MARGIN = 200; // not used
 	public static final boolean ENABLE_Q_PRUNE_BAD_CAPTURES = true;
@@ -43,9 +42,9 @@ public class EngineConstants {
 
 	// Evaluation-function
 	public static final boolean ENABLE_EVAL_CACHE = true;
-	public static final int POWER_2_EVAL_ENTRIES = 20;
+	public static final int POWER_2_EVAL_ENTRIES = 14;
 	public static final boolean ENABLE_PAWN_EVAL_CACHE = true;
-	public static final int POWER_2_PAWN_EVAL_ENTRIES = 18; // 18
+	public static final int POWER_2_PAWN_EVAL_ENTRIES = 14; // 14
 	public static final boolean ENABLE_EVAL_MOBILITY = true;
 	public static final boolean ENABLE_INCREMENTAL_PSQT = true;
 	public static final boolean ENABLE_EVAL_MOBILITY_KING_DEFENSE = false;

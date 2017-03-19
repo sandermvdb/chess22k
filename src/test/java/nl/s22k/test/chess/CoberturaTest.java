@@ -8,6 +8,7 @@ import nl.s22k.chess.Statistics;
 import nl.s22k.chess.engine.MainEngine;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.search.NegamaxUtil;
+import nl.s22k.chess.search.TimeUtil;
 
 public class CoberturaTest {
 
@@ -17,11 +18,11 @@ public class CoberturaTest {
 		NegamaxUtil.chessEngine = new MainEngine();
 
 		Statistics.reset();
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoard cb = ChessBoardUtil.getNewCB("r2qr1k1/2p2ppp/p3bn2/2bpN1B1/8/2NQ4/PPP2PPP/3RR1K1 b - - 3 14 ");
 
 		/* time-managed */
-		long timer = 300000L;
-		NegamaxUtil.start(cb, timer);
+		TimeUtil.setTimeWindow(300000, 0, 0);
+		NegamaxUtil.start(cb);
 	}
 
 }

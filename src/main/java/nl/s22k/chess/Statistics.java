@@ -12,12 +12,13 @@ public class Statistics {
 	public static long startTime;
 	public static long evalNodes, abNodes, seeNodes;
 	public static long ttHits, ttMisses;
-	public static int checkCount, staleMateCount, mateCount;
+	public static int staleMateCount, mateCount;
 	public static int depth, maxDepth;
 	public static TreeMove bestMove;
 	public static int epCount, castleCount, promotionCount;
 	public static int pawnEvalCacheHits, pawnEvalCacheMisses;
-	public static int bestMoveTT, bestMoveKiller1, bestMoveKiller2, bestMoveOther, bestMovePromotion, bestMoveWinningCapture, bestMoveLosingCapture;
+	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveKiller1, bestMoveKiller2, bestMoveOther, bestMovePromotion, bestMoveWinningCapture,
+			bestMoveLosingCapture;
 	public static int repetitions, repetitionTests;
 	public static int extensions;
 	public static int nullMoveHit, nullMoveFail;
@@ -32,7 +33,7 @@ public class Statistics {
 	public static int qChecks;
 
 	public static int calculateNps() {
-		return (int) (moveCount / (System.currentTimeMillis() - startTime)) * 1000;
+		return (int) (moveCount / (Math.max(System.currentTimeMillis() - startTime, 1))) * 1000;
 	}
 
 	public static void reset() {
@@ -44,13 +45,12 @@ public class Statistics {
 		movesGenerated = 0;
 		moveCount = 0;
 		bestMove = null;
-		startTime = System.currentTimeMillis() - 1;
+		startTime = System.currentTimeMillis();
 		castleCount = 0;
 		epCount = 0;
 		evalNodes = 0;
 		ttHits = 0;
 		ttMisses = 0;
-		checkCount = 0;
 		staleMateCount = 0;
 		mateCount = 0;
 		depth = 0;
@@ -66,6 +66,8 @@ public class Statistics {
 		pvsMoveHit = 0;
 		pvsMoveFail = 0;
 		bestMoveTT = 0;
+		bestMoveTTLower = 0;
+		bestMoveTTUpper = 0;
 		bestMoveKiller1 = 0;
 		bestMoveKiller2 = 0;
 		bestMoveOther = 0;
@@ -96,7 +98,9 @@ public class Statistics {
 		System.out.println("Moves       " + moveCount + "/" + movesGenerated);
 
 		printPercentage(ttHits, ttMisses, "TT          ");
-		System.out.println("TT-usage    " + TTUtil.usageCounter * 100 / TTUtil.MAX_TABLE_ENTRIES + "%");
+		if (TTUtil.maxEntries != 0) {
+			System.out.println("TT-usage    " + TTUtil.usageCounter * 100 / (TTUtil.maxEntries * 2) + "%");
+		}
 
 		printPercentage(evalCacheHits, evalCacheMisses, "Evalcache   ");
 		System.out.println("Usage       " + EvalCache.usageCounter * 100 / EvalCache.MAX_TABLE_ENTRIES + "%");
@@ -105,19 +109,22 @@ public class Statistics {
 		System.out.println("Usage       " + PawnEvalCache.usageCounter * 100 / PawnEvalCache.MAX_TABLE_ENTRIES + "%");
 
 		System.out.println("Depth       " + depth + "/" + maxDepth);
-		System.out.println("TT-best      " + bestMoveTT);
-		System.out.println("Promo-best   " + bestMovePromotion);
-		System.out.println("Win-cap-best " + bestMoveWinningCapture);
-		System.out.println("Killer1-best " + bestMoveKiller1);
-		System.out.println("Killer2-best " + bestMoveKiller2);
-		System.out.println("Other-best   " + bestMoveOther);
-		System.out.println("Los-cap-best " + bestMoveLosingCapture);
+		System.out.println("TT-best       " + bestMoveTT);
+		System.out.println("TT-upper-best " + bestMoveTTUpper);
+		System.out.println("TT-lower-best " + bestMoveTTLower);
+		System.out.println("Promo-best    " + bestMovePromotion);
+		System.out.println("Win-cap-best  " + bestMoveWinningCapture);
+		System.out.println("Killer1-best  " + bestMoveKiller1);
+		System.out.println("Killer2-best  " + bestMoveKiller2);
+		System.out.println("Other-best    " + bestMoveOther);
+		System.out.println("Los-cap-best  " + bestMoveLosingCapture);
 
 		printPercentage(nullMoveHit, nullMoveFail, "Null-move    ");
 		printPercentage(lmrMoveHit, lmrMoveFail, "LMR-move     ");
 		printPercentage(pvsMoveHit, pvsMoveFail, "PVS-move     ");
 
-		System.out.println("Check,SM,CM  " + checkCount + ", " + staleMateCount + ", " + mateCount);
+		System.out.println("Checkmate    " + mateCount);
+		System.out.println("Stalemate    " + staleMateCount);
 		System.out.println("Repetitions  " + repetitions + "(" + repetitionTests + ")");
 		System.out.println("Draw-by-mtrl " + drawByMaterialCount);
 		System.out.println("Bad bishop   " + badBishopEndgameCount);
@@ -129,6 +136,10 @@ public class Statistics {
 		if (hitCount != 0 && failCount != 0) {
 			System.out.println(message + hitCount + "/" + (failCount + hitCount) + " (" + hitCount * 100 / (hitCount + failCount) + "%)");
 		}
+	}
+
+	public static long getPassedTime() {
+		return System.currentTimeMillis() - startTime;
 	}
 
 }

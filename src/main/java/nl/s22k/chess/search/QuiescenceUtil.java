@@ -34,15 +34,12 @@ public class QuiescenceUtil {
 			}
 			MoveList.sort();
 		} else {
-			Statistics.qChecks++;
 			// generate ALL evasive moves
+			if (Statistics.ENABLED) {
+				Statistics.qChecks++;
+			}
 			MoveList.startPly();
 			MoveGenerator.generateAttacks(cb);
-			if (EngineConstants.ENABLE_Q_SEE) {
-				MoveList.setSeeScores(cb);
-			}
-			MoveList.sort();
-			// TODO sort evasive moves?
 			MoveGenerator.generateMoves(cb);
 		}
 
@@ -62,7 +59,7 @@ public class QuiescenceUtil {
 
 			/* prune bad-captures */
 			if (EngineConstants.ENABLE_Q_PRUNE_BAD_CAPTURES && MoveUtil.getScore(move) < 0) {
-				// TODO prune while in-check?
+				// no SEE score is assigned when in check so no moves will then be skipped
 				continue;
 			}
 

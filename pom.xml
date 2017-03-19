@@ -5,8 +5,9 @@
 	<groupId>nl.s22k</groupId>
 
 	<!-- so we can simply build other (experimental) artifacts -->
-	<artifactId>${engineName}</artifactId>
-	<version>1.1</version>
+	<!-- artifactId>${engineName}</artifactId -->
+	<artifactId>chess22k</artifactId>
+	<version>1.2</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

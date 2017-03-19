@@ -8,6 +8,7 @@ import static nl.s22k.chess.ChessConstants.QUEEN;
 import static nl.s22k.chess.ChessConstants.ROOK;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
@@ -21,8 +22,8 @@ public class SEEUtil {
 			final long allPieces) {
 
 		// TODO EP?
-		// TODO skip 'semi'-pinned-pieces? (unless it is attacking the checking-piece...)
 		// TODO verify SEE-score against q-search?
+		// TODO skip pawn and knight if they are already played
 
 		// put 'super-piece' in see position. we ignore checks and pinned-pieces
 
@@ -39,21 +40,15 @@ public class SEEUtil {
 		}
 
 		// bishop attacks
-		// check if this colorToMove bishops attack this square at all
-		if ((cb.bishopRayAttacks[colorToMove] & Util.POWER_LOOKUP[toIndex]) != 0) {
-			attackMove = MagicUtil.getBishopMoves(toIndex, allPieces) & cb.pieces[colorToMove][BISHOP] & allPieces;
-			if (attackMove != 0) {
-				return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, BISHOP, attackedPieceIndex);
-			}
+		attackMove = MagicUtil.getBishopMoves(toIndex, allPieces) & cb.pieces[colorToMove][BISHOP] & allPieces;
+		if (attackMove != 0) {
+			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, BISHOP, attackedPieceIndex);
 		}
 
 		// rook attacks
-		// check if this colorToMove rooks attack this square at all
-		if ((cb.rookRayAttacks[colorToMove] & Util.POWER_LOOKUP[toIndex]) != 0) {
-			attackMove = MagicUtil.getRookMoves(toIndex, allPieces) & cb.pieces[colorToMove][ROOK] & allPieces;
-			if (attackMove != 0) {
-				return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, ROOK, attackedPieceIndex);
-			}
+		attackMove = MagicUtil.getRookMoves(toIndex, allPieces) & cb.pieces[colorToMove][ROOK] & allPieces;
+		if (attackMove != 0) {
+			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, ROOK, attackedPieceIndex);
 		}
 
 		// pawn promotion attacks
@@ -63,13 +58,10 @@ public class SEEUtil {
 		}
 
 		// queen attacks
-		// check if this colorToMove queens attack this square at all
-		if ((cb.queenRayAttacks[colorToMove] & Util.POWER_LOOKUP[toIndex]) != 0) {
-			attackMove = (MagicUtil.getRookMoves(toIndex, allPieces) & cb.pieces[colorToMove][QUEEN]
-					| MagicUtil.getBishopMoves(toIndex, allPieces) & cb.pieces[colorToMove][QUEEN]) & allPieces;
-			if (attackMove != 0) {
-				return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, QUEEN, attackedPieceIndex);
-			}
+		attackMove = (MagicUtil.getRookMoves(toIndex, allPieces) & cb.pieces[colorToMove][QUEEN]
+				| MagicUtil.getBishopMoves(toIndex, allPieces) & cb.pieces[colorToMove][QUEEN]) & allPieces;
+		if (attackMove != 0) {
+			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, QUEEN, attackedPieceIndex);
 		}
 
 		// king attacks
@@ -119,8 +111,10 @@ public class SEEUtil {
 			Statistics.seeNodes++;
 		}
 
+		final long allPieces = (cb.allPieces ^ cb.pinnedPieces[ChessConstants.WHITE] ^ cb.pinnedPieces[ChessConstants.BLACK])
+				& ~Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)];
+
 		// promotion non-attack move
-		// TODO could be a knight-promotion
 		if (MoveUtil.getZKAttackedPieceIndex(move) == 0) {
 			if (EngineConstants.TEST_VALUES) {
 				if (!MoveUtil.isPromotion(move)) {
@@ -128,9 +122,9 @@ public class SEEUtil {
 				}
 			}
 			if (MoveUtil.isNightPromotion(move)) {
-				return EvalConstants.KNIGHT_PROMOTION_SCORE;
+				return EvalConstants.KNIGHT_PROMOTION_SCORE - getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), NIGHT, allPieces);
 			} else {
-				return EvalConstants.QUEEN_PROMOTION_SCORE;
+				return EvalConstants.QUEEN_PROMOTION_SCORE - getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), QUEEN, allPieces);
 			}
 		}
 
@@ -141,10 +135,7 @@ public class SEEUtil {
 		// EvalConstants.MATERIAL_SCORES[MoveUtil.getZKSourcePieceIndex(move)];
 		// }
 
-		long allPieces = cb.allPieces ^ Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)];
-
 		// add score when promotion
-		// TODO could be a knight-promotion
 		if (MoveUtil.isPromotion(move)) {
 			if (MoveUtil.isNightPromotion(move)) {
 				return EvalConstants.KNIGHT_PROMOTION_SCORE + EvalConstants.MATERIAL_SCORES[MoveUtil.getZKAttackedPieceIndex(move)]

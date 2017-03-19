@@ -55,7 +55,7 @@ public class ChessBoardUtil {
 		}
 
 		// 4: en-passant: -
-		if (fenArray[3].equals("-")) {
+		if (fenArray[3].equals("-") || fenArray[3].equals("–")) {
 			cb.epIndex = 0;
 		} else {
 			cb.epIndex = 104 - fenArray[3].charAt(0) + 8 * (Integer.parseInt(fenArray[3].substring(1)) - 1);
@@ -64,9 +64,10 @@ public class ChessBoardUtil {
 		if (fenArray.length > 4) {
 			// TODO
 			// 5: half-counter since last capture or pawn advance: 1
+			// fenArray[4]
 
 			// 6: counter: 1
-			cb.moveCounter = Integer.parseInt(fenArray[4]) * 2;
+			cb.moveCounter = Integer.parseInt(fenArray[5]) * 2;
 			if (cb.colorToMove == BLACK) {
 				cb.moveCounter++;
 			}
@@ -204,6 +205,7 @@ public class ChessBoardUtil {
 		cb.allPieces = cb.friendlyPieces[WHITE] | cb.friendlyPieces[BLACK];
 		cb.emptySpaces = ~cb.allPieces;
 
+		Arrays.fill(cb.pieceIndexes, ChessConstants.EMPTY);
 		for (int color = 0; color < cb.pieces.length; color++) {
 			for (int pieceIndex = 1; pieceIndex < cb.pieces[0].length; pieceIndex++) {
 				long piece = cb.pieces[color][pieceIndex];
@@ -215,13 +217,6 @@ public class ChessBoardUtil {
 		}
 
 		cb.checkingPieces = CheckUtil.getCheckingPieces(cb);
-
-		cb.updateBishopRayAttacks(WHITE);
-		cb.updateRookRayAttacks(WHITE);
-		cb.updateQueenRayAttacks(WHITE);
-		cb.updateBishopRayAttacks(BLACK);
-		cb.updateRookRayAttacks(BLACK);
-		cb.updateQueenRayAttacks(BLACK);
 
 		cb.updatePinnedPieces(WHITE);
 		cb.updatePinnedPieces(BLACK);

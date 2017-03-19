@@ -10,8 +10,8 @@ import nl.s22k.chess.eval.SEEUtil;
 public final class MoveList {
 
 	private static final int[] moves = new int[1024];
-	private static final int[] nextToGenerate = new int[ChessConstants.MAX_PLIES + 1];
-	private static final int[] nextToMove = new int[ChessConstants.MAX_PLIES + 1];
+	private static final int[] nextToGenerate = new int[ChessConstants.MAX_PLIES + 2];
+	private static final int[] nextToMove = new int[ChessConstants.MAX_PLIES + 2];
 	private static int currentPly;
 
 	public static void startPly() {
@@ -40,6 +40,10 @@ public final class MoveList {
 		return nextToGenerate[currentPly] != nextToMove[currentPly];
 	}
 
+	public static void skipMoves() {
+		nextToMove[currentPly] = nextToGenerate[currentPly];
+	}
+
 	public static void addMove(final int cleanMove) {
 
 		if (EngineConstants.TEST_VALUES) {
@@ -49,13 +53,6 @@ public final class MoveList {
 		}
 
 		moves[nextToGenerate[currentPly]++] = cleanMove;
-	}
-
-	/**
-	 * Starts at 1
-	 */
-	public static int currentMoveCounter() {
-		return nextToMove[currentPly] - nextToGenerate[currentPly - 1];
 	}
 
 	/**

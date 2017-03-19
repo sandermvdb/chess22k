@@ -64,11 +64,6 @@ public final class ChessBoard {
 	/** which piece is on which square */
 	public final int[] pieceIndexes = new int[64];
 
-	/** used for quickly determining if king is in check. updated whenever that piece moves */
-	public final long[] queenRayAttacks = new long[2];
-	public final long[] rookRayAttacks = new long[2];
-	public final long[] bishopRayAttacks = new long[2];
-
 	public static ChessBoard getInstance() {
 		return instance;
 	}
@@ -147,6 +142,20 @@ public final class ChessBoard {
 			// KP, KR or KQ
 			return false;
 		}
+	}
+
+	public boolean isDrawByMaterial() {
+		if (Long.bitCount(allPieces) > 3) {
+			return false;
+		}
+		if (Long.bitCount(allPieces) == 2) {
+			// KK
+			return true;
+		}
+
+		// KKB or KKN?
+		return pieces[WHITE][BISHOP] != 0 || pieces[BLACK][BISHOP] != 0 || pieces[WHITE][NIGHT] != 0 || pieces[BLACK][NIGHT] != 0;
+
 	}
 
 	public boolean isBadBishopEndgame() {
@@ -286,7 +295,6 @@ public final class ChessBoard {
 					pieces[colorToMove][QUEEN] |= toMask;
 					zobristKey ^= zkPieceValues[toIndex][colorToMove][zkSourcePieceIndex] ^ zkPieceValues[toIndex][colorToMove][QUEEN];
 					pieceIndexes[toIndex] = QUEEN;
-					updateQueenRayAttacks(colorToMove);
 				}
 				// update other players endgame
 				if (isEndGame(colorToMoveInverse) != isEndGame[colorToMoveInverse]) {
@@ -316,7 +324,6 @@ public final class ChessBoard {
 			pieces[colorToMove][zkSourcePieceIndex] ^= fromToMask;
 			psqtScore += colorFactor
 					* (EvalConstants.BISHOP_POSITION_SCORES[colorToMove][toIndex] - EvalConstants.BISHOP_POSITION_SCORES[colorToMove][fromIndex]);
-			updateBishopRayAttacks(colorToMove);
 			break;
 
 		case ROOK:
@@ -325,12 +332,10 @@ public final class ChessBoard {
 			zobristKey ^= zkCastling[castlingRights];
 			CastlingUtil.setRookMovedOrAttackedCastlingRights(this, fromIndex);
 			zobristKey ^= zkCastling[castlingRights];
-			updateRookRayAttacks(colorToMove);
 			break;
 
 		case QUEEN:
 			pieces[colorToMove][zkSourcePieceIndex] ^= fromToMask;
-			updateQueenRayAttacks(colorToMove);
 			break;
 
 		case KING:
@@ -344,7 +349,6 @@ public final class ChessBoard {
 			}
 			if (MoveUtil.isCastling(move)) {
 				CastlingUtil.castleRookUpdateKeyAndPsqt(this, toIndex);
-				updateRookRayAttacks(colorToMove);
 			}
 			zobristKey ^= zkCastling[castlingRights];
 			CastlingUtil.setKingMovedCastlingRights(this, fromIndex);
@@ -382,7 +386,6 @@ public final class ChessBoard {
 			psqtScore += colorFactor * EvalConstants.BISHOP_POSITION_SCORES[colorToMoveInverse][toIndex];
 			zobristKey ^= zkPieceValues[toIndex][colorToMoveInverse][zkAttackedPieceIndex];
 			friendlyPieces[colorToMoveInverse] ^= toMask;
-			updateBishopRayAttacks(colorToMoveInverse);
 			break;
 
 		case ROOK:
@@ -392,14 +395,12 @@ public final class ChessBoard {
 			CastlingUtil.setRookMovedOrAttackedCastlingRights(this, toIndex);
 			zobristKey ^= zkCastling[castlingRights] ^ zkPieceValues[toIndex][colorToMoveInverse][zkAttackedPieceIndex];
 			friendlyPieces[colorToMoveInverse] ^= toMask;
-			updateRookRayAttacks(colorToMoveInverse);
 			break;
 
 		case QUEEN:
 			pieces[colorToMoveInverse][zkAttackedPieceIndex] ^= toMask;
 			zobristKey ^= zkPieceValues[toIndex][colorToMoveInverse][zkAttackedPieceIndex];
 			friendlyPieces[colorToMoveInverse] ^= toMask;
-			updateQueenRayAttacks(colorToMoveInverse);
 		}
 
 		// update current players endgame
@@ -444,73 +445,33 @@ public final class ChessBoard {
 
 	}
 
-	public void updateQueenRayAttacks(final int color) {
-		queenRayAttacks[color] = 0;
-		long piece = pieces[color][QUEEN];
-		while (piece != 0) {
-			queenRayAttacks[color] |= MagicUtil.queenMovesEmptyBoard[Long.numberOfTrailingZeros(piece)];
-			piece &= piece - 1;
-		}
-	}
-
-	public void updateRookRayAttacks(final int color) {
-		rookRayAttacks[color] = 0;
-		long piece = pieces[color][ROOK];
-		while (piece != 0) {
-			rookRayAttacks[color] |= MagicUtil.rookMovesEmptyBoard[Long.numberOfTrailingZeros(piece)];
-			piece &= piece - 1;
-		}
-	}
-
-	public void updateBishopRayAttacks(final int color) {
-		bishopRayAttacks[color] = 0;
-		long piece = pieces[color][BISHOP];
-		while (piece != 0) {
-			bishopRayAttacks[color] |= MagicUtil.bishopMovesEmptyBoard[Long.numberOfTrailingZeros(piece)];
-			piece &= piece - 1;
-		}
-	}
-
 	public void updatePinnedPieces(final int color) {
 
 		pinnedPieces[color] = 0;
 
 		final int colorInverse = color * -1 + 1;
-		int pieceIndex;
+		long checkedPinnedPiece;
+		long piece;
 
-		if (((bishopRayAttacks[colorInverse] | queenRayAttacks[colorInverse]) & Util.POWER_LOOKUP[kingIndex[color]]) != 0) {
-			// iterate over all friendly pieces at diagonal blockingpositions
-			long piecesLong = friendlyPieces[color] & MagicUtil.getBishopMoves(kingIndex[color], allPieces, friendlyPieces[colorInverse]);
-			while (piecesLong != 0) {
-				pieceIndex = Long.numberOfTrailingZeros(piecesLong);
-
-				// temporary remove piece and check if is now in check by sliding piece
-				if (CheckUtil.isInDiscoveredCheckBySlidingDiagonalPiece(checkingPieces, pieces[colorInverse][BISHOP] | pieces[colorInverse][QUEEN],
-						kingIndex[color], friendlyPieces[color] ^ Util.POWER_LOOKUP[pieceIndex], allPieces ^ Util.POWER_LOOKUP[pieceIndex])) {
-					// (partially) pinned
-					pinnedPieces[color] |= Util.POWER_LOOKUP[pieceIndex];
-				}
-
-				piecesLong &= piecesLong - 1;
+		// bishop and queen
+		piece = pieces[colorInverse][BISHOP] | pieces[colorInverse][QUEEN];
+		while (piece != 0) {
+			checkedPinnedPiece = ChessConstants.BISHOP_IN_BETWEEN[kingIndex[color]][Long.numberOfTrailingZeros(piece)] & allPieces;
+			if (Long.bitCount(checkedPinnedPiece) == 1) {
+				pinnedPieces[color] |= checkedPinnedPiece & friendlyPieces[color];
 			}
-		}
-		if (((rookRayAttacks[colorInverse] | queenRayAttacks[colorInverse]) & Util.POWER_LOOKUP[kingIndex[color]]) != 0) {
-			// iterate over all friendly pieces at vertical and horizontal blockingpositions
-			long piecesLong = friendlyPieces[color] & MagicUtil.getRookMoves(kingIndex[color], allPieces, friendlyPieces[colorInverse]);
-			while (piecesLong != 0) {
-				pieceIndex = Long.numberOfTrailingZeros(piecesLong);
-
-				// temporary remove piece and check if is now in check by sliding piece
-				if (CheckUtil.isInDiscoveredCheckBySlidingVHPiece(checkingPieces, pieces[colorInverse][ROOK] | pieces[colorInverse][QUEEN], kingIndex[color],
-						friendlyPieces[color] ^ Util.POWER_LOOKUP[pieceIndex], allPieces ^ Util.POWER_LOOKUP[pieceIndex])) {
-					// (partially) pinned
-					pinnedPieces[color] |= Util.POWER_LOOKUP[pieceIndex];
-				}
-
-				piecesLong &= piecesLong - 1;
-			}
+			piece &= piece - 1;
 		}
 
+		// rook and queen
+		piece = pieces[colorInverse][ROOK] | pieces[colorInverse][QUEEN];
+		while (piece != 0) {
+			checkedPinnedPiece = ChessConstants.ROOK_IN_BETWEEN[kingIndex[color]][Long.numberOfTrailingZeros(piece)] & allPieces;
+			if (Long.bitCount(checkedPinnedPiece) == 1) {
+				pinnedPieces[color] |= checkedPinnedPiece & friendlyPieces[color];
+			}
+			piece &= piece - 1;
+		}
 	}
 
 	public void undoMove(int move) {
@@ -547,7 +508,6 @@ public final class ChessBoard {
 					pieces[colorToMoveInverse][NIGHT] ^= toMask;
 				} else {
 					pieces[colorToMoveInverse][QUEEN] ^= toMask;
-					updateQueenRayAttacks(colorToMoveInverse);
 				}
 				// update other players endgame
 				isEndGame[colorToMove] = isEndGame(colorToMove);
@@ -560,21 +520,18 @@ public final class ChessBoard {
 			break;
 		case ROOK:
 			pieces[colorToMoveInverse][zkSourcePieceIndex] ^= fromToMask;
-			updateRookRayAttacks(colorToMoveInverse);
 			break;
 		case BISHOP:
 			pieces[colorToMoveInverse][zkSourcePieceIndex] ^= fromToMask;
-			updateBishopRayAttacks(colorToMoveInverse);
 			break;
 		case QUEEN:
 			pieces[colorToMoveInverse][zkSourcePieceIndex] ^= fromToMask;
-			updateQueenRayAttacks(colorToMoveInverse);
 			break;
 		case KING:
 			if (MoveUtil.isCastling(move)) {
 				pieces[colorToMoveInverse][KING] = fromMask;
 				CastlingUtil.uncastleRook(this, toIndex);
-				updateRookRayAttacks(colorToMoveInverse);
+				// updateRookRayAttacks(colorToMoveInverse);
 			} else {
 				pieces[colorToMoveInverse][zkSourcePieceIndex] ^= fromToMask;
 			}
@@ -591,17 +548,6 @@ public final class ChessBoard {
 			} else {
 				pieces[colorToMove][zkAttackedPieceIndex] |= toMask;
 				friendlyPieces[colorToMove] |= toMask;
-
-				switch (zkAttackedPieceIndex) {
-				case ROOK:
-					updateRookRayAttacks(colorToMove);
-					break;
-				case BISHOP:
-					updateBishopRayAttacks(colorToMove);
-					break;
-				case QUEEN:
-					updateQueenRayAttacks(colorToMove);
-				}
 			}
 			// update current players endgame
 			isEndGame[colorToMoveInverse] = isEndGame(colorToMoveInverse);

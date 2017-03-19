@@ -20,12 +20,15 @@ public final class NegamaxUtil {
 
 	public static MainEngine chessEngine;
 	public static boolean stop = false;
+	public static int maxDepth = ChessConstants.MAX_PLIES;
 
 	public static final int MOVE_TT = 0;
 	public static final int MOVE_ATTACKING = 1;
 	public static final int MOVE_KILLER_1 = 2;
 	public static final int MOVE_KILLER_2 = 3;
 	public static final int MOVE_QUIET = 4;
+
+	// public static final MoveWrapper[] playedMoves = new MoveWrapper[4];
 
 	public static int calculateBestMove(final ChessBoard cb, final int ply, int depth, int alpha, int beta, final boolean isNullMove) {
 
@@ -50,6 +53,7 @@ public final class NegamaxUtil {
 
 		}
 
+		Statistics.maxDepth = Math.max(Statistics.maxDepth, ply);
 		if (Statistics.ENABLED) {
 			Statistics.abNodes++;
 		}
@@ -70,7 +74,15 @@ public final class NegamaxUtil {
 				if (Statistics.ENABLED) {
 					Statistics.repetitions++;
 				}
-				return EvalConstants.SCORE_DRAW_3FOLD;
+				return EvalConstants.SCORE_DRAW;
+			}
+
+			/* draw-by-material */
+			if (cb.isDrawByMaterial()) {
+				if (Statistics.ENABLED) {
+					Statistics.drawByMaterialCount++;
+				}
+				return EvalConstants.SCORE_DRAW;
 			}
 
 			/* bad-bishop endgame */
@@ -78,12 +90,14 @@ public final class NegamaxUtil {
 				if (Statistics.ENABLED) {
 					Statistics.badBishopEndgameCount++;
 				}
-				return EvalConstants.SCORE_DRAW_BAD_BISHOP_ENDGAME;
+				return EvalConstants.SCORE_DRAW;
 			}
 		}
 
 		/* check-extension */
-		if (EngineConstants.ENABLE_CHECK_EXTENSION && cb.checkingPieces != 0) {
+		// TODO extend discovered checks?
+		// TODO extend checks with SEE > 0?
+		if (EngineConstants.ENABLE_CHECK_EXTENSION && cb.checkingPieces != 0 && Long.bitCount(cb.allPieces) > 3) {
 			depth++;
 			if (Statistics.ENABLED) {
 				Statistics.extensions++;
@@ -116,22 +130,20 @@ public final class NegamaxUtil {
 						}
 					}
 
-					switch (TTUtil.getFlag(ttValue)) {
-					case TTUtil.FLAG_EXACT:
-						return score;
-					case TTUtil.FLAG_LOWER:
-						if (score >= beta) {
+					if (ply != 0) {
+						switch (TTUtil.getFlag(ttValue)) {
+						case TTUtil.FLAG_EXACT:
 							return score;
+						case TTUtil.FLAG_LOWER:
+							if (score >= beta) {
+								return score;
+							}
+							break;
+						case TTUtil.FLAG_UPPER:
+							if (score <= alpha) {
+								return score;
+							}
 						}
-						// wikipedia:
-						// alpha = Math.max(alpha, score);
-						break;
-					case TTUtil.FLAG_UPPER:
-						if (score <= alpha) {
-							return score;
-						}
-						// wikipedia:
-						// beta = Math.min(beta, score);
 					}
 				}
 			}
@@ -139,7 +151,8 @@ public final class NegamaxUtil {
 
 		/* null-move */
 		if (EngineConstants.ENABLE_NULL_MOVE) {
-			if (beta - alpha <= 1 && !isNullMove && cb.checkingPieces == 0 && depth > EngineConstants.NULL_MOVE_R && !cb.hasOnlyPawns(cb.colorToMove)) {
+			if (beta - alpha <= 1 && !isNullMove && cb.checkingPieces == 0 && depth > EngineConstants.NULL_MOVE_R && !cb.hasOnlyPawns(cb.colorToMove)
+					&& Long.bitCount(cb.allPieces) > 3) {
 				cb.doNullMove();
 				score = -calculateBestMove(cb, ply + 1, depth - EngineConstants.NULL_MOVE_R - 1, -beta, -beta + 1, true);
 				cb.undoNullMove();
@@ -182,7 +195,7 @@ public final class NegamaxUtil {
 				}
 				if (ttValue != 0) {
 					move = TTUtil.getMove(ttValue);
-					cleanTTMove = move;
+					cleanTTMove = MoveUtil.getCleanMove(move);
 					MoveList.addMove(move);
 				}
 				break;
@@ -194,15 +207,16 @@ public final class NegamaxUtil {
 				MoveList.sort();
 				break;
 			case MOVE_KILLER_1:
+				// TODO skip killer when in-check?
 				move = HeuristicUtil.getCleanKiller1(ply);
-				if (move != cleanTTMove && cb.isValidKillerMove(move)) {
+				if (move != 0 && move != cleanTTMove && cb.isValidKillerMove(move)) {
 					killerFromToIndex1 = MoveUtil.getFromToIndex(move);
 					MoveList.addMove(move);
 				}
 				break;
 			case MOVE_KILLER_2:
 				move = HeuristicUtil.getCleanKiller2(ply);
-				if (move != cleanTTMove && cb.isValidKillerMove(move)) {
+				if (move != 0 && move != cleanTTMove && cb.isValidKillerMove(move)) {
 					killerFromToIndex2 = MoveUtil.getFromToIndex(move);
 					MoveList.addMove(move);
 				}
@@ -232,9 +246,7 @@ public final class NegamaxUtil {
 					// skip ALL losing captures
 					if (EngineConstants.ENABLE_SORT_LOSING_CAPTURES && MoveUtil.getScore(move) < -10) {
 						losingCapturesIndex = MoveList.getIndex() - 1;
-						while (MoveList.hasNext()) {
-							MoveList.next();
-						}
+						MoveList.skipMoves();
 						continue;
 					}
 				} else if (phase == MOVE_QUIET) {
@@ -245,6 +257,12 @@ public final class NegamaxUtil {
 						continue;
 					}
 				}
+
+				// // record nodecount
+				// final long nodeCount = Statistics.moveCount;
+				// if (ply < 4) {
+				// playedMoves[ply] = new MoveWrapper(move);
+				// }
 
 				cb.doMove(move);
 				movesPerformed++;
@@ -261,39 +279,26 @@ public final class NegamaxUtil {
 				score = Util.SHORT_MAX;
 				// TODO if-statement order
 				// TODO create constant for LMR_DEPTH
-				if (EngineConstants.ENABLE_LMR && depth > 3 && movesPerformed >= EngineConstants.LMR_MOVE_COUNTER && MoveUtil.getZKAttackedPieceIndex(move) == 0
-						&& cb.checkingPieces == 0) {
+				if (EngineConstants.ENABLE_LMR && depth > 3 && movesPerformed > EngineConstants.LMR_MOVE_COUNTER && MoveUtil.getZKAttackedPieceIndex(move) == 0
+						&& cb.checkingPieces == 0 && !MoveUtil.isPromotion(move)) {
 					/* LMR */
-					if (EngineConstants.TEST_VALUES) {
-						if (MoveUtil.isPromotion(move)) {
-							if (MoveUtil.isNightPromotion(move)) {
-								// System.out.println("Night-promotion-move found in LMR");
-							} else {
-								System.out.println("Queen-promotion-move found in LMR");
-							}
-						}
-					}
 					score = -calculateBestMove(cb, ply + 1, depth - 2, -alpha - 1, -alpha, false);
-					if (score > alpha) {
-						if (Statistics.ENABLED) {
+					if (Statistics.ENABLED) {
+						if (score > alpha) {
 							Statistics.lmrMoveFail++;
-						}
-					} else {
-						if (Statistics.ENABLED) {
+						} else {
 							Statistics.lmrMoveHit++;
 						}
 					}
-				} else if (EngineConstants.ENABLE_PVS && MoveList.currentMoveCounter() > 1) {
+				} else if (EngineConstants.ENABLE_PVS && movesPerformed > 1) {
 					/* PVS */
 					// TODO when in-check?
 					// TODO when depth = 1?
 					score = -calculateBestMove(cb, ply + 1, depth - 1, -alpha - 1, -alpha, false);
-					if (score > alpha) {
-						if (Statistics.ENABLED) {
+					if (Statistics.ENABLED) {
+						if (score > alpha) {
 							Statistics.pvsMoveFail++;
-						}
-					} else {
-						if (Statistics.ENABLED) {
+						} else {
 							Statistics.pvsMoveHit++;
 						}
 					}
@@ -304,6 +309,21 @@ public final class NegamaxUtil {
 
 				RepetitionTable.removeValue(cb.zobristKey);
 				cb.undoMove(move);
+
+				// print nodecount
+				// if (ply == 0) {
+				// System.out.println(playedMoves[0] + " " + (Statistics.moveCount - nodeCount));
+				// } else if (ply == 1) {
+				// System.out.println(playedMoves[0] + " " + playedMoves[1] + " " + (Statistics.moveCount - nodeCount));
+				// } else if (ply == 2) {
+				// System.out.println(playedMoves[0] + " " + playedMoves[1] + " " + playedMoves[2] + " " +
+				// (Statistics.moveCount - nodeCount));
+				// }
+				// else if (ply == 3) {
+				// System.out.println(
+				// playedMoves[0] + " " + playedMoves[1] + ", " + playedMoves[2] + ", " + playedMoves[3] + " " +
+				// (Statistics.moveCount - nodeCount));
+				// }
 
 				if (score > bestScore) {
 					bestScore = score;
@@ -339,7 +359,7 @@ public final class NegamaxUtil {
 				if (Statistics.ENABLED) {
 					Statistics.staleMateCount++;
 				}
-				return EvalConstants.SCORE_DRAW_STALEMATE;
+				return EvalConstants.SCORE_DRAW;
 			} else {
 				if (Statistics.ENABLED) {
 					Statistics.mateCount++;
@@ -356,22 +376,24 @@ public final class NegamaxUtil {
 
 		// set tt-flag
 		int flag = TTUtil.FLAG_EXACT;
-		if (bestScore <= alphaOrig) {
-			flag = TTUtil.FLAG_UPPER;
-		} else if (bestScore >= beta) {
+		if (bestScore >= beta) {
 			flag = TTUtil.FLAG_LOWER;
+		} else if (bestScore <= alphaOrig) {
+			flag = TTUtil.FLAG_UPPER;
 		}
 
-		/* add TT value, if not repetition, except at the root because we need a bestmove */
-		if (score != 0 || ply == 0) {
-			// do not add 3-fold-repetition scores
-			TTUtil.addValue(cb.zobristKey, bestScore, ply, depth, flag, MoveUtil.getCleanMove(bestMove));
-		}
+		TTUtil.addValue(cb.zobristKey, bestScore, ply, depth, flag, MoveUtil.getCleanMove(bestMove));
 
 		/* update statistics */
 		if (Statistics.ENABLED) {
 			if (MoveUtil.getCleanMove(bestMove) == cleanTTMove) {
-				Statistics.bestMoveTT++;
+				if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_LOWER) {
+					Statistics.bestMoveTTLower++;
+				} else if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_UPPER) {
+					Statistics.bestMoveTTUpper++;
+				} else {
+					Statistics.bestMoveTT++;
+				}
 			} else if (MoveUtil.isPromotion(bestMove)) {
 				Statistics.bestMovePromotion++;
 			} else if (MoveUtil.getZKAttackedPieceIndex(bestMove) != 0) {
@@ -405,18 +427,12 @@ public final class NegamaxUtil {
 		return bestScore;
 	}
 
-	public static void start(ChessBoard chessBoard, int depth) {
+	public static void start(ChessBoard chessBoard) {
 		stop = false;
 
-		Statistics.depth = depth;
-		calculateBestMove(chessBoard, 0, depth, Util.SHORT_MIN, Util.SHORT_MAX, true);
-		TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.EXACT);
-		chessEngine.sendPlyInfo();
-		chessEngine.sendBestMove();
-	}
-
-	public static void start(ChessBoard chessBoard, long msecLeft) {
-		stop = false;
+		if (!TTUtil.isInitialized) {
+			TTUtil.init();
+		}
 
 		int depth = 1;
 		int alpha = Util.SHORT_MIN;
@@ -425,14 +441,11 @@ public final class NegamaxUtil {
 		int score = 0;
 
 		// continue calculating while stop signal has not been given and max depth has not been reached
-		while (!stop && depth != ChessConstants.MAX_PLIES) {
+		while (!stop && depth != maxDepth + 1) {
 
-			// always continue if we are in analyzing mode or if depth=1
-			if (msecLeft != Long.MAX_VALUE && depth != 1) {
-				// stop if time has run out or only 1 root-move is possible
-				if (!IDUtil.isTimeLeft(chessBoard, msecLeft)) {
-					break;
-				}
+			// always continue if depth=1
+			if (depth != 1 && !TimeUtil.isTimeLeft(score == EvalConstants.SCORE_DRAW)) {
+				break;
 			}
 
 			Statistics.depth = depth;
@@ -440,7 +453,7 @@ public final class NegamaxUtil {
 			// set minimal window if TT contains a lot of PV moves to prevent if from calculating ply 23 if 22 came from
 			// the TT
 			int delta;
-			if (depth > 12 && Statistics.maxDepth == 0) {
+			if (EngineConstants.ENABLE_ASPIRATION_WINDOW && depth > 12 && Statistics.maxDepth < depth) {
 				alpha = score;
 				beta = score;
 				delta = 2;
@@ -448,43 +461,44 @@ public final class NegamaxUtil {
 				delta = EngineConstants.ASPIRATION_WINDOW_DELTA;
 			}
 			while (true) {
-				// stop if stop command is received
-				if (stop) {
-					break;
-				}
+
 				// stop if depth!=1 and no time is left
-				if (depth != 1 && !IDUtil.isTimeLeft(chessBoard, msecLeft)) {
+				if (depth != 1 && !TimeUtil.isTimeLeft(score == EvalConstants.SCORE_DRAW)) {
 					break;
 				}
 
 				score = calculateBestMove(chessBoard, 0, depth, alpha, beta, true);
 
-				if (score <= alpha) {
-					alpha = Math.max(alpha - delta, Util.SHORT_MIN);
-					if (depth > 12 && Statistics.maxDepth == 0) {
-						delta++;
-					} else {
-						delta += delta / 2;
-					}
-					TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.ALPHA);
-					chessEngine.sendPlyInfo();
-				} else if (score >= beta) {
-					beta = Math.min(beta + delta, Util.SHORT_MAX);
-					if (depth > 12 && Statistics.maxDepth == 0) {
-						delta++;
-					} else {
-						delta += delta / 2;
-					}
-					TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.BETA);
-					chessEngine.sendPlyInfo();
-				} else {
-					if (EngineConstants.ENABLE_ASPIRATION_WINDOW) {
-						alpha = Math.max(score - delta, Util.SHORT_MIN);
-						beta = Math.min(score + delta, Util.SHORT_MAX);
-					}
-					TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.EXACT);
-					chessEngine.sendPlyInfo();
+				if (stop) {
 					break;
+				} else {
+					if (score <= alpha) {
+						alpha = Math.max(alpha - delta, Util.SHORT_MIN);
+						if (depth > 12 && Statistics.maxDepth < depth) {
+							delta++;
+						} else {
+							delta += delta / 2;
+						}
+						TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.ALPHA);
+						chessEngine.sendPlyInfo();
+					} else if (score >= beta) {
+						beta = Math.min(beta + delta, Util.SHORT_MAX);
+						if (depth > 12 && Statistics.maxDepth < depth) {
+							delta++;
+						} else {
+							delta += delta / 2;
+						}
+						TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.BETA);
+						chessEngine.sendPlyInfo();
+					} else {
+						if (EngineConstants.ENABLE_ASPIRATION_WINDOW) {
+							alpha = Math.max(score - delta, Util.SHORT_MIN);
+							beta = Math.min(score + delta, Util.SHORT_MAX);
+						}
+						TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.EXACT);
+						chessEngine.sendPlyInfo();
+						break;
+					}
 				}
 			}
 

@@ -14,12 +14,15 @@ public class MoveWrapper {
 
 	/** a to h */
 	public char toFile;
+
 	public int fromIndex;
 	public int toIndex;
 	public int move;
+	public int score;
 
 	public boolean isNightPromotion = false;
 	public boolean isQueenPromotion = false;
+	public boolean isEP = false;
 
 	public MoveWrapper(int move) {
 		this.move = move;
@@ -32,11 +35,17 @@ public class MoveWrapper {
 		toFile = (char) (104 - toIndex % 8);
 		toRank = toIndex / 8 + 1;
 
+		score = MoveUtil.getScore(move);
+
 		if (MoveUtil.isPromotion(move)) {
 			if (MoveUtil.isNightPromotion(move)) {
 				isNightPromotion = true;
 			} else {
 				isQueenPromotion = true;
+			}
+		} else {
+			if (MoveUtil.isEP(move)) {
+				isEP = true;
 			}
 		}
 
@@ -121,6 +130,12 @@ public class MoveWrapper {
 			return moveString + "q";
 		}
 		return moveString;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		MoveWrapper compare = (MoveWrapper) obj;
+		return compare.toString().equals(toString());
 	}
 
 }

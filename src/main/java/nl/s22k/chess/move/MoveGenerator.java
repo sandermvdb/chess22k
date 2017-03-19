@@ -79,7 +79,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.quietNotInCheckMoves(StaticMoves.KNIGHT_MOVES[fromIndex] & cb.emptySpaces, fromIndex, cb);
@@ -142,7 +142,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.notInCheckAttacks(StaticMoves.KNIGHT_MOVES[fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse], fromIndex, cb);
@@ -217,7 +217,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.quietInCheckMoves(StaticMoves.KNIGHT_MOVES[fromIndex] & cb.emptySpaces, fromIndex, cb);
@@ -269,7 +269,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.inCheckAttacks(cb.checkingPieces & StaticMoves.KNIGHT_MOVES[fromIndex], fromIndex, cb);
@@ -340,7 +340,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.inCheckAttacks(cb.checkingPieces & StaticMoves.KNIGHT_MOVES[fromIndex], fromIndex, cb);
@@ -373,8 +373,7 @@ public final class MoveGenerator {
 			MoveListAdd.inCheckAttacks(StaticMoves.PAWN_NON_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.checkingPieces, fromIndex, cb);
 
 			// ep-move
-			if (cb.epIndex != 0
-					&& (Util.POWER_LOOKUP[cb.epIndex] & StaticMoves.PAWN_NON_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.checkingPieces) != 0) {
+			if (cb.epIndex != 0 && (Util.POWER_LOOKUP[cb.epIndex] & StaticMoves.PAWN_NON_PROMOTION_ATTACKS[cb.colorToMove][fromIndex]) != 0) {
 				MoveListAdd.EPAttackMove(fromIndex, cb);
 			}
 

@@ -23,7 +23,7 @@ public class DrawTest {
 		System.out.println("insufficientMaterialTest");
 		Statistics.reset();
 		ChessBoard cb = ChessBoardUtil.getNewCB("8/8/7B/8/8/5k2/5p2/5K2 b - - 19 85 ");
-		NegamaxUtil.start(cb, 10);
+		NegamaxUtil.start(cb);
 	}
 
 	@Test
@@ -31,7 +31,7 @@ public class DrawTest {
 		System.out.println("repetitionIsBestMoveTest");
 		Statistics.reset();
 		ChessBoard cb = ChessBoardUtil.getNewCB("3k4/4R1R1/8/8/8/K5pp/6r1/7q w - - 100 1 ");
-		NegamaxUtil.start(cb, 15);
+		NegamaxUtil.start(cb);
 		Statistics.print();
 	}
 

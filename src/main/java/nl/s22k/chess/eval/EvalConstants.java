@@ -9,7 +9,7 @@ import nl.s22k.chess.move.StaticMoves;
 
 public class EvalConstants {
 
-	public static final int[] MATERIAL_SCORES = new int[] { 0, 100, 325, 350, 500, 950, 3200 };
+	public static final int[] MATERIAL_SCORES = new int[] { 0, 100, 325, 340, 500, 950, 3000 };
 	public static final int QUEEN_PROMOTION_SCORE = MATERIAL_SCORES[ChessConstants.QUEEN] - MATERIAL_SCORES[ChessConstants.PAWN];
 	public static final int KNIGHT_PROMOTION_SCORE = MATERIAL_SCORES[ChessConstants.NIGHT] - MATERIAL_SCORES[ChessConstants.PAWN];
 
@@ -28,11 +28,7 @@ public class EvalConstants {
 		 //                      P           P     N  N  N           P     P  N  N     P  N  N  R  R  R  R
 			0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 2, 2, 2, 3, 3, 3, 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3 };
 
-	// scores with value 0 are not stored in the TT
-	public static final int SCORE_DRAW_3FOLD = 0;
-	public static final int SCORE_DRAW_STALEMATE = 1;
-	public static final int SCORE_DRAW_MATERIAL = 2;
-	public static final int SCORE_DRAW_BAD_BISHOP_ENDGAME = 3;
+	public static final int SCORE_DRAW = 0;
 
 	public static final int SCORE_MATE_BOUND = 32000;
 
@@ -73,7 +69,9 @@ public class EvalConstants {
 	public static final int[] QUEEN_MOBILITY = new int[] {-10, -6, -5, -4, -2, -2, -1, 0, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 6,
 			7, 7, 8, 8, 9, 9, 10, 10, 10};
 	
-	public static final int[] PASSED_PAWN_ENDGAME_SCORE = new int[] {0, 20, 40, 80, 120, 160, 200, 0};
+	public static final int[] PASSED_PAWN_ENDGAME_SCORE = new int[] {0, 20, 40, 60, 120, 150, 250, 0};
+	
+	public static final int[] KKR_KKQ_KING_DISTANCE_SCORE = new int[]{0, 0, 60, 40, 30, 20, 10, 0};
 		
 	static
 	{	KNIGHT_POSITION_SCORES[WHITE] = new int[]{	
@@ -114,8 +112,8 @@ public class EvalConstants {
 				100,100,100,100,100,100,100,100,
 				 50, 50, 50, 50, 50, 50, 50, 50,
 				 20, 20, 20, 25, 25, 20, 20, 20,
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				  0,  0,  0,  0,  0,  0,  0,  0,
+				 10, 10, 10, 10, 10, 10, 10, 10,
+				  5,  5,  5,  5,  5,  5,  5,  5,
 				  0,  0,  0,  0,  0,  0,  0,  0,
 				  0,  0,  0,  0,  0,  0,  0,  0
 		};
@@ -154,14 +152,14 @@ public class EvalConstants {
 		};
 		
 		KING_POSITION_SCORES_ENDGAME[WHITE] = new int[] {
-				-50,-40,-30,-10,-10,-30,-40,-50,
-				-45,-25, -5,  0,  0, -5,-25,-45,
-				-25, -5, 10, 15, 15, 10, -5,-25,
-				-25, -5, 15, 20, 20, 15, -5,-25,
-				-25, -5, 15, 20, 20, 15, -5,-25,
-				-25, -5, 10, 15, 15, 10, -5,-25,
-				-35,-25,  0,  0,  0,  0,-25,-35,
-				-50,-40,-20,-15,-15,-20,-40,-50
+				 0, 10, 20, 40, 40, 20, 10,  0,
+				 5, 25, 45, 50, 50, 45, 25,  5,
+				25, 45, 60, 65, 65, 60, 45, 25,
+				25, 45, 65,100,100, 65, 45, 25,
+				25, 45, 65,100,100, 65, 45, 25,
+				25, 45, 60, 65, 65, 60, 45, 25,
+				15, 25, 50, 50, 50, 50, 25, 15,
+				 0, 10, 30, 35, 35, 30, 10,  0
 		};
 		
 		KING_SAFETY_COUNTER[WHITE] = new int[]{

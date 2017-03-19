@@ -13,12 +13,6 @@ public class ChessBoardTestUtil {
 		long iterativeWhitePieces = cb.friendlyPieces[WHITE];
 		long iterativeBlackPieces = cb.friendlyPieces[BLACK];
 		long iterativeAllPieces = cb.allPieces;
-		long iterativeWhiteBishopAttacks = cb.bishopRayAttacks[WHITE];
-		long iterativeBlackBishopAttacks = cb.bishopRayAttacks[BLACK];
-		long iterativeWhiteRookAttacks = cb.rookRayAttacks[WHITE];
-		long iterativeBlackRookAttacks = cb.rookRayAttacks[BLACK];
-		long iterativeWhiteQueenAttacks = cb.queenRayAttacks[WHITE];
-		long iterativeBlackQueenAttacks = cb.queenRayAttacks[BLACK];
 		long pinnedPiecesWhite = cb.pinnedPieces[WHITE];
 		long pinnedPiecesBlack = cb.pinnedPieces[BLACK];
 		int iterativePsqt = cb.psqtScore;
@@ -56,26 +50,6 @@ public class ChessBoardTestUtil {
 			System.out.println(String.format("Incorrect black pinned-pieces calculated in chessBoard.%s()", method));
 		}
 
-		// attack-pieces
-		if (iterativeBlackBishopAttacks != cb.bishopRayAttacks[BLACK]) {
-			System.out.println(String.format("Incorrect black bishop attacks calculated in chessBoard.%s()", method));
-		}
-		if (iterativeWhiteBishopAttacks != cb.bishopRayAttacks[WHITE]) {
-			System.out.println(String.format("Incorrect white bishop attacks calculated in chessBoard.%s()", method));
-		}
-		if (iterativeBlackRookAttacks != cb.rookRayAttacks[BLACK]) {
-			System.out.println(String.format("Incorrect black rook attacks calculated in chessBoard.%s()", method));
-		}
-		if (iterativeWhiteRookAttacks != cb.rookRayAttacks[WHITE]) {
-			System.out.println(String.format("Incorrect white rook attacks calculated in chessBoard.%s()", method));
-		}
-		if (iterativeBlackQueenAttacks != cb.queenRayAttacks[BLACK]) {
-			System.out.println(String.format("Incorrect black queen attacks calculated in chessBoard.%s()", method));
-		}
-		if (iterativeWhiteQueenAttacks != cb.queenRayAttacks[WHITE]) {
-			System.out.println(String.format("Incorrect white queen attacks calculated in chessBoard.%s()", method));
-		}
-
 		// combined pieces
 		if (iterativeWhitePieces != cb.friendlyPieces[WHITE]) {
 			System.out.println(String.format("Incorrect whitePieces calculated in chessBoard.%s()", method));
@@ -96,10 +70,11 @@ public class ChessBoardTestUtil {
 		}
 
 		// piece-indexes
-		int[] iterativePieceScores = new int[64];
-		System.arraycopy(cb.pieceIndexes, 0, iterativePieceScores, 0, 64);
 		for (int i = 0; i < 64; i++) {
-			if (iterativePieceScores[i] != cb.pieceIndexes[i]) {
+			if ((cb.allPieces & Util.POWER_LOOKUP[i]) != 0 && cb.pieceIndexes[i] == ChessConstants.EMPTY) {
+				System.out.println(String.format("Incorrect pieceScores calculated in chessBoard.%s()", method));
+			}
+			if ((cb.allPieces & Util.POWER_LOOKUP[i]) == 0 && cb.pieceIndexes[i] != ChessConstants.EMPTY) {
 				System.out.println(String.format("Incorrect pieceScores calculated in chessBoard.%s()", method));
 			}
 		}

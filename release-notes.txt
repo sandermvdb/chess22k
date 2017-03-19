@@ -1,3 +1,13 @@
+1.2 - 19-03-2017 - 2400 elo, this time for real? :P
+- improved passed-pawn scoring in endgames
+- added time to UCI output
+- improved time control: x moves in y minutes
+- 2 transposition tables: always replace and depth replacement scheme
+- made transposition-table-size configurable
+- all draw scores are now exactly 0 and stored in the TT
+- bugs, again ;)
+
+
 1.1 09-02-2017 (2400 elo)
 - re-enabled mobility evaluation
 - knight outposts

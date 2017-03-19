@@ -11,43 +11,84 @@ import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.move.MoveUtil;
+import nl.s22k.chess.move.MoveWrapper;
 import nl.s22k.chess.move.TreeMove;
 
 public class TTUtil {
 
-	private static final int POWER_2_TABLE_SHIFTS = 64 - EngineConstants.POWER_2_TT_ENTRIES;
-	public static int MAX_TABLE_ENTRIES = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_TT_ENTRIES];
-	static {
-		if (EngineConstants.ENABLE_BUCKETS) {
-			MAX_TABLE_ENTRIES++;
-		}
-	}
+	private static int keyShifts;
+	public static int maxEntries;
 
-	private static final int[] transpositionKeys = new int[MAX_TABLE_ENTRIES];
-	private static final long[] transpositionValues = new long[MAX_TABLE_ENTRIES];
+	private static int[] alwaysReplaceKeys;
+	private static long[] alwaysReplaceValues;
+	private static int[] depthReplaceKeys;
+	private static long[] depthReplaceValues;
+
 	public static long usageCounter;
 
 	public static final int FLAG_EXACT = 0;
 	public static final int FLAG_UPPER = 1;
 	public static final int FLAG_LOWER = 2;
 
+	public static long halfMoveCounter = 0;
+
+	// ///////////////////// DEPTH //8 bits
+	private static final int FLAG = 8; // 2
+	private static final int MOVE = 10; // 22
+	private static final int HALF_MOVE_COUNTER = 32; // 16
+	private static final int SCORE = 48; // 16
+
+	public static boolean isInitialized = false;
+
+	public static void init() {
+		keyShifts = 64 - EngineConstants.POWER_2_TT_ENTRIES + 1;
+		maxEntries = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_TT_ENTRIES - 1];
+
+		alwaysReplaceKeys = new int[maxEntries];
+		alwaysReplaceValues = new long[maxEntries];
+		depthReplaceKeys = new int[maxEntries];
+		depthReplaceValues = new long[maxEntries];
+		usageCounter = 0;
+
+		isInitialized = true;
+	}
+
 	public static void clearValues() {
-		Arrays.fill(transpositionKeys, 0);
-		Arrays.fill(transpositionValues, 0);
+		if (!isInitialized) {
+			return;
+		}
+		Arrays.fill(alwaysReplaceKeys, 0);
+		Arrays.fill(alwaysReplaceValues, 0);
+		Arrays.fill(depthReplaceKeys, 0);
+		Arrays.fill(depthReplaceValues, 0);
 		usageCounter = 0;
 	}
 
 	public static long getTTValue(final long zkKey) {
-		if (transpositionKeys[getZobristIndex(zkKey)] == (int) zkKey) {
+
+		final int index = getZobristIndex(zkKey);
+
+		if (alwaysReplaceKeys[index] == (int) zkKey) {
 			if (Statistics.ENABLED) {
-				Statistics.ttHits += 1;
+				Statistics.ttHits++;
 			}
 
-			return transpositionValues[getZobristIndex(zkKey)];
+			if (depthReplaceKeys[index] == (int) zkKey && getDepth(depthReplaceValues[index]) > getDepth(alwaysReplaceValues[index])) {
+				return depthReplaceValues[index];
+			}
 
+			return alwaysReplaceValues[index];
 		}
+
+		if (depthReplaceKeys[index] == (int) zkKey) {
+			if (Statistics.ENABLED) {
+				Statistics.ttHits++;
+			}
+			return depthReplaceValues[index];
+		}
+
 		if (Statistics.ENABLED) {
-			Statistics.ttMisses += 1;
+			Statistics.ttMisses++;
 		}
 
 		return 0;
@@ -55,10 +96,10 @@ public class TTUtil {
 
 	private static int getZobristIndex(final long zobristKey) {
 		// TODO optimal distribution??
-		if (POWER_2_TABLE_SHIFTS == 64) {
+		if (keyShifts == 64) {
 			return 0;
 		}
-		return (int) (zobristKey >>> POWER_2_TABLE_SHIFTS);
+		return (int) (zobristKey >>> keyShifts);
 	}
 
 	public static void setBestMoveInStatistics(ChessBoard chessBoard, int depth, ScoreType scoreType) {
@@ -128,15 +169,32 @@ public class TTUtil {
 			}
 		}
 
-		final int ttIndex = getZobristIndex(zobristKey);
-		final long value = createValue(score, depth, flag, cleanMove);
+		final int index = getZobristIndex(zobristKey);
+		final long value = createValue(score, cleanMove, flag, depth);
 
-		transpositionKeys[ttIndex] = (int) zobristKey;
-		transpositionValues[ttIndex] = value;
+		if (Statistics.ENABLED) {
+			if (alwaysReplaceKeys[index] == 0) {
+				usageCounter++;
+			}
+		}
+
+		// TODO do not store if already stored in depth-TT?
+		alwaysReplaceKeys[index] = (int) zobristKey;
+		alwaysReplaceValues[index] = value;
+
+		if (depth > getDepth(depthReplaceValues[index]) || halfMoveCounter != getHalfMoveCounter(depthReplaceValues[index])) {
+			if (Statistics.ENABLED) {
+				if (depthReplaceKeys[index] == 0) {
+					usageCounter++;
+				}
+			}
+			depthReplaceKeys[index] = (int) zobristKey;
+			depthReplaceValues[index] = value;
+		}
 	}
 
 	public static int getScore(final long value, final int ply) {
-		int score = (int) (value >> 48);
+		int score = (int) (value >> SCORE);
 
 		// correct mate-score
 		if (score > EvalConstants.SCORE_MATE_BOUND) {
@@ -156,27 +214,44 @@ public class TTUtil {
 		return score;
 	}
 
+	public static int getHalfMoveCounter(final long value) {
+		return (int) (value >>> HALF_MOVE_COUNTER & 0xffff);
+	}
+
 	public static int getDepth(final long value) {
-		return (int) (value >> 40 & 255);
+		return (int) (value & 0xff);
 	}
 
 	public static int getFlag(final long value) {
-		return (int) (value >> 32 & 255);
+		return (int) (value >>> FLAG & 3);
 	}
 
 	public static int getMove(final long value) {
-		return (int) value;
+		return (int) (value >>> MOVE & 0x3fffff);
 	}
 
-	// score,depth,flag,move
-	// 16,8,8,32 (min = 16+8+2+20=46)
-	public static long createValue(final long score, final long depth, final long flag, final int move) {
+	// SCORE,HALF_MOVE_COUNTER,MOVE,FLAG,DEPTH
+	public static long createValue(final long score, final long cleanMove, final long flag, final long depth) {
 		if (EngineConstants.TEST_VALUES) {
-			if (move < 0) {
-				System.out.println("Adding negative move to tt");
+			if (cleanMove != MoveUtil.getCleanMove((int) cleanMove)) {
+				System.out.println("Adding non clean move to tt");
+			}
+			if (score > Util.SHORT_MAX) {
+				System.out.println("Adding score to TT > MAX " + score);
+			}
+			if (score < Util.SHORT_MIN) {
+				System.out.println("Adding score to TT < MIN " + score);
+			}
+			if (depth > 255) {
+				System.out.println("Adding depth to TT > MAX " + depth);
 			}
 		}
-		return score << 48 | depth << 40 | flag << 32 | move;
+		return score << SCORE | halfMoveCounter << HALF_MOVE_COUNTER | cleanMove << MOVE | flag << FLAG | depth;
+	}
+
+	public static String toString(long ttValue) {
+		return "score=" + TTUtil.getScore(ttValue, 0) + " " + new MoveWrapper(getMove(ttValue)) + " depth=" + TTUtil.getDepth(ttValue) + " flag="
+				+ TTUtil.getFlag(ttValue);
 	}
 
 }

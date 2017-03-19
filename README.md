@@ -6,7 +6,7 @@ Uses Ed Schroder's king safety idea but this has been disabled for the moment.
 
 Features
 - (magic) bitboards
-- transposition table
+- transposition tables
 - (internal) iterative-deepening
 - killer-moves and history-heuristics for move ordering
 - principal variation search
@@ -14,16 +14,16 @@ Features
 - late move reductions
 - static exchange evaluation
 - aspiration window
+- no openingbook or endgame tablebases
+- no pondering
 
 Future
-- improved time-management
+- NEVER loses on time
+- fix certain node-explosions in endgames
 - futility pruning
 - improve evaluation function (king-safety, ...)
-- 2 transposition tables: always replace, depth replacement scheme
+- tapered eval
 - ...
-
-If you want to build this project yourself, you have to set the artifact name in the pom.xml (to chess22k).
-I have made this configurable so I can easily build an experimental version but maven does not seem to like this.
 
 
 

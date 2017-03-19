@@ -59,79 +59,77 @@ public class ChessConstants {
 
 	public static final long[] PROMOTION_RANK = { 0xff000000000000L, 0xff00 };
 
-	// public static final long[][] IN_BETWEEN = new long[64][64];
-	// static {
-	// int i;
-	//
-	// // fill from->to where to > from
-	// for (int from = 0; from < 64; from++) {
-	// for (int to = from + 1; to < 64; to++) {
-	//
-	// if (from == 14 && to == 41) {
-	// System.out.println();
-	// }
-	//
-	// // horizontal
-	// if (from / 8 == to / 8) {
-	// i = to - 1;
-	// while (i > from) {
-	// IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
-	// i--;
-	// }
-	// }
-	//
-	// // vertical
-	// if (from % 8 == to % 8) {
-	// i = to - 8;
-	// while (i > from) {
-	// IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
-	// i -= 8;
-	// }
-	// }
-	//
-	// // diagonal \
-	// if ((to - from) % 9 == 0 && to % 8 > from % 8) {
-	// i = to - 9;
-	// while (i > from) {
-	// IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
-	// i -= 9;
-	// }
-	// }
-	//
-	// // diagonal /
-	// if ((to - from) % 7 == 0 && to % 8 < from % 8) {
-	// i = to - 7;
-	// while (i > from) {
-	// IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
-	// i -= 7;
-	// }
-	// }
-	// }
-	// }
-	//
-	// // fill from->to where to < from
-	// for(
-	// int from = 0;from<64;from++)
-	// {
-	// for (int to = 0; to < from; to++) {
-	// IN_BETWEEN[from][to] = IN_BETWEEN[to][from];
-	// }
-	// }
-	//
-	// // test
-	// for(
-	// int from = 0;from<64;from++)
-	// {
-	// if (IN_BETWEEN[from][from] != 0) {
-	// System.out.println("error");
-	// }
-	// for (int to = 0; to < from; to++) {
-	// if (IN_BETWEEN[from][to] != IN_BETWEEN[to][from]) {
-	// System.out.println("error");
-	// }
-	// }
-	// }
-	// }
+	public static final long[][] ROOK_IN_BETWEEN = new long[64][64];
+	static {
+		int i;
+
+		// fill from->to where to > from
+		for (int from = 0; from < 64; from++) {
+			for (int to = from + 1; to < 64; to++) {
+
+				// horizontal
+				if (from / 8 == to / 8) {
+					i = to - 1;
+					while (i > from) {
+						ROOK_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						i--;
+					}
+				}
+
+				// vertical
+				if (from % 8 == to % 8) {
+					i = to - 8;
+					while (i > from) {
+						ROOK_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						i -= 8;
+					}
+				}
+			}
+		}
+
+		// fill from->to where to < from
+		for (int from = 0; from < 64; from++) {
+			for (int to = 0; to < from; to++) {
+				ROOK_IN_BETWEEN[from][to] = ROOK_IN_BETWEEN[to][from];
+			}
+		}
+	}
+
+	public static final long[][] BISHOP_IN_BETWEEN = new long[64][64];
+	static {
+		int i;
+
+		// fill from->to where to > from
+		for (int from = 0; from < 64; from++) {
+			for (int to = from + 1; to < 64; to++) {
+
+				// diagonal \
+				if ((to - from) % 9 == 0 && to % 8 > from % 8) {
+					i = to - 9;
+					while (i > from) {
+						BISHOP_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						i -= 9;
+					}
+				}
+
+				// diagonal /
+				if ((to - from) % 7 == 0 && to % 8 < from % 8) {
+					i = to - 7;
+					while (i > from) {
+						BISHOP_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						i -= 7;
+					}
+				}
+			}
+		}
+
+		// fill from->to where to < from
+		for (int from = 0; from < 64; from++) {
+			for (int to = 0; to < from; to++) {
+				BISHOP_IN_BETWEEN[from][to] = BISHOP_IN_BETWEEN[to][from];
+			}
+		}
+	}
 
 	public enum ScoreType {
 		EXACT(" "), ALPHA(" upperbound "), BETA(" lowerbound ");

@@ -28,16 +28,16 @@ public class RepetitionTable {
 
 	public static void addValue(final long zobristKey) {
 		if (EngineConstants.TEST_VALUES) {
-			// if (repetitionValues[getZobristIndex(zobristKey)] == 1) {
-			// System.out.println("Adding a move that is already a repetition. Index-collision which is OK?");
-			// }
+			if (repetitionValues[getZobristIndex(zobristKey)] > 1) {
+				System.out.println("Adding a move that is already a repetition. Index-collision which is OK? index : " + getZobristIndex(zobristKey));
+			}
 		}
 		repetitionValues[getZobristIndex(zobristKey)]++;
 	}
 
 	public static void removeValue(final long zobristKey) {
 		if (EngineConstants.TEST_VALUES) {
-			if (repetitionValues[getZobristIndex(zobristKey)] == 0) {
+			if (repetitionValues[getZobristIndex(zobristKey)] <= 0) {
 				System.out.println("Removing move from repetitiontable that has not been added");
 			}
 		}
@@ -50,7 +50,7 @@ public class RepetitionTable {
 				Statistics.repetitionTests++;
 			}
 
-			for (int i = cb.moveCounter - 2; i > 1; i -= 2) {
+			for (int i = cb.moveCounter - 2; i >= 0; i -= 2) {
 				// TODO if move was an attacking-move or pawn move, no repetition!
 				if (cb.zobristKey == cb.zobristKeyHistory[i]) {
 					return true;

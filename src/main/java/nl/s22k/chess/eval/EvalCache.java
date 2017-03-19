@@ -27,11 +27,11 @@ public class EvalCache {
 		}
 
 		if (keys[getZobristIndex(zkKey)] == (int) zkKey) {
-			Statistics.evalCacheHits += 1;
+			Statistics.evalCacheHits++;
 			return true;
 		}
 
-		Statistics.evalCacheMisses += 1;
+		Statistics.evalCacheMisses++;
 		return false;
 	}
 
@@ -50,8 +50,10 @@ public class EvalCache {
 
 		final int ttIndex = getZobristIndex(zobristKey);
 
-		if (keys[ttIndex] == 0) {
-			usageCounter++;
+		if (Statistics.ENABLED) {
+			if (keys[ttIndex] == 0) {
+				usageCounter++;
+			}
 		}
 		keys[ttIndex] = (int) zobristKey;
 		scores[ttIndex] = (short) score;

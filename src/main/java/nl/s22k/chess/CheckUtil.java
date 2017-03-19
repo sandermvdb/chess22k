@@ -85,14 +85,4 @@ public final class CheckUtil {
 				| enemyPieces[KING] & StaticMoves.KING_MOVES[kingIndex]
 			)!= 0;
 	}
-
-	public static boolean isInDiscoveredCheckBySlidingVHPiece(final long checkingPieces, final long vHEnemySlidingPieces, final int kingIndex, final long friendlyPieces, final long allPieces) {
-		// put 'super-piece' in kings position
-		return (~checkingPieces & vHEnemySlidingPieces & MagicUtil.getRookMoves(kingIndex, allPieces, friendlyPieces)) != 0;
-	}
-	
-	public static boolean isInDiscoveredCheckBySlidingDiagonalPiece(final long checkingPieces, final long diagonalEnemySlidingPieces, final int kingIndex, final long friendlyPieces, final long allPieces) {
-		// put 'super-piece' in kings position
-		return (~checkingPieces & diagonalEnemySlidingPieces & MagicUtil.getBishopMoves(kingIndex, allPieces, friendlyPieces)) != 0;
-	}
 }

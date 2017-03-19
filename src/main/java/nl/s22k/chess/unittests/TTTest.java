@@ -2,40 +2,52 @@ package nl.s22k.chess.unittests;
 
 import java.util.Random;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
+import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.search.TTUtil;
 
 public class TTTest {
 
+	@BeforeClass
+	public static void init() {
+		TTUtil.init();
+		MagicUtil.init();
+	}
+
 	@Test
 	public void testKey() {
+		TTUtil.halfMoveCounter = 400;
+
 		short score = 30000;
-		int leafDepth = 10;
-		int flag = 5;
+		int depth = 10;
+		int flag = TTUtil.FLAG_LOWER;
 		int move = MoveUtil.createMove(10, 20, 3);
 		System.out.println("move: " + move);
 
-		long value = TTUtil.createValue(score, leafDepth, flag, move);
+		long value = TTUtil.createValue(score, move, flag, depth);
 
 		System.out.println("score: " + TTUtil.getScore(value, 0));
 		System.out.println("depth: " + TTUtil.getDepth(value));
 		System.out.println("flag: " + TTUtil.getFlag(value));
 		System.out.println("move: " + TTUtil.getMove(value));
+		System.out.println("counter: " + TTUtil.getHalfMoveCounter(value));
 
 		Random r = new Random();
 		long zk = r.nextLong();
-		TTUtil.addValue(zk, score, 1, leafDepth, flag, move);
+		TTUtil.addValue(zk, score, 1, depth, flag, move);
 
 		long ttValue = TTUtil.getTTValue(zk);
 		System.out.println("score: " + TTUtil.getScore(ttValue, 0));
 		System.out.println("depth: " + TTUtil.getDepth(ttValue));
 		System.out.println("flag: " + TTUtil.getFlag(ttValue));
 		System.out.println("move: " + TTUtil.getMove(ttValue));
+		System.out.println("counter: " + TTUtil.getHalfMoveCounter(value));
 	}
 
 	@Test

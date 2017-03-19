@@ -66,7 +66,7 @@ public class EvalUtil {
 
 		int score = EngineConstants.ENABLE_INCREMENTAL_PSQT ? cb.psqtScore : calculatePositionScores(cb);
 		score += calculateMaterialScores(cb) + calculateMobilityWithKingDefenseScores(cb) + calculateKingSafetyScores(cb) + calculateBonusses(cb)
-				+ calculatePenalties(cb) + calculatePawnScores(cb);
+				+ calculatePenalties(cb) + calculatePawnScores(cb) + calculatePassedPawnScores(cb);
 
 		/* draw-by-material */
 		if (score > 0) {
@@ -74,18 +74,125 @@ public class EvalUtil {
 				if (Statistics.ENABLED) {
 					Statistics.drawByMaterialCount++;
 				}
-				score = EvalConstants.SCORE_DRAW_MATERIAL;
+				score = EvalConstants.SCORE_DRAW;
 			}
 		} else {
 			if (cb.isDrawByMaterial(BLACK)) {
 				if (Statistics.ENABLED) {
 					Statistics.drawByMaterialCount++;
 				}
-				score = EvalConstants.SCORE_DRAW_MATERIAL;
+				score = EvalConstants.SCORE_DRAW;
 			}
 		}
 
 		EvalCache.addValue(cb.zobristKey, score);
+
+		return score;
+	}
+
+	public static int calculatePassedPawnScores(final ChessBoard cb) {
+		int score = 0;
+
+		// white passed pawns
+		int passedPawnFiles = PawnEvalCache.getPasserFiles(cb.pawnZobristKey, WHITE);
+		int passerScore;
+		int promotionDistance;
+		int index;
+		while (passedPawnFiles != 0) {
+			index = 63 - Long.numberOfLeadingZeros(cb.pieces[WHITE][PAWN] & ChessConstants.MASKS_FILE[Long.numberOfTrailingZeros(passedPawnFiles)]);
+
+			// TODO check distance to enemy king?
+
+			passerScore = EvalConstants.PASSED_PAWN_ENDGAME_SCORE[index / 8];
+			if (!cb.isEndGame[WHITE]) {
+				passerScore /= 2;
+			}
+
+			// is pawn protected by other passed pawn?
+			if ((PawnEvalCache.getProtectedPasserFiles(cb.pawnZobristKey, WHITE) & Util.POWER_LOOKUP[Long.numberOfTrailingZeros(passedPawnFiles)]) != 0) {
+				passerScore *= 1.5;
+			}
+
+			// is piece blocked?
+			if ((cb.allPieces & Util.POWER_LOOKUP[index + 8]) != 0) {
+				passerScore /= 2;
+			}
+			score += passerScore;
+
+			// check if it cannot be stopped
+			if (cb.hasOnlyPawns(BLACK)) {
+				promotionDistance = 7 - index / 8;
+
+				// check if it is my turn
+				if (cb.colorToMove == BLACK) {
+					promotionDistance++;
+				}
+				// check if own pieces are blocking the path
+				if (63 - Long.numberOfLeadingZeros(cb.friendlyPieces[WHITE] & ChessConstants.MASKS_FILE[Long.numberOfTrailingZeros(passedPawnFiles)]) > index) {
+					promotionDistance++;
+				}
+
+				// check if pawn can do 2-moves
+				if (index / 8 == 1) {
+					promotionDistance--;
+				}
+
+				// check distance of enemy king to promotion square
+				if (promotionDistance < Math.max(7 - cb.kingIndex[BLACK] / 8, Math.abs((index & 7) - (cb.kingIndex[BLACK] & 7)))) {
+					score += 600;
+				}
+			}
+
+			passedPawnFiles &= passedPawnFiles - 1;
+		}
+
+		passedPawnFiles = PawnEvalCache.getPasserFiles(cb.pawnZobristKey, BLACK);
+		while (passedPawnFiles != 0) {
+			index = Long.numberOfTrailingZeros(cb.pieces[BLACK][PAWN] & ChessConstants.MASKS_FILE[Long.numberOfTrailingZeros(passedPawnFiles)]);
+
+			passerScore = EvalConstants.PASSED_PAWN_ENDGAME_SCORE[7 - index / 8];
+			if (!cb.isEndGame[BLACK]) {
+				passerScore /= 2;
+			}
+
+			// is pawn protected by other passed pawn?
+			if ((PawnEvalCache.getProtectedPasserFiles(cb.pawnZobristKey, BLACK) & Util.POWER_LOOKUP[Long.numberOfTrailingZeros(passedPawnFiles)]) != 0) {
+				passerScore *= 1.5;
+			}
+
+			// is piece blocked?
+			if ((cb.allPieces & Util.POWER_LOOKUP[index - 8]) != 0) {
+				passerScore /= 2;
+			}
+			score -= passerScore;
+
+			// check if it cannot be stopped
+			if (cb.hasOnlyPawns(WHITE)) {
+				promotionDistance = index / 8;
+
+				// check if it is my turn
+				if (cb.colorToMove == WHITE) {
+					promotionDistance++;
+				}
+
+				// check if own pieces are blocking the path
+				if (Long.numberOfTrailingZeros(cb.friendlyPieces[BLACK] & ChessConstants.MASKS_FILE[Long.numberOfTrailingZeros(passedPawnFiles)]) < index) {
+					promotionDistance++;
+				}
+
+				// check if pawn can do 2-moves
+				if (index / 8 == 6) {
+					promotionDistance--;
+				}
+
+				// check distance of enemy king to promotion square
+				if (promotionDistance < Math.max(cb.kingIndex[WHITE] / 8, Math.abs((index & 7) - (cb.kingIndex[WHITE] & 7)))) {
+					score -= 600;
+				}
+			}
+
+			passedPawnFiles &= passedPawnFiles - 1;
+		}
 
 		return score;
 	}
@@ -99,16 +206,6 @@ public class EvalUtil {
 		}
 
 		int score = 0;
-
-		// penalty for doubled pawns
-		for (int i = 0; i < 8; i++) {
-			if (Long.bitCount(cb.pieces[WHITE][PAWN] & ChessConstants.MASKS_FILE[i]) > 1) {
-				score -= 10;
-			}
-			if (Long.bitCount(cb.pieces[BLACK][PAWN] & ChessConstants.MASKS_FILE[i]) > 1) {
-				score += 10;
-			}
-		}
 
 		// penalty for hole in king-pawn-defense
 		if (!cb.isEndGame[WHITE]) {
@@ -126,6 +223,21 @@ public class EvalUtil {
 			}
 		}
 
+		// penalty for doubled pawns
+		for (int i = 0; i < 8; i++) {
+			if (Long.bitCount(cb.pieces[WHITE][PAWN] & ChessConstants.MASKS_FILE[i]) > 1) {
+				score -= 10;
+			}
+			if (Long.bitCount(cb.pieces[BLACK][PAWN] & ChessConstants.MASKS_FILE[i]) > 1) {
+				score += 10;
+			}
+		}
+
+		int whitePasserFiles = 0;
+		int blackPasserFiles = 0;
+		long whitePassers = 0;
+		long blackPassedFiles = 0;
+
 		// white
 		long pawns = cb.pieces[WHITE][PAWN];
 		while (pawns != 0) {
@@ -134,13 +246,10 @@ public class EvalUtil {
 				score -= 15;
 			}
 
-			// passed pawns
+			// set passed pawns
 			if ((EvalConstants.PASSED_PAWN_MASKS[WHITE][Long.numberOfTrailingZeros(pawns)] & cb.pieces[BLACK][PAWN]) == 0) {
-				if (cb.isEndGame[WHITE]) {
-					score += EvalConstants.PASSED_PAWN_ENDGAME_SCORE[Long.numberOfTrailingZeros(pawns) / 8];
-				} else {
-					score += 20;
-				}
+				whitePasserFiles |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(pawns) & 7];
+				whitePassers |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(pawns)];
 			}
 
 			// pawn position score
@@ -162,13 +271,10 @@ public class EvalUtil {
 				score += 15;
 			}
 
-			// passed pawns
+			// set passed pawns
 			if ((EvalConstants.PASSED_PAWN_MASKS[BLACK][Long.numberOfTrailingZeros(pawns)] & cb.pieces[WHITE][PAWN]) == 0) {
-				if (cb.isEndGame[BLACK]) {
-					score -= EvalConstants.PASSED_PAWN_ENDGAME_SCORE[7 - Long.numberOfTrailingZeros(pawns) / 8];
-				} else {
-					score -= 20;
-				}
+				blackPasserFiles |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(pawns) & 7];
+				blackPassedFiles |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(pawns)];
 			}
 
 			// pawn position score
@@ -182,8 +288,6 @@ public class EvalUtil {
 			pawns &= pawns - 1;
 		}
 
-		// score += tropismScore;
-
 		// pawn material
 		score += (Long.bitCount(cb.pieces[WHITE][PAWN]) - Long.bitCount(cb.pieces[BLACK][PAWN])) * EvalConstants.MATERIAL_SCORES[PAWN];
 
@@ -196,7 +300,28 @@ public class EvalUtil {
 			}
 		}
 
-		PawnEvalCache.addValue(cb.pawnZobristKey, score);
+		int whiteProtectedPasserFiles = 0;
+		int blackProtectedPasserFiles = 0;
+
+		// set white protected passers
+		pawns = whitePassers;
+		while (pawns != 0) {
+			if ((StaticMoves.PAWN_ALL_ATTACKS[BLACK][Long.numberOfTrailingZeros(pawns)] & whitePassers) != 0) {
+				whiteProtectedPasserFiles |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(pawns) & 7];
+			}
+			pawns &= pawns - 1;
+		}
+
+		// set black protected passers
+		pawns = blackPassedFiles;
+		while (pawns != 0) {
+			if ((StaticMoves.PAWN_ALL_ATTACKS[WHITE][Long.numberOfTrailingZeros(pawns)] & blackPassedFiles) != 0) {
+				blackProtectedPasserFiles |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(pawns) & 7];
+			}
+			pawns &= pawns - 1;
+		}
+
+		PawnEvalCache.addValue(cb.pawnZobristKey, score, whitePasserFiles, blackPasserFiles, whiteProtectedPasserFiles, blackProtectedPasserFiles);
 
 		return score;
 	}
@@ -206,10 +331,21 @@ public class EvalUtil {
 
 		// double bishop bonus
 		if (Long.bitCount(cb.pieces[WHITE][BISHOP]) == 2) {
-			score += 50;
+			score += 40;
 		}
 		if (Long.bitCount(cb.pieces[BLACK][BISHOP]) == 2) {
-			score -= 50;
+			score -= 40;
+		}
+
+		// bonus for small king-king distance in KKR and KKQ endgame
+		if (Long.bitCount(cb.allPieces) == 3) {
+			if (cb.pieces[WHITE][ROOK] != 0 || cb.pieces[WHITE][QUEEN] != 0) {
+				score += EvalConstants.KKR_KKQ_KING_DISTANCE_SCORE[Math.max(Math.abs(cb.kingIndex[WHITE] / 8 - cb.kingIndex[BLACK] / 8),
+						Math.abs((cb.kingIndex[WHITE] & 7) - (cb.kingIndex[BLACK] & 7)))];
+			} else if (cb.pieces[BLACK][ROOK] != 0 || cb.pieces[BLACK][QUEEN] != 0) {
+				score -= EvalConstants.KKR_KKQ_KING_DISTANCE_SCORE[Math.max(Math.abs(cb.kingIndex[WHITE] / 8 - cb.kingIndex[BLACK] / 8),
+						Math.abs((cb.kingIndex[WHITE] & 7) - (cb.kingIndex[BLACK] & 7)))];
+			}
 		}
 
 		// bonus for rook on open-file (no pawns) and semi-open-file (no friendly pawns)
@@ -415,6 +551,8 @@ public class EvalUtil {
 	}
 
 	public static int calculateMobilityWithKingDefenseScores(final ChessBoard cb) {
+
+		// TODO disable mobility if piece is pinned?
 
 		if (!EngineConstants.ENABLE_EVAL_MOBILITY) {
 			return 0;
