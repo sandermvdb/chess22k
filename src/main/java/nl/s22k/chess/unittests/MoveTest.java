@@ -21,8 +21,8 @@ public class MoveTest {
 		int move = MoveUtil.createMove(10, 5, 4);
 		System.out.println(MoveUtil.getFromIndex(move) + " 10");
 		System.out.println(MoveUtil.getToIndex(move) + " 5");
-		System.out.println(MoveUtil.getZKSourcePieceIndex(move) + " 4");
-		System.out.println(MoveUtil.getZKAttackedPieceIndex(move) + " 0");
+		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 4");
+		System.out.println(MoveUtil.getAttackedPieceIndex(move) + " 0");
 		System.out.println(MoveUtil.isPromotion(move) + " false");
 		System.out.println("");
 	}
@@ -33,8 +33,8 @@ public class MoveTest {
 		int move = MoveUtil.createAttackMove(10, 46, 4, 5);
 		System.out.println(MoveUtil.getFromIndex(move) + " 10");
 		System.out.println(MoveUtil.getToIndex(move) + " 46");
-		System.out.println(MoveUtil.getZKSourcePieceIndex(move) + " 4");
-		System.out.println(MoveUtil.getZKAttackedPieceIndex(move) + " 5");
+		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 4");
+		System.out.println(MoveUtil.getAttackedPieceIndex(move) + " 5");
 		System.out.println(MoveUtil.isPromotion(move) + " false");
 		move = MoveUtil.setSeeMove(move, 400);
 		System.out.println(MoveUtil.getScore(move) + " 100");
@@ -46,11 +46,11 @@ public class MoveTest {
 
 	@Test
 	public void promotionMove() {
-		int move = MoveUtil.createPromotionMove(10, 61);
+		int move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, 10, 61);
 		System.out.println(MoveUtil.getFromIndex(move) + " 10");
 		System.out.println(MoveUtil.getToIndex(move) + " 61");
-		System.out.println(MoveUtil.getZKSourcePieceIndex(move) + " 1");
-		System.out.println(MoveUtil.getZKAttackedPieceIndex(move) + " 0");
+		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 1");
+		System.out.println(MoveUtil.getAttackedPieceIndex(move) + " 0");
 		System.out.println(MoveUtil.isPromotion(move) + " true");
 		System.out.println(MoveUtil.isPromotion(move) + " true");
 		System.out.println("");
@@ -58,11 +58,11 @@ public class MoveTest {
 
 	@Test
 	public void promotionAttackMove() {
-		int move = MoveUtil.createPromotionAttack(10, 61, ChessConstants.ROOK);
+		int move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, 10, 61, ChessConstants.ROOK);
 		System.out.println(MoveUtil.getFromIndex(move) + " 10");
 		System.out.println(MoveUtil.getToIndex(move) + " 61");
-		System.out.println(MoveUtil.getZKSourcePieceIndex(move) + " 1");
-		System.out.println(MoveUtil.getZKAttackedPieceIndex(move) + " 4");
+		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 1");
+		System.out.println(MoveUtil.getAttackedPieceIndex(move) + " 4");
 		System.out.println(MoveUtil.isPromotion(move) + " true");
 		System.out.println("");
 	}
@@ -73,10 +73,10 @@ public class MoveTest {
 		System.out.println(MoveUtil.getFromIndex(move) + " 36");
 		System.out.println(MoveUtil.getToIndex(move) + " 43");
 		System.out.println(MoveUtil.getFromToIndex(move) + " 2788");
-		System.out.println(MoveUtil.getZKSourcePieceIndex(move) + " 1");
-		System.out.println(MoveUtil.getZKAttackedPieceIndex(move) + " 1");
+		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 1");
+		System.out.println(MoveUtil.getAttackedPieceIndex(move) + " 1");
 		System.out.println(MoveUtil.isPromotion(move) + " false");
-		System.out.println(MoveUtil.isEP(move) + " true");
+		System.out.println((MoveUtil.getMoveType(move) == MoveUtil.EP) + " true");
 		System.out.println("");
 	}
 

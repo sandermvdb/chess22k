@@ -11,7 +11,6 @@ import static nl.s22k.chess.ChessConstants.WHITE;
 
 import java.util.Arrays;
 
-import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.search.HeuristicUtil;
 import nl.s22k.chess.search.RepetitionTable;
@@ -41,24 +40,28 @@ public class ChessBoardUtil {
 
 		// 3: castling: KQkq
 		cb.castlingRights = 15;
-		if (!fenArray[2].contains("K")) {
-			cb.castlingRights &= 7;
-		}
-		if (!fenArray[2].contains("Q")) {
-			cb.castlingRights &= 11;
-		}
-		if (!fenArray[2].contains("k")) {
-			cb.castlingRights &= 13;
-		}
-		if (!fenArray[2].contains("q")) {
-			cb.castlingRights &= 14;
+		if (fenArray.length > 2) {
+			if (!fenArray[2].contains("K")) {
+				cb.castlingRights &= 7;
+			}
+			if (!fenArray[2].contains("Q")) {
+				cb.castlingRights &= 11;
+			}
+			if (!fenArray[2].contains("k")) {
+				cb.castlingRights &= 13;
+			}
+			if (!fenArray[2].contains("q")) {
+				cb.castlingRights &= 14;
+			}
 		}
 
-		// 4: en-passant: -
-		if (fenArray[3].equals("-") || fenArray[3].equals("–")) {
-			cb.epIndex = 0;
-		} else {
-			cb.epIndex = 104 - fenArray[3].charAt(0) + 8 * (Integer.parseInt(fenArray[3].substring(1)) - 1);
+		if (fenArray.length > 3) {
+			// 4: en-passant: -
+			if (fenArray[3].equals("-") || fenArray[3].equals("–")) {
+				cb.epIndex = 0;
+			} else {
+				cb.epIndex = 104 - fenArray[3].charAt(0) + 8 * (Integer.parseInt(fenArray[3].substring(1)) - 1);
+			}
 		}
 
 		if (fenArray.length > 4) {
@@ -82,7 +85,7 @@ public class ChessBoardUtil {
 		return cb;
 	}
 
-	private static void clearValues(ChessBoard cb) {
+	public static void clearValues(ChessBoard cb) {
 		// history
 		Arrays.fill(cb.psqtScoreHistory, 0);
 		Arrays.fill(cb.castlingHistory, 0);
@@ -121,25 +124,23 @@ public class ChessBoardUtil {
 		calculatePiecesKey(cb, cb.pieces[BLACK][QUEEN], BLACK, QUEEN);
 		calculatePiecesKey(cb, cb.pieces[BLACK][ROOK], BLACK, ROOK);
 
-		cb.zobristKey ^= cb.zkCastling[cb.castlingRights];
+		cb.zobristKey ^= ChessBoard.zkCastling[cb.castlingRights];
 		if (cb.colorToMove == WHITE) {
-			cb.zobristKey ^= cb.zkWhiteToMove;
+			cb.zobristKey ^= ChessBoard.zkWhiteToMove;
 		}
-		cb.zobristKey ^= cb.zkEPIndex[cb.epIndex];
+		cb.zobristKey ^= ChessBoard.zkEPIndex[cb.epIndex];
 
 		// pawn zobrist key
 		long pieces = cb.pieces[WHITE][PAWN];
 		while (pieces != 0) {
-			cb.pawnZobristKey ^= cb.zkPieceValues[Long.numberOfTrailingZeros(pieces)][WHITE][PAWN];
+			cb.pawnZobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][WHITE][PAWN];
 			pieces &= pieces - 1;
 		}
 		pieces = cb.pieces[BLACK][PAWN];
 		while (pieces != 0) {
-			cb.pawnZobristKey ^= cb.zkPieceValues[Long.numberOfTrailingZeros(pieces)][BLACK][PAWN];
+			cb.pawnZobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][BLACK][PAWN];
 			pieces &= pieces - 1;
 		}
-		cb.pawnZobristKey ^= cb.zkKingPosition[WHITE][EvalConstants.getKingPositionIndex(WHITE, cb.kingIndex[WHITE])]
-				^ cb.zkKingPosition[BLACK][EvalConstants.getKingPositionIndex(BLACK, cb.kingIndex[BLACK])];
 	}
 
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
@@ -187,7 +188,7 @@ public class ChessBoardUtil {
 
 	private static void calculatePiecesKey(ChessBoard cb, long pieces, int colorIndex, int pieceIndex) {
 		while (pieces != 0) {
-			cb.zobristKey ^= cb.zkPieceValues[Long.numberOfTrailingZeros(pieces)][colorIndex][pieceIndex];
+			cb.zobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][colorIndex][pieceIndex];
 			pieces &= pieces - 1;
 		}
 	}
@@ -195,7 +196,6 @@ public class ChessBoardUtil {
 	public static void init(ChessBoard cb) {
 		cb.kingIndex[WHITE] = Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]);
 		cb.kingIndex[BLACK] = Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]);
-		cb.colorFactor = ChessConstants.COLOR_FACTOR[cb.colorToMove];
 		cb.colorToMoveInverse = cb.colorToMove * -1 + 1;
 		calculateZobristKeys(cb);
 		cb.friendlyPieces[WHITE] = cb.pieces[WHITE][PAWN] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][KING] | cb.pieces[WHITE][ROOK]
@@ -225,10 +225,10 @@ public class ChessBoardUtil {
 		cb.isEndGame[BLACK] = cb.isEndGame(BLACK);
 
 		if (cb.isEndGame[WHITE]) {
-			cb.pawnZobristKey ^= cb.zkEndGame[WHITE];
+			cb.pawnZobristKey ^= ChessBoard.zkEndGame[WHITE];
 		}
 		if (cb.isEndGame[BLACK]) {
-			cb.pawnZobristKey ^= cb.zkEndGame[BLACK];
+			cb.pawnZobristKey ^= ChessBoard.zkEndGame[BLACK];
 		}
 
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);

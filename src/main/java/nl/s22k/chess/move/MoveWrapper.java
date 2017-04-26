@@ -22,7 +22,11 @@ public class MoveWrapper {
 
 	public boolean isNightPromotion = false;
 	public boolean isQueenPromotion = false;
+	public boolean isRookPromotion = false;
+	public boolean isBishopPromotion = false;
+
 	public boolean isEP = false;
+	public boolean isCastling = false;
 
 	public MoveWrapper(int move) {
 		this.move = move;
@@ -37,16 +41,29 @@ public class MoveWrapper {
 
 		score = MoveUtil.getScore(move);
 
-		if (MoveUtil.isPromotion(move)) {
-			if (MoveUtil.isNightPromotion(move)) {
-				isNightPromotion = true;
-			} else {
-				isQueenPromotion = true;
-			}
-		} else {
-			if (MoveUtil.isEP(move)) {
-				isEP = true;
-			}
+		switch (MoveUtil.getMoveType(move)) {
+		case MoveUtil.NORMAL:
+			break;
+		case MoveUtil.CASTLING:
+			isCastling = true;
+			break;
+		case MoveUtil.EP:
+			isEP = true;
+			break;
+		case MoveUtil.PROMOTION_B:
+			isBishopPromotion = true;
+			break;
+		case MoveUtil.PROMOTION_N:
+			isNightPromotion = true;
+			break;
+		case MoveUtil.PROMOTION_Q:
+			isQueenPromotion = true;
+			break;
+		case MoveUtil.PROMOTION_R:
+			isRookPromotion = true;
+			break;
+		default:
+			throw new RuntimeException("Unknown movetype: " + MoveUtil.getMoveType(move));
 		}
 
 	}
@@ -89,11 +106,23 @@ public class MoveWrapper {
 
 		if (zkAttackIndex == 0) {
 			if (zkSourceIndex == ChessConstants.PAWN && (toRank == 1 || toRank == 8)) {
-				if (moveString.length() == 5 && moveString.substring(4, 5).equals("n")) {
-					isNightPromotion = true;
-					move = MoveUtil.createNightPromotionMove(fromIndex, toIndex);
+				if (moveString.length() == 5) {
+					if (moveString.substring(4, 5).equals("n")) {
+						isNightPromotion = true;
+						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, toIndex);
+					} else if (moveString.substring(4, 5).equals("r")) {
+						isRookPromotion = true;
+						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, toIndex);
+					} else if (moveString.substring(4, 5).equals("b")) {
+						isBishopPromotion = true;
+						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, toIndex);
+					} else if (moveString.substring(4, 5).equals("q")) {
+						isQueenPromotion = true;
+						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex);
+					}
 				} else {
-					move = MoveUtil.createPromotionMove(fromIndex, toIndex);
+					isQueenPromotion = true;
+					move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex);
 				}
 			} else {
 				if (zkSourceIndex == ChessConstants.KING && (fromIndex - toIndex == 2 || fromIndex - toIndex == -2)) {
@@ -108,11 +137,22 @@ public class MoveWrapper {
 			}
 		} else {
 			if (zkSourceIndex == ChessConstants.PAWN && (toRank == 1 || toRank == 8)) {
-				if (moveString.length() == 5 && moveString.substring(4, 5).equals("n")) {
-					isNightPromotion = true;
-					move = MoveUtil.createNightPromotionAttack(fromIndex, toIndex, zkAttackIndex);
+				if (moveString.length() == 5) {
+					if (moveString.substring(4, 5).equals("n")) {
+						isNightPromotion = true;
+						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, zkAttackIndex);
+					} else if (moveString.substring(4, 5).equals("r")) {
+						isRookPromotion = true;
+						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, zkAttackIndex);
+					} else if (moveString.substring(4, 5).equals("b")) {
+						isBishopPromotion = true;
+						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, zkAttackIndex);
+					} else if (moveString.substring(4, 5).equals("q")) {
+						isQueenPromotion = true;
+						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, zkAttackIndex);
+					}
 				} else {
-					move = MoveUtil.createPromotionAttack(fromIndex, toIndex, zkAttackIndex);
+					move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, zkAttackIndex);
 				}
 			} else {
 				move = MoveUtil.createAttackMove(fromIndex, toIndex, zkSourceIndex, zkAttackIndex);
@@ -123,11 +163,14 @@ public class MoveWrapper {
 	@Override
 	public String toString() {
 		String moveString = "" + fromFile + fromRank + toFile + toRank;
-		if (isNightPromotion) {
-			return moveString + "n";
-		}
 		if (isQueenPromotion) {
 			return moveString + "q";
+		} else if (isNightPromotion) {
+			return moveString + "n";
+		} else if (isRookPromotion) {
+			return moveString + "r";
+		} else if (isBishopPromotion) {
+			return moveString + "b";
 		}
 		return moveString;
 	}

@@ -3,29 +3,19 @@ package nl.s22k.chess.move;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Util;
+import nl.s22k.chess.engine.EngineConstants;
 
 public class MoveListAdd {
 
-	public static void quietNotInCheckMoves(long moves, final int fromIndex, final ChessBoard cb) {
-		if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
-			while (moves != 0) {
-				MoveList.addMove(MoveUtil.createMove(fromIndex, Long.numberOfTrailingZeros(moves), cb.pieceIndexes[fromIndex]));
-				moves &= moves - 1;
-			}
-		} else {
-			// piece is pinned
-			int toIndex;
-			while (moves != 0) {
-				toIndex = Long.numberOfTrailingZeros(moves);
-				if (cb.isLegalMove(fromIndex, toIndex)) {
-					MoveList.addMove(MoveUtil.createMove(fromIndex, toIndex, cb.pieceIndexes[fromIndex]));
-				}
-				moves &= moves - 1;
-			}
+	public static void quietNotPinnedMoves(long moves, final int fromIndex, final int sourcePieceIndex) {
+		while (moves != 0) {
+			MoveList.addMove(MoveUtil.createMove(fromIndex, Long.numberOfTrailingZeros(moves), sourcePieceIndex));
+			moves &= moves - 1;
 		}
 	}
 
-	public static void quietInCheckMoves(long moves, final int fromIndex, final ChessBoard cb) {
+	public static void quietNotInCheckPinnedMoves(long moves, final int fromIndex, final ChessBoard cb) {
+		// piece is pinned (move toward or away from pinner? could be multiple...)
 		int toIndex;
 		while (moves != 0) {
 			toIndex = Long.numberOfTrailingZeros(moves);
@@ -37,20 +27,23 @@ public class MoveListAdd {
 	}
 
 	public static void notInCheckAttacks(long moves, final int fromIndex, final ChessBoard cb) {
-		while (moves != 0) {
-			if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
+		if (moves == 0) {
+			return;
+		}
+		if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
+			while (moves != 0) {
 				final int toIndex = Long.numberOfTrailingZeros(moves);
 				MoveList.addMove(MoveUtil.createAttackMove(fromIndex, toIndex, cb.pieceIndexes[fromIndex], cb.pieceIndexes[toIndex]));
 				moves &= moves - 1;
-			} else {
-				// piece is pinned
-				while (moves != 0) {
-					final int toIndex = Long.numberOfTrailingZeros(moves);
-					if (cb.isLegalAttackMove(fromIndex, toIndex)) {
-						MoveList.addMove(MoveUtil.createAttackMove(fromIndex, toIndex, cb.pieceIndexes[fromIndex], cb.pieceIndexes[toIndex]));
-					}
-					moves &= moves - 1;
+			}
+		} else {
+			// piece is pinned (attack pinner? could be multiple...)
+			while (moves != 0) {
+				final int toIndex = Long.numberOfTrailingZeros(moves);
+				if (cb.isLegalAttackMove(fromIndex, toIndex)) {
+					MoveList.addMove(MoveUtil.createAttackMove(fromIndex, toIndex, cb.pieceIndexes[fromIndex], cb.pieceIndexes[toIndex]));
 				}
+				moves &= moves - 1;
 			}
 		}
 	}
@@ -58,9 +51,7 @@ public class MoveListAdd {
 	public static void inCheckAttacks(long moves, final int fromIndex, final ChessBoard cb) {
 		while (moves != 0) {
 			final int toIndex = Long.numberOfTrailingZeros(moves);
-			if (cb.isLegalAttackMove(fromIndex, toIndex)) {
-				MoveList.addMove(MoveUtil.createAttackMove(fromIndex, toIndex, cb.pieceIndexes[fromIndex], cb.pieceIndexes[toIndex]));
-			}
+			MoveList.addMove(MoveUtil.createAttackMove(fromIndex, toIndex, cb.pieceIndexes[fromIndex], cb.pieceIndexes[toIndex]));
 			moves &= moves - 1;
 		}
 	}
@@ -70,13 +61,22 @@ public class MoveListAdd {
 			return;
 		}
 		if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
-			MoveList.addMove(MoveUtil.createPromotionMove(fromIndex, Long.numberOfTrailingZeros(move)));
-			MoveList.addMove(MoveUtil.createNightPromotionMove(fromIndex, Long.numberOfTrailingZeros(move)));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, Long.numberOfTrailingZeros(move)));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, Long.numberOfTrailingZeros(move)));
+			if (EngineConstants.GENERATE_BR_PROMOTIONS) {
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, Long.numberOfTrailingZeros(move)));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, Long.numberOfTrailingZeros(move)));
+			}
 		} else {
+			// piece is pinned
 			final int toIndex = Long.numberOfTrailingZeros(move);
 			if (cb.isLegalMove(fromIndex, toIndex)) {
-				MoveList.addMove(MoveUtil.createPromotionMove(fromIndex, toIndex));
-				MoveList.addMove(MoveUtil.createNightPromotionMove(fromIndex, toIndex));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, toIndex));
+				if (EngineConstants.GENERATE_BR_PROMOTIONS) {
+					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, toIndex));
+					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, toIndex));
+				}
 			}
 		}
 	}
@@ -87,8 +87,12 @@ public class MoveListAdd {
 		}
 		final int toIndex = Long.numberOfTrailingZeros(move);
 		if (cb.isLegalMove(fromIndex, toIndex)) {
-			MoveList.addMove(MoveUtil.createPromotionMove(fromIndex, toIndex));
-			MoveList.addMove(MoveUtil.createNightPromotionMove(fromIndex, toIndex));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, toIndex));
+			if (EngineConstants.GENERATE_BR_PROMOTIONS) {
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, toIndex));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, toIndex));
+			}
 		}
 	}
 
@@ -96,15 +100,24 @@ public class MoveListAdd {
 		while (moves != 0) {
 			if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
 				final int toIndex = Long.numberOfTrailingZeros(moves);
-				MoveList.addMove(MoveUtil.createPromotionAttack(fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-				MoveList.addMove(MoveUtil.createNightPromotionAttack(fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				if (EngineConstants.GENERATE_BR_PROMOTIONS) {
+					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				}
 				moves &= moves - 1;
 			} else {
+				// piece is pinned (attack pinner? could be multiple...)
 				while (moves != 0) {
 					final int toIndex = Long.numberOfTrailingZeros(moves);
 					if (cb.isLegalAttackMove(fromIndex, toIndex)) {
-						MoveList.addMove(MoveUtil.createPromotionAttack(fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-						MoveList.addMove(MoveUtil.createNightPromotionAttack(fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+						MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+						MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+						if (EngineConstants.GENERATE_BR_PROMOTIONS) {
+							MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+							MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+						}
 					}
 					moves &= moves - 1;
 				}
@@ -116,8 +129,12 @@ public class MoveListAdd {
 		while (moves != 0) {
 			final int toIndex = Long.numberOfTrailingZeros(moves);
 			if (cb.isLegalAttackMove(fromIndex, toIndex)) {
-				MoveList.addMove(MoveUtil.createPromotionAttack(fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-				MoveList.addMove(MoveUtil.createNightPromotionAttack(fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				if (EngineConstants.GENERATE_BR_PROMOTIONS) {
+					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				}
 			}
 			moves &= moves - 1;
 		}

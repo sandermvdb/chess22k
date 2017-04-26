@@ -27,7 +27,7 @@ public class RepetitionTable {
 	}
 
 	public static void addValue(final long zobristKey) {
-		if (EngineConstants.TEST_VALUES) {
+		if (EngineConstants.ASSERT) {
 			if (repetitionValues[getZobristIndex(zobristKey)] > 1) {
 				System.out.println("Adding a move that is already a repetition. Index-collision which is OK? index : " + getZobristIndex(zobristKey));
 			}
@@ -36,10 +36,8 @@ public class RepetitionTable {
 	}
 
 	public static void removeValue(final long zobristKey) {
-		if (EngineConstants.TEST_VALUES) {
-			if (repetitionValues[getZobristIndex(zobristKey)] <= 0) {
-				System.out.println("Removing move from repetitiontable that has not been added");
-			}
+		if (EngineConstants.ASSERT) {
+			assert repetitionValues[getZobristIndex(zobristKey)] > 0 : "Removing move from repetitiontable that has not been added";
 		}
 		repetitionValues[getZobristIndex(zobristKey)]--;
 	}

@@ -9,7 +9,8 @@ public class Statistics {
 
 	public static final boolean ENABLED = false;
 
-	public static long startTime;
+	public static boolean panic = false;
+	public static long startTime = System.currentTimeMillis();
 	public static long evalNodes, abNodes, seeNodes;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
@@ -31,12 +32,18 @@ public class Statistics {
 	public static int drawByMaterialCount;
 	public static int badBishopEndgameCount;
 	public static int qChecks;
+	public static int staticNullMovePruningHit;
+	public static int mateThreat;
+	public static int razoringHit;
 
 	public static int calculateNps() {
 		return (int) (moveCount / (Math.max(System.currentTimeMillis() - startTime, 1))) * 1000;
 	}
 
 	public static void reset() {
+		razoringHit = 0;
+		mateThreat = 0;
+		staticNullMovePruningHit = 0;
 		qChecks = 0;
 		badBishopEndgameCount = 0;
 		drawByMaterialCount = 0;
@@ -79,6 +86,7 @@ public class Statistics {
 		evalCacheHits = 0;
 		evalCacheMisses = 0;
 		iidCount = 0;
+		panic = false;
 	}
 
 	public static void print() {
@@ -123,13 +131,17 @@ public class Statistics {
 		printPercentage(lmrMoveHit, lmrMoveFail, "LMR-move     ");
 		printPercentage(pvsMoveHit, pvsMoveFail, "PVS-move     ");
 
+		System.out.println("S-null-move  " + staticNullMovePruningHit);
+		System.out.println("Razored      " + razoringHit);
 		System.out.println("Checkmate    " + mateCount);
 		System.out.println("Stalemate    " + staleMateCount);
 		System.out.println("Repetitions  " + repetitions + "(" + repetitionTests + ")");
 		System.out.println("Draw-by-mtrl " + drawByMaterialCount);
 		System.out.println("Bad bishop   " + badBishopEndgameCount);
 		System.out.println("Extensions   " + extensions);
+		System.out.println("Mate-threat  " + mateThreat);
 		System.out.println("IID          " + iidCount);
+		System.out.println("Panic        " + panic);
 	}
 
 	private static void printPercentage(long hitCount, long failCount, String message) {

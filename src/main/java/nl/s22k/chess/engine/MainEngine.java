@@ -23,20 +23,74 @@ public class MainEngine {
 
 	// TODO use UCI-constants
 
-	private ChessBoard chessBoard;
-	public boolean quiet = false;
+	private static ChessBoard chessBoard;
+	public static boolean quiet = false;
+	public static String startFen = "";
+
+	private static Thread searchThread;
+	private static Thread maxTimeThread;
+
+	private static Object synchronizedSearch = new Object();
+	private static Object synchronizedTimer = new Object();
+
+	private static boolean calculating = false;
 
 	public static void main(String[] args) {
-
 		MagicUtil.init();
+		chessBoard = ChessBoardUtil.getNewCB();
 
-		MainEngine engine = new MainEngine();
-		NegamaxUtil.chessEngine = engine;
-		engine.start();
+		// calculation thread
+		searchThread = new Thread() {
+			@Override
+			public void run() {
+				while (true) {
+					try {
+						synchronized (synchronizedSearch) {
+							synchronizedSearch.wait();
+						}
+						Statistics.reset();
+						NegamaxUtil.start(chessBoard);
+						calculating = false;
+						maxTimeThread.interrupt();
+					} catch (Throwable t) {
+						ErrorLogger.log(chessBoard, t);
+					}
+				}
+			}
+		};
+		searchThread.setName("search");
+		searchThread.setDaemon(true);
+		searchThread.start();
 
+		// max time thread
+		maxTimeThread = new Thread() {
+			@Override
+			public void run() {
+				while (true) {
+					try {
+						synchronized (synchronizedTimer) {
+							synchronizedTimer.wait();
+						}
+
+						// check needed because of spurious wakeups??
+						if (calculating) {
+							Thread.sleep(TimeUtil.getMaxTime());
+							NegamaxUtil.stop = true;
+						}
+					} catch (InterruptedException e) {
+						// do nothing
+					}
+				}
+			}
+		};
+		maxTimeThread.setName("max-timer");
+		maxTimeThread.setDaemon(true);
+		maxTimeThread.start();
+
+		MainEngine.start();
 	}
 
-	public void start() {
+	private static void start() {
 		try {
 			Scanner sc = new Scanner(System.in);
 
@@ -83,51 +137,18 @@ public class MainEngine {
 						}
 					}
 				} else if (tokens[0].equals("go")) {
-					go(tokens, chessBoard.moveCounter, chessBoard.colorToMove);
-				} else if (tokens[0].equals("eval")) {
-					eval();
+					if (NegamaxUtil.stop) {
+						go(tokens, chessBoard.moveCounter, chessBoard.colorToMove);
+					}
 				} else if (tokens[0].equals("eval")) {
 					eval();
 				} else if (tokens[0].equals("setoption")) {
-					// setoption name Hash value 128
-					if (tokens[2].toLowerCase().equals("hash")) {
-						int value = Integer.parseInt(tokens[4]);
-						switch (value) {
-						case 1:
-						case 2:
-						case 4:
-						case 8:
-						case 16:
-						case 32:
-						case 64:
-						case 128:
-						case 256:
-						case 512:
-						case 1024:
-							int power2Entries = (int) (Math.log(value) / Math.log(2) + 16);
-							if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
-								EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
-								TTUtil.init();
-							}
-							break;
-						default:
-							System.out.println("Hash-size must be between 1-1024 and a multiple of 2. Setting default size of 128mb");
-							power2Entries = (int) (Math.log(128) / Math.log(2) + 16);
-							if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
-								EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
-								TTUtil.init();
-							}
-						}
-
-					} else {
-						System.out.println("Unknown option: " + tokens[2]);
-					}
+					setOption(tokens[2], tokens[4]);
 				} else if (tokens[0].equals("quit")) {
 					sc.close();
 					System.exit(0);
 				} else if (tokens[0].equals("stop")) {
 					NegamaxUtil.stop = true;
-					TTUtil.clearValues();
 				} else {
 					System.out.println("Unknown command: " + tokens[0]);
 				}
@@ -138,7 +159,43 @@ public class MainEngine {
 
 	}
 
-	private void go(String[] goCommandTokens, int moveCount, int colorToMove) {
+	private static void setOption(String optionName, String optionValue) {
+		// setoption name Hash value 128
+		if (optionName.toLowerCase().equals("hash")) {
+			int value = Integer.parseInt(optionValue);
+			switch (value) {
+			case 1:
+			case 2:
+			case 4:
+			case 8:
+			case 16:
+			case 32:
+			case 64:
+			case 128:
+			case 256:
+			case 512:
+			case 1024:
+				int power2Entries = (int) (Math.log(value) / Math.log(2) + 16);
+				if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
+					EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
+					TTUtil.init();
+				}
+				break;
+			default:
+				System.out.println("Hash-size must be between 1-1024 and a multiple of 2. Setting default size of 128mb");
+				power2Entries = (int) (Math.log(128) / Math.log(2) + 16);
+				if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
+					EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
+					TTUtil.init();
+				}
+			}
+
+		} else {
+			System.out.println("Unknown option: " + optionName);
+		}
+	}
+
+	private static void go(String[] goCommandTokens, int moveCount, int colorToMove) {
 		// go movestogo 30 wtime 3600000 btime 3600000
 		// go wtime 40847 btime 48019 winc 0 binc 0 movestogo 20
 		long totalTimeLeft = Long.MAX_VALUE;
@@ -168,24 +225,16 @@ public class MainEngine {
 		}
 		TimeUtil.setTimeWindow(totalTimeLeft, moveCount, movesToGo);
 
-		// start new thread
-		Thread calculationThread = new Thread() {
-			@Override
-			public void run() {
-				Statistics.reset();
-				try {
-					NegamaxUtil.start(chessBoard);
-				} catch (Throwable t) {
-					ErrorLogger.log(chessBoard, t);
-					System.exit(1);
-				}
-			}
-
-		};
-		calculationThread.start();
+		calculating = true;
+		synchronized (synchronizedSearch) {
+			synchronizedSearch.notify();
+		}
+		synchronized (synchronizedTimer) {
+			synchronizedTimer.notify();
+		}
 	}
 
-	public void position(String[] moveTokens) {
+	private static void position(String[] moveTokens) {
 		// apply moves
 		for (String moveToken : moveTokens) {
 			MoveWrapper move = new MoveWrapper(moveToken, chessBoard);
@@ -193,12 +242,13 @@ public class MainEngine {
 			RepetitionTable.addValue(chessBoard.zobristKey);
 		}
 		TTUtil.halfMoveCounter = chessBoard.moveCounter;
+		startFen = chessBoard.toString();
 	}
 
-	public void eval() {
+	private static void eval() {
 		System.out.println("Material (no pawn) : " + EvalUtil.calculateMaterialScores(chessBoard));
-		System.out.println("Position   	       : " + EvalUtil.calculatePositionScores(chessBoard));
-		System.out.println("Mobility           : " + EvalUtil.calculateMobilityWithKingDefenseScores(chessBoard));
+		System.out.println("Position           : " + EvalUtil.calculatePositionScores(chessBoard));
+		System.out.println("Mobility           : " + EvalUtil.calculateMobilityScores(chessBoard));
 		System.out.println("King-safety        : " + EvalUtil.calculateKingSafetyScores(chessBoard));
 		System.out.println("Pawn               : " + EvalUtil.calculatePawnScores(chessBoard));
 		System.out.println("Pawn-passed        : " + EvalUtil.calculatePassedPawnScores(chessBoard));
@@ -207,15 +257,16 @@ public class MainEngine {
 		System.out.println("Total              : " + EvalUtil.calculateScore(chessBoard));
 	}
 
-	public void sendBestMove() {
-		if (!quiet) {
-			Statistics.print();
-			TreeMove bestMove = Statistics.bestMove;
-			System.out.println("bestmove " + new MoveWrapper(bestMove.move));
+	public static void sendBestMove() {
+		if (quiet) {
+			return;
 		}
+		Statistics.print();
+		TreeMove bestMove = Statistics.bestMove;
+		System.out.println("bestmove " + new MoveWrapper(bestMove.move));
 	}
 
-	public void sendPlyInfo() {
+	public static void sendPlyInfo() {
 		if (quiet) {
 			return;
 		}
@@ -228,9 +279,9 @@ public class MainEngine {
 				+ TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2) + " pv " + bestMove);
 	}
 
-	private String getVersion() {
+	private static String getVersion() {
 		String version = null;
-		Package pkg = getClass().getPackage();
+		Package pkg = new MainEngine().getClass().getPackage();
 		if (pkg != null) {
 			version = pkg.getImplementationVersion();
 			if (version == null) {

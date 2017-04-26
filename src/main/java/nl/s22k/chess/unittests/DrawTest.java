@@ -6,7 +6,6 @@ import org.junit.Test;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.engine.MainEngine;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.search.NegamaxUtil;
 
@@ -15,7 +14,6 @@ public class DrawTest {
 	@BeforeClass
 	public static void init() {
 		MagicUtil.init();
-		NegamaxUtil.chessEngine = new MainEngine();
 	}
 
 	@Test

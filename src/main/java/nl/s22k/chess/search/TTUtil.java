@@ -103,12 +103,15 @@ public class TTUtil {
 	}
 
 	public static void setBestMoveInStatistics(ChessBoard chessBoard, int depth, ScoreType scoreType) {
+		if (NegamaxUtil.stop) {
+			return;
+		}
 		long value = getTTValue(chessBoard.zobristKey);
 		if (value == 0) {
 			throw new RuntimeException("No best-move found!!");
 		}
 
-		int move = getMove(value);
+		int move = getCleanMove(value);
 		List<Integer> moves = new ArrayList<Integer>();
 		moves.add(move);
 		TreeMove bestMove = new TreeMove(move, getScore(value, 0), scoreType);
@@ -121,7 +124,7 @@ public class TTUtil {
 		while (value != 0 && TTUtil.getFlag(value) == TTUtil.FLAG_EXACT && depth >= 0) {
 			ply++;
 			depth--;
-			move = getMove(value);
+			move = getCleanMove(value);
 			moves.add(move);
 			bestMove.appendMove(new TreeMove(move, getScore(value, ply), ScoreType.EXACT));
 			chessBoard.doMove(move);
@@ -136,22 +139,16 @@ public class TTUtil {
 
 	public static void addValue(final long zobristKey, int score, final int ply, final int depth, final int flag, final int cleanMove) {
 
-		if (EngineConstants.TEST_VALUES) {
-			if (depth < 1) {
-				System.out.println("Cannot add depth < 1 to TT");
-			}
-			if (cleanMove == 0) {
-				System.out.println("Adding empty move to TT");
-			}
-			if (score > Util.SHORT_MAX) {
-				System.out.println("Adding score to TT > MAX");
-			}
-			if (score < Util.SHORT_MIN) {
-				System.out.println("Adding score to TT < MIN");
-			}
-			if (MoveUtil.getCleanMove(cleanMove) != cleanMove) {
-				System.out.println("Adding non-clean move to TT");
-			}
+		if (NegamaxUtil.stop) {
+			return;
+		}
+
+		if (EngineConstants.ASSERT) {
+			assert depth >= 1 : "Cannot add depth < 1 to TT";
+			assert cleanMove != 0 : "Adding empty move to TT";
+			assert score >= Util.SHORT_MIN && score <= Util.SHORT_MAX : "Adding incorrect score to TT: " + score;
+			assert MoveUtil.getCleanMove(cleanMove) == cleanMove : "Adding non-clean move to TT";
+			assert MoveUtil.getSourcePieceIndex(cleanMove) != 0 : "Adding move with empty source-index to T";
 		}
 
 		// correct mate-score
@@ -161,12 +158,8 @@ public class TTUtil {
 			score -= ply;
 		}
 
-		if (EngineConstants.TEST_VALUES) {
-			if (score > Util.SHORT_MAX) {
-				System.out.println("Adding score to tt > MAX: " + score);
-			} else if (score < Util.SHORT_MIN) {
-				System.out.println("Adding score to tt < MIN: " + score);
-			}
+		if (EngineConstants.ASSERT) {
+			assert score >= Util.SHORT_MIN && score <= Util.SHORT_MAX : "Adding incorrect score to TT: " + score;
 		}
 
 		final int index = getZobristIndex(zobristKey);
@@ -203,12 +196,8 @@ public class TTUtil {
 			score += ply;
 		}
 
-		if (EngineConstants.TEST_VALUES) {
-			if (score > Util.SHORT_MAX) {
-				System.out.println("Retrieving score from tt > MAX");
-			} else if (score < Util.SHORT_MIN) {
-				System.out.println("Retrieving score from tt < MIN");
-			}
+		if (EngineConstants.ASSERT) {
+			assert score >= Util.SHORT_MIN && score <= Util.SHORT_MAX : "Retrieving incorrect score from TT: " + score;
 		}
 
 		return score;
@@ -226,31 +215,22 @@ public class TTUtil {
 		return (int) (value >>> FLAG & 3);
 	}
 
-	public static int getMove(final long value) {
+	public static int getCleanMove(final long value) {
 		return (int) (value >>> MOVE & 0x3fffff);
 	}
 
 	// SCORE,HALF_MOVE_COUNTER,MOVE,FLAG,DEPTH
 	public static long createValue(final long score, final long cleanMove, final long flag, final long depth) {
-		if (EngineConstants.TEST_VALUES) {
-			if (cleanMove != MoveUtil.getCleanMove((int) cleanMove)) {
-				System.out.println("Adding non clean move to tt");
-			}
-			if (score > Util.SHORT_MAX) {
-				System.out.println("Adding score to TT > MAX " + score);
-			}
-			if (score < Util.SHORT_MIN) {
-				System.out.println("Adding score to TT < MIN " + score);
-			}
-			if (depth > 255) {
-				System.out.println("Adding depth to TT > MAX " + depth);
-			}
+		if (EngineConstants.ASSERT) {
+			assert cleanMove == MoveUtil.getCleanMove((int) cleanMove) : "Adding non clean move to tt";
+			assert score >= Util.SHORT_MIN && score <= Util.SHORT_MAX : "Adding incorrect score to TT: " + score;
+			assert depth <= 255 : "Adding depth to TT > MAX " + depth;
 		}
 		return score << SCORE | halfMoveCounter << HALF_MOVE_COUNTER | cleanMove << MOVE | flag << FLAG | depth;
 	}
 
 	public static String toString(long ttValue) {
-		return "score=" + TTUtil.getScore(ttValue, 0) + " " + new MoveWrapper(getMove(ttValue)) + " depth=" + TTUtil.getDepth(ttValue) + " flag="
+		return "score=" + TTUtil.getScore(ttValue, 0) + " " + new MoveWrapper(getCleanMove(ttValue)) + " depth=" + TTUtil.getDepth(ttValue) + " flag="
 				+ TTUtil.getFlag(ttValue);
 	}
 

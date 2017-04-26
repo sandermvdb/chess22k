@@ -2,8 +2,6 @@ package nl.s22k.chess.unittests;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
-import nl.s22k.chess.Statistics;
-import nl.s22k.chess.engine.MainEngine;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.search.NegamaxUtil;
 import nl.s22k.chess.search.TimeUtil;
@@ -23,20 +21,16 @@ public class MainTest {
 	public static final String FEN_MATE_IN_21 = "2k5/8/1pP1K3/1P6/8/8/8/8 w – – 0 1";
 
 	public static final String FEN_STANDARD_OPENING = "r2qr1k1/2p2ppp/p3bn2/2bpN1B1/8/2NQ4/PPP2PPP/3RR1K1 b - - 3 14 ";
+	public static final String FEN_STANDARD_MIDDLEGAME = "2b5/1p3k2/7R/4p1rP/1qpnR3/8/P4PP1/3Q2K1 w - - 0 47 ";
 	public static final String FEN_LOSING_CAPTURE = "7r/5Q2/7p/7k/P5R1/B1P3P1/3PP3/n3K3 b - - 0 44 ";
-	public static final String FEN_ENDGAME_BLUNDER = "8/2p2p2/3p1k2/1p1P2p1/5P1p/4K2P/p4P2/N7 b - - 1 82";
+	public static final String FEN_ENDGAME = "8/2p2p2/3p1k2/1p1P2p1/5P1p/4K2P/p4P2/N7 b - - 1 82";
 	public static final String FEN_STALEMATE = "8/8/4k3/5p2/5K2/8/8/8 w - - 0 63 ";
-	public static final String FEN_NODE_EXPLOSION = "8/8/4k3/5p2/5K2/8/8/8 w - - 0 63 "; // M8
 
 	public static void main(String[] args) {
 
 		MagicUtil.init();
-		NegamaxUtil.chessEngine = new MainEngine();
-
-		Statistics.reset();
 
 		ChessBoard cb = ChessBoardUtil.getNewCB(FEN_STANDARD_OPENING);
-		System.out.println("start " + cb.zobristKey);
 		TimeUtil.setTimeWindow(300000, cb.moveCounter, 0);
 		// NegamaxUtil.maxDepth = 20;
 		NegamaxUtil.start(cb);

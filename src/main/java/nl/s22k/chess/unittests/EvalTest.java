@@ -18,6 +18,12 @@ public class EvalTest {
 	}
 
 	@Test
+	public void test() {
+		ChessBoard cb = ChessBoardUtil.getNewCB("4r1k1/5p2/2b3p1/R2p3p/p2B1K1P/P1P2P2/6P1/8 w - - 6 39 ");
+		EvalUtil.calculatePawnScores(cb);
+	}
+
+	@Test
 	public void insufficientMaterialTest() {
 		System.out.println("Insufficient material test");
 		ChessBoard cb = ChessBoardUtil.getNewCB("8/8/8/8/K1k5/8/N7/8 w - - 16 1 ");
@@ -51,17 +57,6 @@ public class EvalTest {
 		ChessBoard cb = ChessBoardUtil.getNewCB("3q4k78888K73Q4 w - -");
 		System.out.println(EvalUtil.calculateScore(cb));
 		int move = MoveUtil.createMove(4, 3, ChessConstants.QUEEN);
-		cb.doMove(move);
-		System.out.println(EvalUtil.calculateScore(cb));
-	}
-
-	@Test
-	public void setCheckTest() {
-		System.out.println("Set check test");
-		ChessBoard cb = ChessBoardUtil.getNewCB("3qk38888883QK3 w - - 20 20");
-		System.out.println(EvalUtil.calculateScore(cb));
-		int move = MoveUtil.createMove(4, 11, ChessConstants.QUEEN);
-		cb.moveCounter = 20;
 		cb.doMove(move);
 		System.out.println(EvalUtil.calculateScore(cb));
 	}
@@ -146,9 +141,48 @@ public class EvalTest {
 	}
 
 	@Test
-	public void kingDefenseHoleTestWhiteLeft() {
-		System.out.println("King defense hole test white left");
-		ChessBoard cb = ChessBoardUtil.getNewCB("1k5q/pppppppp/8/8/8/8/PPPPPPPP/1K5Q w - -");
+	public void kingPawnShieldKingSideWhite() {
+		ChessBoard cb = ChessBoardUtil.getNewCB("r1bq1rk1/ppp1bppp/2np4/4p3/4P3/2NP4/PPP1BPPP/R1BQ1RK1 w - - 4 1 ");
+		// System.out.println(EvalUtil.calculateScore(cb));
+
+		int move1 = MoveUtil.createMove(8, 24, ChessConstants.PAWN);
+		cb.doMove(move1);
+		System.out.println(EvalUtil.calculateScore(cb));
+
+		cb.undoMove(move1);
+		int move2 = MoveUtil.createMove(9, 25, ChessConstants.PAWN);
+		cb.doMove(move2);
+		System.out.println(EvalUtil.calculateScore(cb));
+
+		cb.undoMove(move2);
+		int move3 = MoveUtil.createMove(10, 26, ChessConstants.PAWN);
+		cb.doMove(move3);
+		System.out.println(EvalUtil.calculateScore(cb));
+	}
+
+	@Test
+	public void kingPawnShieldKingSideBlack() {
+		ChessBoard cb = ChessBoardUtil.getNewCB("r1bq1rk1/ppp1bppp/2np4/4p3/4P3/2NP4/PPP1BPPP/R1BQ1RK1 b - - 4 1 ");
+		System.out.println(EvalUtil.calculateScore(cb));
+
+		int move1 = MoveUtil.createMove(48, 32, ChessConstants.PAWN);
+		cb.doMove(move1);
+		System.out.println(EvalUtil.calculateScore(cb));
+
+		cb.undoMove(move1);
+		int move2 = MoveUtil.createMove(49, 33, ChessConstants.PAWN);
+		cb.doMove(move2);
+		System.out.println(EvalUtil.calculateScore(cb));
+
+		cb.undoMove(move2);
+		int move3 = MoveUtil.createMove(50, 34, ChessConstants.PAWN);
+		cb.doMove(move3);
+		System.out.println(EvalUtil.calculateScore(cb));
+	}
+
+	@Test
+	public void kingPawnShieldQueenSideWhite() {
+		ChessBoard cb = ChessBoardUtil.getNewCB("2kr1bnr/pppq1ppp/3pb3/4p3/4P3/3PB3/PPPQ1PPP/2KR1BNR w - - 6 1 ");
 		System.out.println(EvalUtil.calculateScore(cb));
 
 		int move1 = MoveUtil.createMove(15, 31, ChessConstants.PAWN);
@@ -162,39 +196,11 @@ public class EvalTest {
 		int move3 = MoveUtil.createMove(13, 29, ChessConstants.PAWN);
 		cb.doMove(move3);
 		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move3);
-		int move4 = MoveUtil.createMove(12, 28, ChessConstants.PAWN);
-		cb.doMove(move4);
-		System.out.println(EvalUtil.calculateScore(cb));
 	}
 
 	@Test
-	public void kingDefenseHoleTestWhiteRight() {
-		System.out.println("King defense hole test white right");
-		ChessBoard cb = ChessBoardUtil.getNewCB("1k5q/pppppppp/8/8/8/8/PPPPPPPP/Q5K1 w - -");
-		System.out.println(EvalUtil.calculateScore(cb));
-
-		int move1 = MoveUtil.createMove(8, 24, ChessConstants.PAWN);
-		cb.doMove(move1);
-		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move1);
-		int move2 = MoveUtil.createMove(9, 25, ChessConstants.PAWN);
-		cb.doMove(move2);
-		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move2);
-		int move3 = MoveUtil.createMove(10, 26, ChessConstants.PAWN);
-		cb.doMove(move3);
-		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move3);
-		int move4 = MoveUtil.createMove(11, 27, ChessConstants.PAWN);
-		cb.doMove(move4);
-		System.out.println(EvalUtil.calculateScore(cb));
-	}
-
-	@Test
-	public void kingDefenseHoleTestBlackLeft() {
-		System.out.println("King defense hole test black left");
-		ChessBoard cb = ChessBoardUtil.getNewCB("1k5q/pppppppp/8/8/8/8/PPPPPPPP/1K5Q b - -");
+	public void kingPawnShieldQueenSideBlack() {
+		ChessBoard cb = ChessBoardUtil.getNewCB("2kr1bnr/pppq1ppp/3pb3/4p3/4P3/3PB3/PPPQ1PPP/2KR1BNR b - - 6 1 ");
 		System.out.println(EvalUtil.calculateScore(cb));
 
 		int move1 = MoveUtil.createMove(55, 39, ChessConstants.PAWN);
@@ -207,33 +213,6 @@ public class EvalTest {
 		cb.undoMove(move2);
 		int move3 = MoveUtil.createMove(53, 37, ChessConstants.PAWN);
 		cb.doMove(move3);
-		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move3);
-		int move4 = MoveUtil.createMove(52, 36, ChessConstants.PAWN);
-		cb.doMove(move4);
-		System.out.println(EvalUtil.calculateScore(cb));
-	}
-
-	@Test
-	public void kingDefenseHoleTestBlackRight() {
-		System.out.println("King defense hole test black right");
-		ChessBoard cb = ChessBoardUtil.getNewCB("q5k1/pppppppp/8/8/8/8/PPPPPPPP/Q5K1 b - -");
-		System.out.println(EvalUtil.calculateScore(cb));
-
-		int move1 = MoveUtil.createMove(48, 32, ChessConstants.PAWN);
-		cb.doMove(move1);
-		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move1);
-		int move2 = MoveUtil.createMove(49, 33, ChessConstants.PAWN);
-		cb.doMove(move2);
-		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move2);
-		int move3 = MoveUtil.createMove(50, 34, ChessConstants.PAWN);
-		cb.doMove(move3);
-		System.out.println(EvalUtil.calculateScore(cb));
-		cb.undoMove(move3);
-		int move4 = MoveUtil.createMove(51, 35, ChessConstants.PAWN);
-		cb.doMove(move4);
 		System.out.println(EvalUtil.calculateScore(cb));
 	}
 
@@ -264,5 +243,11 @@ public class EvalTest {
 	public void pinnedPieceTest() {
 		ChessBoard cb = ChessBoardUtil.getNewCB("2kr4/ppp1qppp/8/8/3B4/3K4/PPPP1PPP/8 w - - 1 1 ");
 		System.out.println(EvalUtil.calculatePenalties(cb));
+	}
+
+	@Test
+	public void pawnStormTest() {
+		ChessBoard cb = ChessBoardUtil.getNewCB("2r4k/1b2npp1/2n1p2p/ppPpPP1P/q1p3P1/P1P3Q1/1BP5/R2B1RK1 b - - 0 28 ");
+		System.out.println(EvalUtil.calculateBonusses(cb));
 	}
 }

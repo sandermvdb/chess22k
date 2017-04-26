@@ -1,3 +1,14 @@
+1.3 - 26-04-2017 - 2500 elo
+- enabled king-safety (based on Ed Schröders idea)
+- implemented razoring
+- implemented static nullmove pruning
+- recognition of bishop and rook underpromotions (so it doesn't crash anymore)
+- changed pawn-shield and pawn-storm implementation
+- updated LMR
+- fixed running out of time
+- fixed some engine crashes
+
+
 1.2 - 19-03-2017 - 2400 elo, this time for real? :P
 - improved passed-pawn scoring in endgames
 - added time to UCI output
@@ -8,7 +19,7 @@
 - bugs, again ;)
 
 
-1.1 09-02-2017 (2400 elo)
+1.1 - 09-02-2017 - 2400 elo
 - re-enabled mobility evaluation
 - knight outposts
 - implemented king safety (using Ed Schroders idea), but disabled for the moment
@@ -16,7 +27,7 @@
 - bug fixes, of course
 
 
-1.0 13-01-2017 (2300 elo)
+1.0 - 13-01-2017 - 2300 elo
 - (magic) bitboards
 - transposition table
 - (internal) iterative-deepening

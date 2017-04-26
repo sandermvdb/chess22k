@@ -13,14 +13,14 @@ public class PawnEvalCache {
 	public static final int MAX_TABLE_ENTRIES = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_PAWN_EVAL_ENTRIES];
 
 	private static final int[] keys = new int[MAX_TABLE_ENTRIES];
-	private static final short[][] passerRanks = new short[2][MAX_TABLE_ENTRIES];
+	private static final short[][] passerFiles = new short[2][MAX_TABLE_ENTRIES];
 	private static final short[] scores = new short[MAX_TABLE_ENTRIES];
 	public static int usageCounter;
 
 	public static void clearValues() {
 		Arrays.fill(keys, 0);
-		Arrays.fill(passerRanks[0], (short) 0);
-		Arrays.fill(passerRanks[1], (short) 0);
+		Arrays.fill(passerFiles[0], (short) 0);
+		Arrays.fill(passerFiles[1], (short) 0);
 		Arrays.fill(scores, (short) 0);
 		usageCounter = 0;
 	}
@@ -44,36 +44,29 @@ public class PawnEvalCache {
 	}
 
 	public static int getPasserFiles(final long zkKey, final int color) {
-		return passerRanks[color][getZobristIndex(zkKey)] & 255;
+		return passerFiles[color][getZobristIndex(zkKey)] & 255;
 	}
 
 	public static int getProtectedPasserFiles(final long zkKey, final int color) {
-		return passerRanks[color][getZobristIndex(zkKey)] >>> 8 & 255;
+		return passerFiles[color][getZobristIndex(zkKey)] >>> 8 & 255;
 	}
 
-	public static void addValue(final long zobristKey, final int score, final int whitePasserFiles, final int blackPasserFiles, final int whiteProtectedPasserFiles,
-			final int blackProtectedPasserFiles) {
+	public static void addValue(final long zobristKey, final int score, final int whitePasserFiles, final int blackPasserFiles,
+			final int whiteProtectedPasserFiles, final int blackProtectedPasserFiles) {
 
-		if (EngineConstants.TEST_VALUES) {
-			if (score > Util.SHORT_MAX) {
-				System.out.println("Adding score to pawn-cache > MAX");
-			} else if (score < Util.SHORT_MIN) {
-				System.out.println("Adding score to pawn-cache < MIN");
-			}
-			if (whitePasserFiles > 255 || whitePasserFiles < 0) {
-				System.out.println("Adding incorrect whitePassers value to pawn-eval-cache");
-			}
-			if (blackPasserFiles > 255 || blackPasserFiles < 0) {
-				System.out.println("Adding incorrect blackPassers value to pawn-eval-cache");
-			}
+		if (EngineConstants.ASSERT) {
+			assert score <= Util.SHORT_MAX : "Adding score to pawn-cache > MAX";
+			assert score >= Util.SHORT_MIN : "Adding score to pawn-cache < MIN";
+			assert whitePasserFiles >= 0 && whitePasserFiles <= 255 : "Adding incorrect whitePassers value to pawn-eval-cache";
+			assert blackPasserFiles >= 0 && whitePasserFiles <= 255 : "Adding incorrect blackPassers value to pawn-eval-cache";
 		}
 
 		final int ttIndex = getZobristIndex(zobristKey);
 
 		keys[ttIndex] = (int) zobristKey;
 		scores[ttIndex] = (short) score;
-		passerRanks[ChessConstants.WHITE][ttIndex] = (short) (whiteProtectedPasserFiles << 8 | whitePasserFiles);
-		passerRanks[ChessConstants.BLACK][ttIndex] = (short) (blackProtectedPasserFiles << 8 | blackPasserFiles);
+		passerFiles[ChessConstants.WHITE][ttIndex] = (short) (whiteProtectedPasserFiles << 8 | whitePasserFiles);
+		passerFiles[ChessConstants.BLACK][ttIndex] = (short) (blackProtectedPasserFiles << 8 | blackPasserFiles);
 
 		if (Statistics.ENABLED) {
 			if (keys[ttIndex] == 0) {

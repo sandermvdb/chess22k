@@ -14,8 +14,6 @@ public class EPD {
 	private List<String> moveStrings = new ArrayList<String>();
 	private String fen;
 	private String id;
-	private boolean isCheckingMove = false;
-	private boolean isAttackingMove = false;
 
 	// 3r1k2/4npp1/1ppr3p/p6P/P2PPPP1/1NR5/5K2/2R5 w - - bm d5; id \"BK.02\";
 	// r1bqk1nr/pppnbppp/3p4/8/2BNP3/8/PPP2PPP/RNBQK2R w KQkq - bm Bxf7+; id \"CCR12\";
@@ -35,13 +33,11 @@ public class EPD {
 			String moveString = fenToken[i];
 			if (moveString.endsWith("+")) {
 				moveString = moveString.replace("+", "");
-				isCheckingMove = true;
 			}
 
 			// remove capture indication
 			if (moveString.contains("x")) {
 				moveString = moveString.replace("x", "");
-				isAttackingMove = true;
 			}
 			moveStrings.add(moveString);
 		}
@@ -63,7 +59,7 @@ public class EPD {
 	private boolean moveEquals(String moveString, MoveWrapper bestMove) {
 
 		int move = bestMove.move;
-		int sourceIndex = MoveUtil.getZKSourcePieceIndex(move);
+		int sourceIndex = MoveUtil.getSourcePieceIndex(move);
 		if (moveString.length() == 2) {
 			// d5, g6
 			// must be a pawn

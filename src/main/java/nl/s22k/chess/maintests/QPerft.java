@@ -86,10 +86,17 @@ public class QPerft {
 		chessBoard = ChessBoardUtil.getNewCB();
 		System.out.println(qperft(chessBoard, 6) + " 119060324");
 		System.out.println(System.currentTimeMillis() - Statistics.startTime);
+		Statistics.reset();
 
 		chessBoard = ChessBoardUtil.getNewCB();
 		System.out.println(qperft(chessBoard, 7) + " 3195901860");
 		System.out.println(System.currentTimeMillis() - Statistics.startTime);
+		Statistics.reset();
+
+		chessBoard = ChessBoardUtil.getNewCB();
+		System.out.println(qperft(chessBoard, 8) + " 84998978956");
+		System.out.println(System.currentTimeMillis() - Statistics.startTime);
+		Statistics.reset();
 	}
 
 }

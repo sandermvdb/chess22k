@@ -6,7 +6,9 @@ import static nl.s22k.chess.ChessConstants.WHITE;
 
 public class ChessBoardTestUtil {
 
-	public static void testValues(ChessBoard cb, String method) {
+	private static int[] testPieceIndexes = new int[64];
+
+	public static void testValues(ChessBoard cb) {
 
 		long iterativeZK = cb.zobristKey;
 		long iterativeZKPawn = cb.pawnZobristKey;
@@ -16,68 +18,69 @@ public class ChessBoardTestUtil {
 		long pinnedPiecesWhite = cb.pinnedPieces[WHITE];
 		long pinnedPiecesBlack = cb.pinnedPieces[BLACK];
 		int iterativePsqt = cb.psqtScore;
+		System.arraycopy(cb.pieceIndexes, 0, testPieceIndexes, 0, cb.pieceIndexes.length);
 
-		if (Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]) != cb.kingIndex[WHITE]) {
-			System.out.println(String.format("Incorrect white king-index in chessBoard.%s()", method));
-		}
-		if (Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]) != cb.kingIndex[BLACK]) {
-			System.out.println(String.format("Incorrect black king-index in chessBoard.%s()", method));
-		}
+		assert Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]) == cb.kingIndex[WHITE] : "Incorrect white king-index";
+		assert Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]) == cb.kingIndex[BLACK] : "Incorrect black king-index";
 
 		// endgame
-		if (cb.isEndGame(WHITE) != cb.isEndGame[WHITE]) {
-			System.out.println(String.format("Incorrect white endGame set in chessBoard.%s()", method));
-		}
-		if (cb.isEndGame(BLACK) != cb.isEndGame[BLACK]) {
-			System.out.println(String.format("Incorrect white endGame set in chessBoard.%s()", method));
-		}
+		assert cb.isEndGame(WHITE) == cb.isEndGame[WHITE] : "Incorrect white endGame";
+		assert cb.isEndGame(BLACK) == cb.isEndGame[BLACK] : "Incorrect black endGame";
 
 		ChessBoardUtil.init(cb);
 
 		// zobrist keys
-		if (iterativeZK != cb.zobristKey) {
-			System.out.println(String.format("Incorrect zobrist-key calculated in chessBoard.%s()", method));
-		}
-		if (iterativeZKPawn != cb.pawnZobristKey) {
-			System.out.println(String.format("Incorrect pawn-zobrist-key calculated in chessBoard.%s()", method));
-		}
+		assert iterativeZK == cb.zobristKey : "Incorrect zobrist-key";
+		assert iterativeZKPawn == cb.pawnZobristKey : "Incorrect pawn-zobrist-key";
 
 		// pinned-pieces
-		if (pinnedPiecesWhite != cb.pinnedPieces[WHITE]) {
-			System.out.println(String.format("Incorrect white pinned-pieces calculated in chessBoard.%s()", method));
-		}
-		if (pinnedPiecesBlack != cb.pinnedPieces[BLACK]) {
-			System.out.println(String.format("Incorrect black pinned-pieces calculated in chessBoard.%s()", method));
-		}
+		assert pinnedPiecesWhite == cb.pinnedPieces[WHITE] : "Incorrect white pinned-pieces";
+		assert pinnedPiecesBlack == cb.pinnedPieces[BLACK] : "Incorrect black pinned-pieces";
 
 		// combined pieces
-		if (iterativeWhitePieces != cb.friendlyPieces[WHITE]) {
-			System.out.println(String.format("Incorrect whitePieces calculated in chessBoard.%s()", method));
-		}
-		if (iterativeBlackPieces != cb.friendlyPieces[BLACK]) {
-			System.out.println(String.format("Incorrect blackPieces calculated in chessBoard.%s()", method));
-		}
-		if (iterativeAllPieces != cb.allPieces) {
-			System.out.println(String.format("Incorrect allPieces calculated in chessBoard.%s()", method));
-		}
-		if ((iterativeBlackPieces & iterativeWhitePieces) != 0) {
-			System.out.println(String.format("Overlapping pieces calculated in chessBoard.%s()", method));
-		}
+		assert iterativeWhitePieces == cb.friendlyPieces[WHITE] : "Incorrect whitePieces";
+		assert iterativeBlackPieces == cb.friendlyPieces[BLACK] : "Incorrect blackPieces";
+		assert iterativeAllPieces == cb.allPieces : "Incorrect allPieces";
+		assert (iterativeBlackPieces & iterativeWhitePieces) == 0 : "Overlapping pieces";
 
 		// psqt
-		if (iterativePsqt != cb.psqtScore) {
-			System.out.println(String.format("Incorrect psqt calculated in chessBoard.%s(): %s, %s", method, iterativePsqt, cb.psqtScore));
-		}
+		assert iterativePsqt == cb.psqtScore : "Incorrect psqt";
 
 		// piece-indexes
-		for (int i = 0; i < 64; i++) {
-			if ((cb.allPieces & Util.POWER_LOOKUP[i]) != 0 && cb.pieceIndexes[i] == ChessConstants.EMPTY) {
-				System.out.println(String.format("Incorrect pieceScores calculated in chessBoard.%s()", method));
-			}
-			if ((cb.allPieces & Util.POWER_LOOKUP[i]) == 0 && cb.pieceIndexes[i] != ChessConstants.EMPTY) {
-				System.out.println(String.format("Incorrect pieceScores calculated in chessBoard.%s()", method));
+		for (int i = 0; i < testPieceIndexes.length; i++) {
+			assert testPieceIndexes[i] == cb.pieceIndexes[i] : "Incorrect piece indexes";
+		}
+	}
+
+	public static ChessBoard getHorizontalMirroredCb(ChessBoard cb) {
+		ChessBoard testCb = ChessBoard.getTestInstance();
+
+		for (int color = ChessConstants.WHITE; color <= ChessConstants.BLACK; color++) {
+			for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++) {
+				testCb.pieces[color][piece] = Util.mirrorHorizontal(cb.pieces[color][piece]);
 			}
 		}
+
+		testCb.colorToMove = cb.colorToMove;
+		ChessBoardUtil.init(testCb);
+		testCb.moveCounter = cb.moveCounter;
+		return testCb;
+	}
+
+	public static ChessBoard getVerticalMirroredCb(ChessBoard cb) {
+		ChessBoard testCb = ChessBoard.getTestInstance();
+
+		for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++) {
+			testCb.pieces[WHITE][piece] = Util.mirrorVertical(cb.pieces[BLACK][piece]);
+		}
+		for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++) {
+			testCb.pieces[BLACK][piece] = Util.mirrorVertical(cb.pieces[WHITE][piece]);
+		}
+
+		testCb.colorToMove = cb.colorToMoveInverse;
+		ChessBoardUtil.init(testCb);
+		testCb.moveCounter = cb.moveCounter;
+		return testCb;
 	}
 
 }

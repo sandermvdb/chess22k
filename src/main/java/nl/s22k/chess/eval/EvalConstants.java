@@ -12,10 +12,12 @@ public class EvalConstants {
 	public static final int[] MATERIAL_SCORES = new int[] { 0, 100, 325, 340, 500, 950, 3000 };
 	public static final int QUEEN_PROMOTION_SCORE = MATERIAL_SCORES[ChessConstants.QUEEN] - MATERIAL_SCORES[ChessConstants.PAWN];
 	public static final int KNIGHT_PROMOTION_SCORE = MATERIAL_SCORES[ChessConstants.NIGHT] - MATERIAL_SCORES[ChessConstants.PAWN];
+	public static final int ROOK_PROMOTION_SCORE = MATERIAL_SCORES[ChessConstants.ROOK] - MATERIAL_SCORES[ChessConstants.PAWN];
+	public static final int BISHOP_PROMOTION_SCORE = MATERIAL_SCORES[ChessConstants.BISHOP] - MATERIAL_SCORES[ChessConstants.PAWN];
 
 	//@formatter:off
 	
-	//borrowed from Ed Schroder
+	//concept borrowed from Ed Schroder
 	public static final int[] KING_SAFETY_SCORES = { 
 			0, 2, 3, 6, 12, 18, 25, 37, 50, 75, 100, 
 			125, 150, 175, 200, 225, 250, 275, 300, 
@@ -32,36 +34,27 @@ public class EvalConstants {
 
 	public static final int SCORE_MATE_BOUND = 32000;
 
+	public static final int[][] PAWN_POSITION_SCORES = 			new int[2][64];
 	public static final int[][] PAWN_POSITION_SCORES_ENDGAME =	new int[2][64];
-	private static final int[][] PAWN_POSITION_SCORES_MIDDLE = 	new int[2][64];
-	private static final int[][] PAWN_POSITION_SCORES_LEFT = 	new int[2][64];
-	private static final int[][] PAWN_POSITION_SCORES_RIGHT = 	new int[2][64];
-	public static final int[][][] PAWN_POSITION_SCORES = 		new int[][][]{
-		PAWN_POSITION_SCORES_MIDDLE, PAWN_POSITION_SCORES_LEFT, PAWN_POSITION_SCORES_RIGHT};
 		
 	public static final int[][] BISHOP_POSITION_SCORES = 		new int[2][64];
 	public static final int[][] ROOK_POSITION_SCORES = 			new int[2][64];
 	public static final int[][] KNIGHT_POSITION_SCORES = 		new int[2][64];
 	public static final int[][] KING_POSITION_SCORES = 			new int[2][64];
 	public static final int[][] KING_POSITION_SCORES_ENDGAME =  new int[2][64];
-	public static final int[][] KING_PAWN_INDEX = 				new int[2][64];
-	public static final int[][] KING_SAFETY_COUNTER = 			new int[2][64];
 	
+	public static final int[] KING_PAWN_SHIELD_RANK_BONUS = 	new int[]{ 0,40,32,16, 8, 0, 0, 0 };
+	public static final int[] KING_SAFETY_COUNTER_RANKS =		new int[]{ 0, 1, 3, 4, 4, 4, 4, 4 };
 	public static final long[][] KING_SAFETY_BEHIND = 			new long[2][64];
+	public static final long[] KING_SAFETY_NEXT = 				new long[64]; //not color specific
 	public static final long[][] KING_SAFETY_FRONT = 			new long[2][64];
 	public static final long[][] KING_SAFETY_FRONT_FURTHER = 	new long[2][64];
+	public static final long[][] KING_PAWN_SHIELD_KINGSIDE_MASK =  new long[2][8];
+	public static final long[][] KING_PAWN_SHIELD_QUEENSIDE_MASK = new long[2][8];
 	
 	public static final long[][] PASSED_PAWN_MASKS = 			new long[2][64];
-	public static final long[][][] KING_PAWN_HOLE = 			new long[][][]{
-		//middle, left, right
-		{
-			{0xffffffffffffffffL,0xffffffffffffffffL,0xffffffffffffffffL},
-			{0x808000,0x404000,0x202000},
-			{0x40400,0x20200,0x10100}},
-		{
-			{0xffffffffffffffffL,0xffffffffffffffffL,0xffffffffffffffffL},
-			{0x4040000000000L, 0x2020000000000L, 0x1010000000000L},
-			{0x80800000000000L, 0x40400000000000L, 0x20200000000000L}}};
+	public static final int[] PAWN_STORM_BONUS = 				new int[]{ 0, 0, 0, 8,16,32, 0, 0};
+	public static final int[] PASSED_PAWN_SCORE = new int[] {0, 20, 40, 60, 120, 150, 250, 0};
 		
 	public static final int[] KNIGHT_MOBILITY = new int[] {-15, -5, -1, 2, 5, 7, 9, 11, 13}; 
 	public static final int[] BISHOP_MOBILITY = new int[] {-15, -11, -6, -1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12};
@@ -69,7 +62,6 @@ public class EvalConstants {
 	public static final int[] QUEEN_MOBILITY = new int[] {-10, -6, -5, -4, -2, -2, -1, 0, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 6,
 			7, 7, 8, 8, 9, 9, 10, 10, 10};
 	
-	public static final int[] PASSED_PAWN_ENDGAME_SCORE = new int[] {0, 20, 40, 60, 120, 150, 250, 0};
 	
 	public static final int[] KKR_KKQ_KING_DISTANCE_SCORE = new int[]{0, 0, 60, 40, 30, 20, 10, 0};
 		
@@ -84,26 +76,15 @@ public class EvalConstants {
 			-40,-20,  0, 10, 10,  0,-20,-40,
 			-50,-10,-30,-30,-30,-30,-10,-50,
 		};
-
-		PAWN_POSITION_SCORES_MIDDLE[WHITE] = new int[] {
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				 80, 90, 90, 90, 90, 90, 90, 80,
-				 30, 50, 60, 60, 60, 60, 50, 30,
-				 -5,  5, 10, 25, 25, 10,  5, -5,
-				-10,  0,  0, 20, 20,  0,  0,-10,
-				 -5, -5,  0, 10, 10,  0, -5, -5,
-				 -5,  0, 10,-30,-30, 10,  0, -5,
-				  0,  0,  0,  0,  0,  0,  0,  0
-		};
 		
-		PAWN_POSITION_SCORES_LEFT[WHITE] = new int[] {
+		PAWN_POSITION_SCORES[WHITE] = new int[] {
 				  0,  0,  0,  0,  0,  0,  0,  0,
-				 30, 40, 50, 50, 50, 50, 40, 30,
-				 20, 20, 20, 30, 30, 20, 20, 20,
-				 10, 10, 10, 25, 25, 10, 10, 10,
-				  0,  0,  0, 20, 20,  0,  0,  0,
-				 25, 15, 15, 10, 10,-10,-10,-10,
-				 10, 25, 25,-30,-30,-20,-20,-20,
+				 50, 50, 50, 50, 50, 50, 50, 50,
+				 30, 30, 30, 30, 30, 30, 30, 30,
+				 20, 20, 20, 25, 25, 20, 20, 20,
+				 10, 10, 10, 20, 20, 10, 10, 10,
+				 10,  0,  0, 10, 10,  0,  0, 10,
+				  0,  0,  0,-20,-20,  0,  0,  0,
 				  0,  0,  0,  0,  0,  0,  0,  0
 		};
 		
@@ -112,9 +93,9 @@ public class EvalConstants {
 				100,100,100,100,100,100,100,100,
 				 50, 50, 50, 50, 50, 50, 50, 50,
 				 20, 20, 20, 25, 25, 20, 20, 20,
-				 10, 10, 10, 10, 10, 10, 10, 10,
-				  5,  5,  5,  5,  5,  5,  5,  5,
-				  0,  0,  0,  0,  0,  0,  0,  0,
+				 10, 10, 10, 20, 20, 10, 10, 10,
+				  5,  5,  5, 10, 10,  5,  5,  5,
+				  0,  0,  0,-20,-20,  0,  0,  0,
 				  0,  0,  0,  0,  0,  0,  0,  0
 		};
 		
@@ -146,42 +127,20 @@ public class EvalConstants {
 				-30,-40,-40,-50,-50,-40,-40,-30,
 				-30,-40,-40,-50,-50,-40,-40,-30,
 				-20,-30,-30,-40,-40,-30,-30,-20,
-				-10,-20,-20,-20,-20,-20,-20,-10,
+				  0,  0,-10,-20,-20,-10,  0,  0,
 				 10, 20,  0,  0,  0,  0, 20, 10,
 				 20, 30, 20,-20,-20, 20, 30, 20
 		};
 		
 		KING_POSITION_SCORES_ENDGAME[WHITE] = new int[] {
-				 0, 10, 20, 40, 40, 20, 10,  0,
+			   -10, 10, 20, 40, 40, 20, 10,-10,
 				 5, 25, 45, 50, 50, 45, 25,  5,
-				25, 45, 60, 65, 65, 60, 45, 25,
-				25, 45, 65,100,100, 65, 45, 25,
-				25, 45, 65,100,100, 65, 45, 25,
-				25, 45, 60, 65, 65, 60, 45, 25,
-				15, 25, 50, 50, 50, 50, 25, 15,
-				 0, 10, 30, 35, 35, 30, 10,  0
-		};
-		
-		KING_SAFETY_COUNTER[WHITE] = new int[]{
-				4,4,4,4,4,4,4,4,
-				4,4,4,4,4,4,4,4,
-				4,4,4,4,4,4,4,4,
-				4,4,4,4,4,4,4,4,
-				4,4,4,4,4,4,4,4,
-				4,3,3,3,3,3,3,4,
-				2,1,1,1,1,1,1,2,
-				2,0,0,0,0,0,0,2
-		};
-		
-		KING_PAWN_INDEX[WHITE] = new int[] {
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				  0,  0,  0,  0,  0,  0,  0,  0,
-				  1,  1,  1,  0,  0,  2,  2,  2,
-				  1,  1,  1,  0,  0,  2,  2,  2
+				25, 45, 75, 75, 75, 75, 45, 25,
+				25, 45, 75, 90, 90, 75, 45, 25,
+				25, 45, 75, 90, 90, 75, 45, 25,
+				25, 45, 75, 75, 75, 75, 45, 25,
+				15, 35, 45, 45, 45, 45, 35, 15,
+			   -10, 10, 20, 25, 25, 20, 10,-10
 		};
 		
 	}
@@ -191,37 +150,23 @@ public class EvalConstants {
 	static {
 
 		// fix white arrays
-		Util.reverse(PAWN_POSITION_SCORES_MIDDLE[WHITE]);
-		Util.reverse(PAWN_POSITION_SCORES_LEFT[WHITE]);
+		Util.reverse(PAWN_POSITION_SCORES[WHITE]);
 		Util.reverse(BISHOP_POSITION_SCORES[WHITE]);
 		Util.reverse(ROOK_POSITION_SCORES[WHITE]);
 		Util.reverse(KNIGHT_POSITION_SCORES[WHITE]);
-		Util.reverse(KING_PAWN_INDEX[WHITE]);
 		Util.reverse(KING_POSITION_SCORES[WHITE]);
 		Util.reverse(KING_POSITION_SCORES_ENDGAME[WHITE]);
 		Util.reverse(PAWN_POSITION_SCORES_ENDGAME[WHITE]);
-		Util.reverse(KING_SAFETY_COUNTER[WHITE]);
-
-		// fill PAWN_POSITION_SCORES_RIGHT
-		for (int i = 0; i < 8; i++) {
-			for (int j = 0; j < 8; j++) {
-				PAWN_POSITION_SCORES_RIGHT[WHITE][i * 8 + j] = PAWN_POSITION_SCORES_LEFT[WHITE][i * 8 + 7 - j];
-			}
-		}
 
 		// create black arrays
 		for (int i = 0; i < 64; i++) {
-			PAWN_POSITION_SCORES_MIDDLE[BLACK][i] = PAWN_POSITION_SCORES_MIDDLE[WHITE][63 - i];
-			PAWN_POSITION_SCORES_LEFT[BLACK][i] = PAWN_POSITION_SCORES_LEFT[WHITE][63 - i];
-			PAWN_POSITION_SCORES_RIGHT[BLACK][i] = PAWN_POSITION_SCORES_RIGHT[WHITE][63 - i];
+			PAWN_POSITION_SCORES[BLACK][i] = PAWN_POSITION_SCORES[WHITE][63 - i];
 			BISHOP_POSITION_SCORES[BLACK][i] = BISHOP_POSITION_SCORES[WHITE][63 - i];
 			ROOK_POSITION_SCORES[BLACK][i] = ROOK_POSITION_SCORES[WHITE][63 - i];
 			KNIGHT_POSITION_SCORES[BLACK][i] = KNIGHT_POSITION_SCORES[WHITE][63 - i];
 			KING_POSITION_SCORES[BLACK][i] = KING_POSITION_SCORES[WHITE][63 - i];
-			KING_PAWN_INDEX[BLACK][i] = KING_PAWN_INDEX[WHITE][63 - i];
 			KING_POSITION_SCORES_ENDGAME[BLACK][i] = KING_POSITION_SCORES_ENDGAME[WHITE][63 - i];
 			PAWN_POSITION_SCORES_ENDGAME[BLACK][i] = PAWN_POSITION_SCORES_ENDGAME[WHITE][63 - i];
-			KING_SAFETY_COUNTER[BLACK][i] = KING_SAFETY_COUNTER[WHITE][63 - i];
 		}
 	}
 
@@ -266,10 +211,15 @@ public class EvalConstants {
 	}
 
 	static {
-		// fill king-safety masks
+		// fill king-safety masks:
+		//
+		// UUU front-further
+		// FFF front
+		// NKN next
+		// BBB behind
+		//
 		for (int i = 0; i < 64; i++) {
-			KING_SAFETY_BEHIND[WHITE][i] = StaticMoves.KING_MOVES[i] & ChessConstants.MASKS_RANK[i / 8];
-			KING_SAFETY_BEHIND[BLACK][i] = StaticMoves.KING_MOVES[i] & ChessConstants.MASKS_RANK[i / 8];
+			KING_SAFETY_NEXT[i] = StaticMoves.KING_MOVES[i] & ChessConstants.MASKS_RANK[i / 8];
 
 			if (i > 7) {
 				KING_SAFETY_BEHIND[WHITE][i] |= StaticMoves.KING_MOVES[i] & ChessConstants.MASKS_RANK[i / 8 - 1];
@@ -277,7 +227,6 @@ public class EvalConstants {
 				if (i > 15) {
 					KING_SAFETY_FRONT_FURTHER[BLACK][i] = StaticMoves.KING_MOVES[i] >>> 8 & ChessConstants.MASKS_RANK[i / 8 - 2];
 				}
-
 			}
 			if (i < 56) {
 				KING_SAFETY_BEHIND[BLACK][i] |= StaticMoves.KING_MOVES[i] & ChessConstants.MASKS_RANK[i / 8 + 1];
@@ -287,10 +236,48 @@ public class EvalConstants {
 				}
 			}
 		}
+
+		// always 3 wide, even at file 1 and 8
+		for (int i = 0; i < 64; i++) {
+			for (int color = 0; color < 2; color++) {
+				if (i % 8 == 0) {
+					KING_SAFETY_NEXT[i] |= KING_SAFETY_NEXT[i + 1] ^ Util.POWER_LOOKUP[i];
+					KING_SAFETY_BEHIND[color][i] |= KING_SAFETY_BEHIND[color][i + 1];
+					KING_SAFETY_FRONT[color][i] |= KING_SAFETY_FRONT[color][i + 1];
+					KING_SAFETY_FRONT_FURTHER[color][i] |= KING_SAFETY_FRONT_FURTHER[color][i + 1];
+				} else if (i % 8 == 7) {
+					KING_SAFETY_NEXT[i] |= KING_SAFETY_NEXT[i - 1] ^ Util.POWER_LOOKUP[i];
+					KING_SAFETY_BEHIND[color][i] |= KING_SAFETY_BEHIND[color][i - 1];
+					KING_SAFETY_FRONT[color][i] |= KING_SAFETY_FRONT[color][i - 1];
+					KING_SAFETY_FRONT_FURTHER[color][i] |= KING_SAFETY_FRONT_FURTHER[color][i - 1];
+				}
+			}
+		}
 	}
 
-	public static int getKingPositionIndex(final int color, final int kingIndex) {
-		return EvalConstants.KING_PAWN_INDEX[color][kingIndex];
+	static {
+		// king-pawn-shield masks
+		for (int i = 1; i < 64; i += 8) {
+			// king-side
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT[WHITE][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT_FURTHER[WHITE][i];
+
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT[BLACK][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT_FURTHER[BLACK][i];
+		}
+
+		for (int i = 6; i < 64; i += 8) {
+			// queen-side
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT[WHITE][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT_FURTHER[WHITE][i];
+
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT[BLACK][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT_FURTHER[BLACK][i];
+		}
 	}
 
 }

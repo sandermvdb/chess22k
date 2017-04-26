@@ -3,7 +3,7 @@ package nl.s22k.chess;
 public class ChessConstants {
 
 	public static final int MAX_PLIES = 64;
-	public static final int MAX_DEPTH = 512;
+	public static final int MAX_DEPTH = 666;
 
 	public static final String FEN_START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -49,8 +49,13 @@ public class ChessConstants {
 	public static final long MASK_NOT_A_FILE = 0x7f7f7f7f7f7f7f7fL;
 	public static final long MASK_NOT_H_FILE = 0xfefefefefefefefeL;
 
+	public static final long MASK_KING_SIDE = 0x707070707070707L;
+	public static final long MASK_QUEEN_SIDE = 0xe0e0e0e0e0e0e0e0L;
+
 	public static final long MASK_RANK_4567 = 0xffffffff000000L;
 	public static final long MASK_RANK_2345 = 0xffffffff00L;
+	public static final long MASK_RANK_78 = 0xffff000000000000L;
+	public static final long MASK_RANK_12 = 0xffffL;
 
 	public static final long MASK_A1_B1 = 0xc0;
 	public static final long MASK_A8_B8 = 0xc000000000000000L;
@@ -127,6 +132,15 @@ public class ChessConstants {
 		for (int from = 0; from < 64; from++) {
 			for (int to = 0; to < from; to++) {
 				BISHOP_IN_BETWEEN[from][to] = BISHOP_IN_BETWEEN[to][from];
+			}
+		}
+	}
+
+	public static final long[][] IN_BETWEEN = new long[64][64];
+	static {
+		for (int i = 0; i < 64; i++) {
+			for (int j = 0; j < 64; j++) {
+				IN_BETWEEN[i][j] = BISHOP_IN_BETWEEN[i][j] | ROOK_IN_BETWEEN[i][j];
 			}
 		}
 	}

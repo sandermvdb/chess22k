@@ -157,7 +157,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= 5;
 			cb.pieceIndexes[0] = EMPTY;
 			cb.pieceIndexes[2] = ROOK;
-			cb.zobristKey ^= cb.zkPieceValues[0][WHITE][ROOK] ^ cb.zkPieceValues[2][WHITE][ROOK];
+			cb.zobristKey ^= ChessBoard.zkPieceValues[0][WHITE][ROOK] ^ ChessBoard.zkPieceValues[2][WHITE][ROOK];
 			cb.psqtScore += EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][2] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][0];
 			return;
 		case 57:
@@ -166,7 +166,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= 0x500000000000000L;
 			cb.pieceIndexes[56] = EMPTY;
 			cb.pieceIndexes[58] = ROOK;
-			cb.zobristKey ^= cb.zkPieceValues[56][BLACK][ROOK] ^ cb.zkPieceValues[58][BLACK][ROOK];
+			cb.zobristKey ^= ChessBoard.zkPieceValues[56][BLACK][ROOK] ^ ChessBoard.zkPieceValues[58][BLACK][ROOK];
 			cb.psqtScore -= EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][58] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][56];
 			return;
 		case 5:
@@ -175,7 +175,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= 0x90;
 			cb.pieceIndexes[7] = EMPTY;
 			cb.pieceIndexes[4] = ROOK;
-			cb.zobristKey ^= cb.zkPieceValues[7][WHITE][ROOK] ^ cb.zkPieceValues[4][WHITE][ROOK];
+			cb.zobristKey ^= ChessBoard.zkPieceValues[7][WHITE][ROOK] ^ ChessBoard.zkPieceValues[4][WHITE][ROOK];
 			cb.psqtScore += EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][4] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][7];
 			return;
 		case 61:
@@ -184,7 +184,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= 0x9000000000000000L;
 			cb.pieceIndexes[63] = EMPTY;
 			cb.pieceIndexes[60] = ROOK;
-			cb.zobristKey ^= cb.zkPieceValues[63][BLACK][ROOK] ^ cb.zkPieceValues[60][BLACK][ROOK];
+			cb.zobristKey ^= ChessBoard.zkPieceValues[63][BLACK][ROOK] ^ ChessBoard.zkPieceValues[60][BLACK][ROOK];
 			cb.psqtScore -= EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][60] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][63];
 			return;
 		}

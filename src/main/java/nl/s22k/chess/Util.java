@@ -5,15 +5,6 @@ public class Util {
 	public static final short SHORT_MIN = Short.MIN_VALUE + 1;
 	public static final short SHORT_MAX = Short.MAX_VALUE;
 
-	// private static final byte[][] DISTANCE_VALUES = new byte[64][64];
-	// static {
-	// for (int from = 0; from < 64; from++) {
-	// for (int to = 0; to < 64; to++) {
-	// DISTANCE_VALUES[from][to] = (byte) Math.max(Math.abs(from / 8 - to / 8), Math.abs(from % 8 - to % 8));
-	// }
-	// }
-	// }
-
 	public static final long[] POWER_LOOKUP = new long[64];
 	static {
 		for (int i = 0; i < 64; i++) {
@@ -57,9 +48,5 @@ public class Util {
 	public static long mirrorVertical(long bitboard) {
 		return Long.reverseBytes(bitboard);
 	}
-
-	// public static int calculateDistance(final int from, final int to) {
-	// return DISTANCE_VALUES[from][to];
-	// }
 
 }

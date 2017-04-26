@@ -35,6 +35,11 @@ public class ErrorLogger {
 
 			// print info
 			System.out.println("");
+			System.out.println("");
+			System.out.println("start fen");
+			System.out.println(MainEngine.startFen);
+			System.out.println("");
+			System.out.println("crashed fen");
 			System.out.println(cb);
 			System.out.println("");
 			Statistics.print();

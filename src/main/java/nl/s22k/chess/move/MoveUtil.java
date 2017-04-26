@@ -6,14 +6,21 @@ import nl.s22k.chess.search.HeuristicUtil;
 
 public class MoveUtil {
 
+	public static final int NORMAL = 0;
+	public static final int EP = 1;
+	public static final int PROMOTION_N = ChessConstants.NIGHT;
+	public static final int PROMOTION_B = ChessConstants.BISHOP;
+	public static final int PROMOTION_R = ChessConstants.ROOK;
+	public static final int PROMOTION_Q = ChessConstants.QUEEN;
+	public static final int CASTLING = 6;
+
 	// ///////////////////// FROM //6 bits
 	private static final int TO = 6; // 6
 	private static final int SOURCE = 12; // 3
 	private static final int ATTACK = 15; // 3
-	private static final int IS_EP = 18; // 1
-	private static final int IS_CASTLING = 19; // 1
-	private static final int PROMOTION = 20; // 1
-	private static final int PROMOTION_NIGHT = 21; // 1
+	private static final int MOVE_TYPE = 18; // 3
+
+	// TODO one extra bit is available
 	private static final int SCORE = 22; // 10 or 11
 
 	public static final int SEE_CAPTURE_DIVIDER = 6;
@@ -38,11 +45,11 @@ public class MoveUtil {
 		return move & CLEAN_MOVE_MASK;
 	}
 
-	public static int getZKAttackedPieceIndex(final int move) {
+	public static int getAttackedPieceIndex(final int move) {
 		return move >>> ATTACK & 7;
 	}
 
-	public static int getZKSourcePieceIndex(final int move) {
+	public static int getSourcePieceIndex(final int move) {
 		return move >>> SOURCE & 7;
 	}
 
@@ -55,58 +62,49 @@ public class MoveUtil {
 		return sourcePieceIndex << SOURCE | toIndex << TO | fromIndex;
 	}
 
-	public static int createPromotionMove(final int fromIndex, final int toIndex) {
-		return 1 << PROMOTION | ChessConstants.PAWN << SOURCE | toIndex << TO | fromIndex;
-	}
-
-	public static int createNightPromotionMove(final int fromIndex, final int toIndex) {
-		return 1 << PROMOTION | 1 << PROMOTION_NIGHT | ChessConstants.PAWN << SOURCE | toIndex << TO | fromIndex;
+	public static int createPromotionMove(final int promotionPiece, final int fromIndex, final int toIndex) {
+		return promotionPiece << MOVE_TYPE | ChessConstants.PAWN << SOURCE | toIndex << TO | fromIndex;
 	}
 
 	public static int createAttackMove(final int fromIndex, final int toIndex, final int sourcePieceIndex, final int attackedPieceIndex) {
 		return attackedPieceIndex << ATTACK | sourcePieceIndex << SOURCE | toIndex << TO | fromIndex;
 	}
 
-	public static int createPromotionAttack(final int fromIndex, final int toIndex, final int attackedPieceIndex) {
-		return 1 << PROMOTION | attackedPieceIndex << ATTACK | ChessConstants.PAWN << SOURCE | toIndex << TO | fromIndex;
-	}
-
-	public static int createNightPromotionAttack(final int fromIndex, final int toIndex, final int attackedPieceIndex) {
-		return 1 << PROMOTION | 1 << PROMOTION_NIGHT | attackedPieceIndex << ATTACK | ChessConstants.PAWN << SOURCE | toIndex << TO | fromIndex;
+	public static int createPromotionAttack(final int promotionPiece, final int fromIndex, final int toIndex, final int attackedPieceIndex) {
+		return promotionPiece << MOVE_TYPE | attackedPieceIndex << ATTACK | ChessConstants.PAWN << SOURCE | toIndex << TO | fromIndex;
 	}
 
 	public static int createEPMove(final int fromIndex, final int toIndex) {
-		return ChessConstants.PAWN << ATTACK | ChessConstants.PAWN << SOURCE | 1 << IS_EP | toIndex << TO | fromIndex;
+		return EP << MOVE_TYPE | ChessConstants.PAWN << ATTACK | ChessConstants.PAWN << SOURCE | toIndex << TO | fromIndex;
 	}
 
 	public static int createCastlingMove(final int fromIndex, final int toIndex) {
-		return 1 << IS_CASTLING | ChessConstants.KING << SOURCE | toIndex << TO | fromIndex;
+		return CASTLING << MOVE_TYPE | ChessConstants.KING << SOURCE | toIndex << TO | fromIndex;
 	}
 
-	/**
-	 * queen or night promotion
-	 */
+	public static int getMoveType(final int move) {
+		return move >> MOVE_TYPE & 7;
+	}
+
 	public static boolean isPromotion(final int move) {
-		return (move & 1 << PROMOTION) != 0;
+		switch (getMoveType(move)) {
+		case PROMOTION_Q:
+		case PROMOTION_N:
+		case PROMOTION_R:
+		case PROMOTION_B:
+			return true;
+		default:
+			return false;
+		}
 	}
 
-	public static boolean isNightPromotion(final int move) {
-		return (move & 1 << PROMOTION_NIGHT) != 0;
-	}
-
-	public static boolean isEP(final int move) {
-		return (move & 1 << IS_EP) != 0;
-	}
-
-	public static boolean isCastling(final int move) {
-		return (move & 1 << IS_CASTLING) != 0;
+	public static boolean isPawnPush78(final int move) {
+		return getSourcePieceIndex(move) == ChessConstants.PAWN && (getToIndex(move) > 47 || getToIndex(move) < 16);
 	}
 
 	public static int setHHMove(final int move, final int colorToMove) {
-		if (EngineConstants.TEST_VALUES) {
-			if (getCleanMove(move) != move) {
-				System.out.println("Setting non-clean move as hh-move");
-			}
+		if (EngineConstants.ASSERT) {
+			assert getCleanMove(move) == move : "Setting non-clean move as hh-move";
 		}
 
 		// TODO use constant
@@ -115,17 +113,13 @@ public class MoveUtil {
 	}
 
 	public static int setSeeMove(final int move, int seeCaptureScore) {
-		if (EngineConstants.TEST_VALUES) {
-			if (MoveUtil.getCleanMove(move) != move) {
-				System.out.println("Setting see-score to non-clean move");
-			}
+		if (EngineConstants.ASSERT) {
+			assert MoveUtil.getCleanMove(move) == move : "Setting see-score to non-clean move";
 		}
-		// TODO use constant
+
 		seeCaptureScore /= SEE_CAPTURE_DIVIDER;
-		if (EngineConstants.TEST_VALUES) {
-			if (seeCaptureScore > MoveUtil.SCORE_MAX || seeCaptureScore < -1 * MoveUtil.SCORE_MAX) {
-				System.out.println("See-score out of range: " + seeCaptureScore);
-			}
+		if (EngineConstants.ASSERT) {
+			assert seeCaptureScore <= MoveUtil.SCORE_MAX && seeCaptureScore >= -1 * MoveUtil.SCORE_MAX : "See-score out of range: " + seeCaptureScore;
 		}
 		return move | seeCaptureScore << SCORE;
 	}

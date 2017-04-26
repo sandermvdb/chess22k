@@ -2,6 +2,7 @@ package nl.s22k.chess.search;
 
 import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
@@ -12,21 +13,31 @@ import nl.s22k.chess.move.MoveUtil;
 
 public class QuiescenceUtil {
 
-	// TODO do not generate under-promotions?
-
-	public static int calculateBestMove(final ChessBoard cb, final int ply, int alpha, final int beta) {
+	public static int calculateBestMove(final ChessBoard cb, final int ply, int alpha, int beta) {
 
 		Statistics.maxDepth = Math.max(Statistics.maxDepth, ply);
+
+		/* mate-distance pruning */
+		if (EngineConstants.ENABLE_MATE_DISTANCE_PRUNING) {
+			alpha = Math.max(alpha, Util.SHORT_MIN + ply);
+			beta = Math.min(beta, Util.SHORT_MAX - ply - 1);
+			if (alpha >= beta) {
+				return alpha;
+			}
+		}
 
 		int score = Util.SHORT_MIN + ply;
 
 		if (cb.checkingPieces == 0) {
 			/* stand-pat check */
-			score = cb.colorFactor * EvalUtil.calculateScore(cb);
+			// TODO include hanging pieces in score (use SEE-score?)
+			score = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateScore(cb);
 			if (score >= beta) {
 				return score;
 			}
+
 			alpha = Math.max(alpha, score);
+
 			MoveList.startPly();
 			MoveGenerator.generateAttacks(cb);
 			if (EngineConstants.ENABLE_Q_SEE) {
@@ -50,11 +61,8 @@ public class QuiescenceUtil {
 
 		while (MoveList.hasNext()) {
 			final int move = MoveList.next();
-
-			if (EngineConstants.ENABLE_DELTA_PRUNING) {
-				if (!cb.isEndGame[cb.colorToMove] && MoveUtil.getScore(move) * MoveUtil.SEE_CAPTURE_DIVIDER + EngineConstants.DELTA_MARGIN < alpha) {
-					continue;
-				}
+			if (MoveUtil.getMoveType(move) == MoveUtil.PROMOTION_N) {
+				continue;
 			}
 
 			/* prune bad-captures */
@@ -65,11 +73,9 @@ public class QuiescenceUtil {
 
 			cb.doMove(move);
 
-			if (EngineConstants.TEST_VALUES) {
+			if (EngineConstants.ASSERT) {
 				cb.changeSideToMove();
-				if (CheckUtil.isInCheck(cb)) {
-					System.out.println("Q: Just did an illegal move...");
-				}
+				assert !CheckUtil.isInCheck(cb) : "Q: Just did an illegal move...";
 				cb.changeSideToMove();
 			}
 

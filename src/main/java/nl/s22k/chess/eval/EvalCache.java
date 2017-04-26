@@ -40,12 +40,9 @@ public class EvalCache {
 	}
 
 	public static void addValue(final long zobristKey, final int score) {
-		if (EngineConstants.TEST_VALUES) {
-			if (score > Util.SHORT_MAX) {
-				System.out.println("Adding score to eval-cache > MAX");
-			} else if (score < Util.SHORT_MIN) {
-				System.out.println("Adding score to eval-cache < MIN");
-			}
+		if (EngineConstants.ASSERT) {
+			assert score <= Util.SHORT_MAX : "Adding score to eval-cache > MAX";
+			assert score >= Util.SHORT_MIN : "Adding score to eval-cache < MIN";
 		}
 
 		final int ttIndex = getZobristIndex(zobristKey);

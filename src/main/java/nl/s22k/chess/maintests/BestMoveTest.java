@@ -22,9 +22,7 @@ public class BestMoveTest {
 	@BeforeClass
 	public static void init() {
 		MagicUtil.init();
-		MainEngine mainEngine = new MainEngine();
-		mainEngine.quiet = true;
-		NegamaxUtil.chessEngine = mainEngine;
+		MainEngine.quiet = true;
 	}
 
 	private void doTest(String[] epdStrings) {
@@ -62,6 +60,16 @@ public class BestMoveTest {
 		System.out.println(correctCounter + "/" + epdStrings.length);
 	}
 
+	//@formatter:off
+	/**
+	 *  0-4   1300 - 1599
+	 *  5-6   1600 - 1799
+	 *  7-8   1800 - 1999
+	 *  9-12  2000 - 2199
+	 * 13-16  2200 - 2399
+	 * 17-24  2400+ 
+	 */
+	//@formatter:on
 	@Test
 	public void doBratkoKopecTest() {
 		System.out.println("\r\nBratko-Kopec Test");
