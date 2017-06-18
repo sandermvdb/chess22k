@@ -8,8 +8,8 @@ import nl.s22k.chess.move.MoveUtil;
 
 public class HeuristicUtil {
 
-	private static final int[] KILLER_MOVE_1 = new int[ChessConstants.MAX_PLIES + 4];
-	private static final int[] KILLER_MOVE_2 = new int[ChessConstants.MAX_PLIES + 4];
+	private static final int[] KILLER_MOVE_1 = new int[EngineConstants.MAX_PLIES + 4];
+	private static final int[] KILLER_MOVE_2 = new int[EngineConstants.MAX_PLIES + 4];
 
 	public static final int[][] HH_MOVES = new int[2][64 * 64];
 	public static final int[][] BF_MOVES = new int[2][64 * 64];
@@ -42,23 +42,23 @@ public class HeuristicUtil {
 		}
 	}
 
-	public static void addKillerMove(final int cleanMove, final int ply) {
+	public static void addKillerMove(final int move, final int ply) {
 		if (EngineConstants.ASSERT) {
-			assert MoveUtil.getCleanMove(cleanMove) == cleanMove : "Adding non clean-move to killer-moves";
+			assert MoveUtil.getCleanMove(move) == move : "Adding non clean-move to killer-moves";
 		}
 		if (EngineConstants.ENABLE_KILLER_MOVES) {
-			if (KILLER_MOVE_1[ply] != cleanMove) {
+			if (KILLER_MOVE_1[ply] != move) {
 				KILLER_MOVE_2[ply] = KILLER_MOVE_1[ply];
-				KILLER_MOVE_1[ply] = cleanMove;
+				KILLER_MOVE_1[ply] = move;
 			}
 		}
 	}
 
-	public static int getCleanKiller1(final int ply) {
+	public static int getKiller1(final int ply) {
 		return KILLER_MOVE_1[ply];
 	}
 
-	public static int getCleanKiller2(final int ply) {
+	public static int getKiller2(final int ply) {
 		return KILLER_MOVE_2[ply];
 	}
 

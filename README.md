@@ -1,9 +1,9 @@
 # chess22k
 
 A chessengine build in Java that uses the UCI protocol to communicate with graphical interfaces.
-Should be used with a 64 bit JRE. Score is about 2500 elo.
+Should be used with a 64 bit JRE. Score is about 2600 elo.
 
-###Features
+## Features
 - (magic) bitboards
 - transposition tables
 - (internal) iterative-deepening
@@ -12,18 +12,16 @@ Should be used with a 64 bit JRE. Score is about 2500 elo.
 - (static) null move pruning
 - razoring
 - late move reductions
+- futility pruning
 - static exchange evaluation
 - aspiration window
+- evaluation scores tuned using the Texel's tuning method
 - no openingbook or endgame tablebases
 - no pondering
 
-###Future
-- fix certain node-explosions in endgames
-- futility pruning
+## Future
 - tapered eval
-- tweak values
 - ...
-
 
 
 _"Simplicity is the soul of efficiency"_       - Austin Freeman -

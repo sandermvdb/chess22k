@@ -54,6 +54,9 @@ public class PawnEvalCache {
 	public static void addValue(final long zobristKey, final int score, final int whitePasserFiles, final int blackPasserFiles,
 			final int whiteProtectedPasserFiles, final int blackProtectedPasserFiles) {
 
+		if (!EngineConstants.ENABLE_PAWN_EVAL_CACHE) {
+			return;
+		}
 		if (EngineConstants.ASSERT) {
 			assert score <= Util.SHORT_MAX : "Adding score to pawn-cache > MAX";
 			assert score >= Util.SHORT_MIN : "Adding score to pawn-cache < MIN";

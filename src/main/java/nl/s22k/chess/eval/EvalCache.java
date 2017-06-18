@@ -40,6 +40,9 @@ public class EvalCache {
 	}
 
 	public static void addValue(final long zobristKey, final int score) {
+		if (!EngineConstants.ENABLE_EVAL_CACHE) {
+			return;
+		}
 		if (EngineConstants.ASSERT) {
 			assert score <= Util.SHORT_MAX : "Adding score to eval-cache > MAX";
 			assert score >= Util.SHORT_MIN : "Adding score to eval-cache < MIN";

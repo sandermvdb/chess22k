@@ -10,14 +10,14 @@ public class Statistics {
 	public static final boolean ENABLED = false;
 
 	public static boolean panic = false;
-	public static long startTime = System.currentTimeMillis();
+	public static long startTime = System.nanoTime();
 	public static long evalNodes, abNodes, seeNodes;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
 	public static int depth, maxDepth;
 	public static TreeMove bestMove;
 	public static int epCount, castleCount, promotionCount;
-	public static int pawnEvalCacheHits, pawnEvalCacheMisses;
+	public static long pawnEvalCacheHits, pawnEvalCacheMisses;
 	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveKiller1, bestMoveKiller2, bestMoveOther, bestMovePromotion, bestMoveWinningCapture,
 			bestMoveLosingCapture;
 	public static int repetitions, repetitionTests;
@@ -25,22 +25,24 @@ public class Statistics {
 	public static int nullMoveHit, nullMoveFail;
 	public static long lmrMoveHit, lmrMoveFail;
 	public static long pvsMoveHit, pvsMoveFail;
-	public static int evalCacheHits, evalCacheMisses;
+	public static long evalCacheHits, evalCacheMisses;
 	public static int iidCount;
 	public static long moveCount;
 	public static long movesGenerated;
 	public static int drawByMaterialCount;
 	public static int badBishopEndgameCount;
-	public static int qChecks;
+	public static long qChecks;
 	public static int staticNullMovePruningHit;
 	public static int mateThreat;
 	public static int razoringHit;
+	public static int futilityPruningHit;
 
-	public static int calculateNps() {
-		return (int) (moveCount / (Math.max(System.currentTimeMillis() - startTime, 1))) * 1000;
+	public static long calculateNps() {
+		return moveCount * 1000 / Math.max(getPassedTimeMs(), 1);
 	}
 
 	public static void reset() {
+		futilityPruningHit = 0;
 		razoringHit = 0;
 		mateThreat = 0;
 		staticNullMovePruningHit = 0;
@@ -52,7 +54,7 @@ public class Statistics {
 		movesGenerated = 0;
 		moveCount = 0;
 		bestMove = null;
-		startTime = System.currentTimeMillis();
+		startTime = System.nanoTime();
 		castleCount = 0;
 		epCount = 0;
 		evalNodes = 0;
@@ -93,7 +95,7 @@ public class Statistics {
 		if (!Statistics.ENABLED) {
 			return;
 		}
-		System.out.println("Time        " + (System.currentTimeMillis() - startTime) + "ms");
+		System.out.println("Time        " + getPassedTimeMs() + "ms");
 		if (bestMove != null) {
 			System.out.println("Bestmove    " + bestMove.toString());
 			System.out.println("Score       " + bestMove.score);
@@ -133,6 +135,7 @@ public class Statistics {
 
 		System.out.println("S-null-move  " + staticNullMovePruningHit);
 		System.out.println("Razored      " + razoringHit);
+		System.out.println("Futile       " + futilityPruningHit);
 		System.out.println("Checkmate    " + mateCount);
 		System.out.println("Stalemate    " + staleMateCount);
 		System.out.println("Repetitions  " + repetitions + "(" + repetitionTests + ")");
@@ -150,8 +153,8 @@ public class Statistics {
 		}
 	}
 
-	public static long getPassedTime() {
-		return System.currentTimeMillis() - startTime;
+	public static long getPassedTimeMs() {
+		return (System.nanoTime() - startTime) / 1000000;
 	}
 
 }

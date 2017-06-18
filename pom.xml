@@ -6,9 +6,9 @@
 
 	<!-- so we can simply build other (experimental) artifacts -->
 	<!-- artifactId>${engineName}</artifactId -->
-	
 	<artifactId>chess22k</artifactId>
-	<version>1.3</version>
+	
+	<version>1.4</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -33,6 +33,7 @@
 					<excludes>
 						<exclude>**/unittests/*</exclude>
 						<exclude>**/maintests/*</exclude>
+						<exclude>**/texel/*</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

@@ -20,6 +20,19 @@ public class SeeTest {
 	}
 
 	@Test
+	public void doSeeTest1() {
+		System.out.println("SeeTest 1");
+		ChessBoard cb = ChessBoardUtil.getNewCB("k5q1/8/6b1/8/8/6P1/2B3R1/K7 w - - 0 1 ");
+		MoveGenerator.generateAttacks(cb);
+		while (MoveList.hasNext()) {
+			int move = MoveList.next();
+			if (MoveUtil.getFromIndex(move) == 13 && MoveUtil.getToIndex(move) == 41) {
+				System.out.println(new MoveWrapper(move) + " " + SEEUtil.getSeeCaptureScore(cb, move) + " 0");
+			}
+		}
+	}
+
+	@Test
 	public void doSeeTest2() {
 		System.out.println("SeeTest 2");
 		ChessBoard cb = ChessBoardUtil.getNewCB("1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - -");

@@ -21,6 +21,9 @@ public class ErrorLogger {
 	public static void log(ChessBoard cb, Throwable t) {
 		try {
 
+			// print to System.out
+			t.printStackTrace(System.out);
+
 			// setup logger
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss.SSS");
 			String completeFilePath = "%t/" + "chess22k_" + sdf.format(new Date()) + ".log";
@@ -51,8 +54,9 @@ public class ErrorLogger {
 
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			System.exit(1);
 		}
-
 	}
 
 }

@@ -88,10 +88,10 @@ public class MoveUtil {
 
 	public static boolean isPromotion(final int move) {
 		switch (getMoveType(move)) {
-		case PROMOTION_Q:
 		case PROMOTION_N:
-		case PROMOTION_R:
 		case PROMOTION_B:
+		case PROMOTION_R:
+		case PROMOTION_Q:
 			return true;
 		default:
 			return false;

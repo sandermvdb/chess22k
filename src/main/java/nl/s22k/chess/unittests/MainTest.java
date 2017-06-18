@@ -2,6 +2,7 @@ package nl.s22k.chess.unittests;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
+import nl.s22k.chess.Statistics;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.search.NegamaxUtil;
 import nl.s22k.chess.search.TimeUtil;
@@ -34,6 +35,7 @@ public class MainTest {
 		TimeUtil.setTimeWindow(300000, cb.moveCounter, 0);
 		// NegamaxUtil.maxDepth = 20;
 		NegamaxUtil.start(cb);
+		Statistics.print();
 
 	}
 

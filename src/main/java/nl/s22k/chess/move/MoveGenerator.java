@@ -6,6 +6,7 @@ import static nl.s22k.chess.ChessConstants.PAWN;
 import static nl.s22k.chess.ChessConstants.QUEEN;
 import static nl.s22k.chess.ChessConstants.ROOK;
 
+import nl.s22k.chess.Bitboard;
 import nl.s22k.chess.CastlingUtil;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
@@ -13,8 +14,6 @@ import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 
 public final class MoveGenerator {
-
-	public static final int[] PAWN_2_MOVE_IN_BETWEEN = new int[] { 8, -8 };
 
 	public static void generateMoves(final ChessBoard cb) {
 
@@ -127,7 +126,7 @@ public final class MoveGenerator {
 
 			// 2-move
 			final long moves = StaticMoves.PAWN_MOVES_2[cb.colorToMove][fromIndex];
-			if (moves > 0 && (cb.allPieces & Util.POWER_LOOKUP[fromIndex + PAWN_2_MOVE_IN_BETWEEN[cb.colorToMove]]) == 0) {
+			if (moves > 0 && (cb.allPieces & StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex]) == 0) {
 				MoveListAdd.quietNotPinnedMoves(moves & cb.emptySpaces, fromIndex, PAWN);
 			}
 
@@ -144,7 +143,7 @@ public final class MoveGenerator {
 
 			// 2-move
 			final long moves = StaticMoves.PAWN_MOVES_2[cb.colorToMove][fromIndex];
-			if (moves > 0 && (cb.allPieces & Util.POWER_LOOKUP[fromIndex + PAWN_2_MOVE_IN_BETWEEN[cb.colorToMove]]) == 0) {
+			if (moves > 0 && (cb.allPieces & StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex]) == 0) {
 				MoveListAdd.quietNotInCheckPinnedMoves(moves & cb.emptySpaces, fromIndex, cb);
 			}
 
@@ -217,7 +216,7 @@ public final class MoveGenerator {
 		}
 
 		// pawns (promoting)
-		piece = cb.pieces[cb.colorToMove][PAWN] & ChessConstants.PROMOTION_RANK[cb.colorToMove];
+		piece = cb.pieces[cb.colorToMove][PAWN] & Bitboard.RANK_PROMOTION[cb.colorToMove];
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 
@@ -282,7 +281,7 @@ public final class MoveGenerator {
 
 			// 2-move
 			final long moves = StaticMoves.PAWN_MOVES_2[cb.colorToMove][fromIndex];
-			if (moves > 0 && (cb.allPieces & Util.POWER_LOOKUP[fromIndex + PAWN_2_MOVE_IN_BETWEEN[cb.colorToMove]]) == 0) {
+			if (moves > 0 && (cb.allPieces & StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex]) == 0) {
 				MoveListAdd.quietNotPinnedMoves(moves & cb.emptySpaces & inBetween, fromIndex, PAWN);
 			}
 
@@ -341,7 +340,7 @@ public final class MoveGenerator {
 		}
 
 		// pawns (promoting)
-		piece = cb.pieces[cb.colorToMove][PAWN] & ChessConstants.PROMOTION_RANK[cb.colorToMove] & ~cb.pinnedPieces[cb.colorToMove];
+		piece = cb.pieces[cb.colorToMove][PAWN] & Bitboard.RANK_PROMOTION[cb.colorToMove] & ~cb.pinnedPieces[cb.colorToMove];
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 

@@ -11,6 +11,7 @@ import static nl.s22k.chess.ChessConstants.WHITE;
 
 import java.util.Arrays;
 
+import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.search.HeuristicUtil;
 import nl.s22k.chess.search.RepetitionTable;
@@ -22,18 +23,26 @@ public class ChessBoardUtil {
 	}
 
 	public static ChessBoard getNewCB(String fen) {
-		RepetitionTable.clearValues();
-		HeuristicUtil.clearTables();
-
 		ChessBoard cb = ChessBoard.getInstance();
-		clearValues(cb);
 
+		if (!EngineConstants.isTuningSession) {
+			RepetitionTable.clearValues();
+			HeuristicUtil.clearTables();
+			clearHistoryValues(cb);
+		}
+
+		setFenValues(fen, cb);
+		init(cb);
+		return cb;
+	}
+
+	public static void setFenValues(String fen, ChessBoard cb) {
 		cb.moveCounter = 0;
 
 		String[] fenArray = fen.split(" ");
 
 		// 1: pieces: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
-		setPieces(cb, fenArray[0].split("/"));
+		setPieces(cb, fenArray[0]);
 
 		// 2: active-color: w
 		cb.colorToMove = fenArray[1].equals("w") ? WHITE : BLACK;
@@ -77,15 +86,13 @@ public class ChessBoardUtil {
 		} else {
 			// if counter is not set, try to guess
 			// assume in the beginning every 2 moves, a pawn is moved
-			int pawnsNotAtStartingPosition = 16 - Long.bitCount(cb.pieces[WHITE][PAWN] & 0xff00) - Long.bitCount(cb.pieces[BLACK][PAWN] & 0xff000000000000L);
+			int pawnsNotAtStartingPosition = 16 - Long.bitCount(cb.pieces[WHITE][PAWN] & Bitboard.RANK_2)
+					- Long.bitCount(cb.pieces[BLACK][PAWN] & Bitboard.RANK_7);
 			cb.moveCounter = pawnsNotAtStartingPosition * 2;
 		}
-
-		init(cb);
-		return cb;
 	}
 
-	public static void clearValues(ChessBoard cb) {
+	public static void clearHistoryValues(ChessBoard cb) {
 		// history
 		Arrays.fill(cb.psqtScoreHistory, 0);
 		Arrays.fill(cb.castlingHistory, 0);
@@ -95,42 +102,31 @@ public class ChessBoardUtil {
 		Arrays.fill(cb.checkingPiecesHistory, 0);
 		Arrays.fill(cb.pinnedPiecesHistory[WHITE], 0);
 		Arrays.fill(cb.pinnedPiecesHistory[BLACK], 0);
-
-		// pieces
-		for (int color = 0; color < 2; color++) {
-			for (int pieceIndex = 1; pieceIndex <= KING; pieceIndex++) {
-				cb.pieces[color][pieceIndex] = 0;
-			}
-		}
 	}
 
 	public static void calculateZobristKeys(ChessBoard cb) {
 		cb.zobristKey = 0;
-		cb.pawnZobristKey = 0;
 
-		// white pieces
-		calculatePiecesKey(cb, cb.pieces[WHITE][BISHOP], WHITE, BISHOP);
-		calculatePiecesKey(cb, cb.pieces[WHITE][KING], WHITE, KING);
-		calculatePiecesKey(cb, cb.pieces[WHITE][NIGHT], WHITE, NIGHT);
-		calculatePiecesKey(cb, cb.pieces[WHITE][PAWN], WHITE, PAWN);
-		calculatePiecesKey(cb, cb.pieces[WHITE][QUEEN], WHITE, QUEEN);
-		calculatePiecesKey(cb, cb.pieces[WHITE][ROOK], WHITE, ROOK);
-
-		// black pieces
-		calculatePiecesKey(cb, cb.pieces[BLACK][BISHOP], BLACK, BISHOP);
-		calculatePiecesKey(cb, cb.pieces[BLACK][KING], BLACK, KING);
-		calculatePiecesKey(cb, cb.pieces[BLACK][NIGHT], BLACK, NIGHT);
-		calculatePiecesKey(cb, cb.pieces[BLACK][PAWN], BLACK, PAWN);
-		calculatePiecesKey(cb, cb.pieces[BLACK][QUEEN], BLACK, QUEEN);
-		calculatePiecesKey(cb, cb.pieces[BLACK][ROOK], BLACK, ROOK);
+		for (int color = 0; color < 2; color++) {
+			for (int piece = PAWN; piece <= KING; piece++) {
+				long pieces = cb.pieces[color][piece];
+				while (pieces != 0) {
+					cb.zobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][color][piece];
+					pieces &= pieces - 1;
+				}
+			}
+		}
 
 		cb.zobristKey ^= ChessBoard.zkCastling[cb.castlingRights];
 		if (cb.colorToMove == WHITE) {
 			cb.zobristKey ^= ChessBoard.zkWhiteToMove;
 		}
 		cb.zobristKey ^= ChessBoard.zkEPIndex[cb.epIndex];
+	}
 
-		// pawn zobrist key
+	public static void calculatePawnZobristKeys(ChessBoard cb) {
+		cb.pawnZobristKey = 0;
+
 		long pieces = cb.pieces[WHITE][PAWN];
 		while (pieces != 0) {
 			cb.pawnZobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][WHITE][PAWN];
@@ -141,63 +137,86 @@ public class ChessBoardUtil {
 			cb.pawnZobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][BLACK][PAWN];
 			pieces &= pieces - 1;
 		}
-	}
 
-	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
-	private static void setPieces(ChessBoard cb, String[] fenPieceRows) {
-		int positionCount = 0;
-		for (String fenPieceRow : fenPieceRows) {
-			for (int i = 0; i < fenPieceRow.length(); i++) {
-				char fenPieceChar = fenPieceRow.charAt(i);
-				if (Character.isDigit(fenPieceChar)) {
-					positionCount += Character.digit(fenPieceChar, 10);
-				}
-
-				// black pieces
-				else if (ChessConstants.FEN_BLACK_PIECES[BISHOP].equals(fenPieceChar + "")) {
-					cb.pieces[BLACK][BISHOP] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_BLACK_PIECES[ROOK].equals(fenPieceChar + "")) {
-					cb.pieces[BLACK][ROOK] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_BLACK_PIECES[PAWN].equals(fenPieceChar + "")) {
-					cb.pieces[BLACK][PAWN] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_BLACK_PIECES[QUEEN].equals(fenPieceChar + "")) {
-					cb.pieces[BLACK][QUEEN] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_BLACK_PIECES[KING].equals(fenPieceChar + "")) {
-					cb.pieces[BLACK][KING] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_BLACK_PIECES[NIGHT].equals(fenPieceChar + "")) {
-					cb.pieces[BLACK][NIGHT] |= Util.POWER_LOOKUP[63 - positionCount++];
-				}
-
-				// white pieces
-				else if (ChessConstants.FEN_WHITE_PIECES[BISHOP].equals(fenPieceChar + "")) {
-					cb.pieces[WHITE][BISHOP] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_WHITE_PIECES[ROOK].equals(fenPieceChar + "")) {
-					cb.pieces[WHITE][ROOK] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_WHITE_PIECES[PAWN].equals(fenPieceChar + "")) {
-					cb.pieces[WHITE][PAWN] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_WHITE_PIECES[KING].equals(fenPieceChar + "")) {
-					cb.pieces[WHITE][KING] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_WHITE_PIECES[QUEEN].equals(fenPieceChar + "")) {
-					cb.pieces[WHITE][QUEEN] |= Util.POWER_LOOKUP[63 - positionCount++];
-				} else if (ChessConstants.FEN_WHITE_PIECES[NIGHT].equals(fenPieceChar + "")) {
-					cb.pieces[WHITE][NIGHT] |= Util.POWER_LOOKUP[63 - positionCount++];
-				}
-			}
+		if (cb.isEndGame[WHITE]) {
+			cb.pawnZobristKey ^= ChessBoard.zkEndGame[WHITE];
+		}
+		if (cb.isEndGame[BLACK]) {
+			cb.pawnZobristKey ^= ChessBoard.zkEndGame[BLACK];
 		}
 	}
 
-	private static void calculatePiecesKey(ChessBoard cb, long pieces, int colorIndex, int pieceIndex) {
-		while (pieces != 0) {
-			cb.zobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][colorIndex][pieceIndex];
-			pieces &= pieces - 1;
+	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
+	private static void setPieces(final ChessBoard cb, final String fenPieces) {
+
+		// clear pieces
+		for (int color = 0; color < 2; color++) {
+			for (int pieceIndex = 1; pieceIndex <= KING; pieceIndex++) {
+				cb.pieces[color][pieceIndex] = 0;
+			}
+		}
+
+		int positionCount = 63;
+		for (int i = 0; i < fenPieces.length(); i++) {
+
+			final char character = fenPieces.charAt(i);
+			switch (character) {
+			case '/':
+				continue;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+				positionCount -= Character.digit(character, 10);
+				break;
+			case 'P':
+				cb.pieces[WHITE][PAWN] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'N':
+				cb.pieces[WHITE][NIGHT] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'B':
+				cb.pieces[WHITE][BISHOP] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'R':
+				cb.pieces[WHITE][ROOK] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'Q':
+				cb.pieces[WHITE][QUEEN] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'K':
+				cb.pieces[WHITE][KING] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'p':
+				cb.pieces[BLACK][PAWN] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'n':
+				cb.pieces[BLACK][NIGHT] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'b':
+				cb.pieces[BLACK][BISHOP] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'r':
+				cb.pieces[BLACK][ROOK] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'q':
+				cb.pieces[BLACK][QUEEN] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			case 'k':
+				cb.pieces[BLACK][KING] |= Util.POWER_LOOKUP[positionCount--];
+				break;
+			}
 		}
 	}
 
 	public static void init(ChessBoard cb) {
 		cb.kingIndex[WHITE] = Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]);
 		cb.kingIndex[BLACK] = Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]);
-		cb.colorToMoveInverse = cb.colorToMove * -1 + 1;
-		calculateZobristKeys(cb);
+		cb.colorToMoveInverse = 1 - cb.colorToMove;
 		cb.friendlyPieces[WHITE] = cb.pieces[WHITE][PAWN] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][KING] | cb.pieces[WHITE][ROOK]
 				| cb.pieces[WHITE][QUEEN];
 		cb.friendlyPieces[BLACK] = cb.pieces[BLACK][PAWN] | cb.pieces[BLACK][BISHOP] | cb.pieces[BLACK][NIGHT] | cb.pieces[BLACK][KING] | cb.pieces[BLACK][ROOK]
@@ -224,14 +243,13 @@ public class ChessBoardUtil {
 		cb.isEndGame[WHITE] = cb.isEndGame(WHITE);
 		cb.isEndGame[BLACK] = cb.isEndGame(BLACK);
 
-		if (cb.isEndGame[WHITE]) {
-			cb.pawnZobristKey ^= ChessBoard.zkEndGame[WHITE];
-		}
-		if (cb.isEndGame[BLACK]) {
-			cb.pawnZobristKey ^= ChessBoard.zkEndGame[BLACK];
-		}
-
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);
+
+		if (!EngineConstants.isTuningSession) {
+			// cached scores are not used
+			calculatePawnZobristKeys(cb);
+			calculateZobristKeys(cb);
+		}
 	}
 
 	public static String toString(ChessBoard cb) {

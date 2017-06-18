@@ -43,7 +43,8 @@ public class RepetitionTable {
 	}
 
 	public static boolean isRepetition(final ChessBoard cb) {
-		if (repetitionValues[getZobristIndex(cb.zobristKey)] > 1) {
+		// TODO 1 repetition is not a draw
+		if (repetitionValues[getZobristIndex(cb.zobristKey)] > 0) {
 			if (Statistics.ENABLED) {
 				Statistics.repetitionTests++;
 			}

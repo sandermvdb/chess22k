@@ -1,14 +1,22 @@
 package nl.s22k.chess.maintests;
 
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
-import nl.s22k.chess.Statistics;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveList;
 import nl.s22k.chess.move.MoveWrapper;
 
 public class QPerft {
+
+	@BeforeClass
+	public static void init() {
+		MagicUtil.init();
+		System.out.println("Do not forget to enable bishop- and rook-promotions!");
+	}
 
 	public static long qperft(final ChessBoard chessBoard, final int depth) {
 
@@ -58,45 +66,52 @@ public class QPerft {
 
 	}
 
-	public static void main(String[] args) {
-
-		MagicUtil.init();
+	@Test
+	public void testPerft1() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-
-		System.out.println(qperft(chessBoard, 1) + " 20");
-		Statistics.reset();
-
-		chessBoard = ChessBoardUtil.getNewCB();
-		System.out.println(qperft(chessBoard, 2) + " 400");
-		Statistics.reset();
-
-		chessBoard = ChessBoardUtil.getNewCB();
-		System.out.println(qperft(chessBoard, 3) + " 8902");
-		Statistics.reset();
-
-		chessBoard = ChessBoardUtil.getNewCB();
-		System.out.println(qperft(chessBoard, 4) + " 197281");
-		Statistics.reset();
-
-		chessBoard = ChessBoardUtil.getNewCB();
-		System.out.println(qperft(chessBoard, 5) + " 4865609");
-		System.out.println(System.currentTimeMillis() - Statistics.startTime);
-		Statistics.reset();
-
-		chessBoard = ChessBoardUtil.getNewCB();
-		System.out.println(qperft(chessBoard, 6) + " 119060324");
-		System.out.println(System.currentTimeMillis() - Statistics.startTime);
-		Statistics.reset();
-
-		chessBoard = ChessBoardUtil.getNewCB();
-		System.out.println(qperft(chessBoard, 7) + " 3195901860");
-		System.out.println(System.currentTimeMillis() - Statistics.startTime);
-		Statistics.reset();
-
-		chessBoard = ChessBoardUtil.getNewCB();
-		System.out.println(qperft(chessBoard, 8) + " 84998978956");
-		System.out.println(System.currentTimeMillis() - Statistics.startTime);
-		Statistics.reset();
+		assert qperft(chessBoard, 1) == 20;
 	}
+
+	@Test
+	public void testPerft2() {
+		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
+		assert qperft(chessBoard, 2) == 400;
+	}
+
+	@Test
+	public void testPerft3() {
+		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
+		assert qperft(chessBoard, 3) == 8902;
+	}
+
+	@Test
+	public void testPerft4() {
+		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
+		assert qperft(chessBoard, 4) == 197281;
+	}
+
+	@Test
+	public void testPerft5() {
+		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
+		assert qperft(chessBoard, 5) == 4865609;
+	}
+
+	@Test
+	public void testPerft6() {
+		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
+		assert qperft(chessBoard, 6) == 119060324;
+	}
+
+	@Test
+	public void testPerft7() {
+		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
+		assert qperft(chessBoard, 7) == 3195901860L;
+	}
+
+	// @Test
+	// public void testPerft8() {
+	// ChessBoard chessBoard = ChessBoardUtil.getNewCB();
+	// assert qperft(chessBoard, 8) == 84998978956L;
+	// }
 
 }

@@ -2,11 +2,15 @@ package nl.s22k.chess.engine;
 
 public class EngineConstants {
 
+	public static final int MAX_PLIES = 64;
+	public static final int MAX_DEPTH = 666;
+
 	public static final boolean ASSERT = false;
 	public static final boolean TEST_EVAL_VALUES = false;
 	public static final boolean TEST_PAWN_EVAL_CACHE = false;
 	public static final boolean TEST_TT_VALUES = false;
 	public static final boolean GENERATE_BR_PROMOTIONS = false;
+	public static boolean isTuningSession = false;
 
 	// Repetition-table
 	public static final int REPETITION_TABLE_ENTRIES = 16; // 16
@@ -17,7 +21,6 @@ public class EngineConstants {
 	public static final boolean VERIFY_TT_MOVE = false;
 
 	// Search improvements
-	public static final boolean ENABLE_QUIESCENCE = true;
 	public static final boolean ENABLE_KILLER_MOVES = true;
 	public static final boolean ENABLE_HISTORY_HEURISTIC = true;
 	public static final boolean ENABLE_ASPIRATION_WINDOW = true;
@@ -41,11 +44,12 @@ public class EngineConstants {
 	public static final boolean ENABLE_MATE_DISTANCE_PRUNING = true;
 	public static final boolean ENABLE_STATIC_NULL_MOVE = true;
 	public static final boolean ENABLE_RAZORING = true;
+	public static final boolean ENABLE_FUTILITY_PRUNING = true;
 
 	// Evaluation-function
-	public static final boolean ENABLE_EVAL_CACHE = true;
+	public static boolean ENABLE_EVAL_CACHE = true;
 	public static final int POWER_2_EVAL_ENTRIES = 14; // 14
-	public static final boolean ENABLE_PAWN_EVAL_CACHE = true;
+	public static boolean ENABLE_PAWN_EVAL_CACHE = true;
 	public static final int POWER_2_PAWN_EVAL_ENTRIES = 14; // 14
 	public static final boolean ENABLE_EVAL_MOBILITY = true;
 	public static final boolean ENABLE_EVAL_MOBILITY_KING_DEFENSE = true;

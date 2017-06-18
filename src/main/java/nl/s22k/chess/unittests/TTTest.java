@@ -16,7 +16,7 @@ public class TTTest {
 
 	@BeforeClass
 	public static void init() {
-		TTUtil.init();
+		TTUtil.init(true);
 		MagicUtil.init();
 	}
 
@@ -35,7 +35,7 @@ public class TTTest {
 		System.out.println("score: " + TTUtil.getScore(value, 0));
 		System.out.println("depth: " + TTUtil.getDepth(value));
 		System.out.println("flag: " + TTUtil.getFlag(value));
-		System.out.println("move: " + TTUtil.getCleanMove(value));
+		System.out.println("move: " + TTUtil.getMove(value));
 		System.out.println("counter: " + TTUtil.getHalfMoveCounter(value));
 
 		Random r = new Random();
@@ -46,7 +46,7 @@ public class TTTest {
 		System.out.println("score: " + TTUtil.getScore(ttValue, 0));
 		System.out.println("depth: " + TTUtil.getDepth(ttValue));
 		System.out.println("flag: " + TTUtil.getFlag(ttValue));
-		System.out.println("move: " + TTUtil.getCleanMove(ttValue));
+		System.out.println("move: " + TTUtil.getMove(ttValue));
 		System.out.println("counter: " + TTUtil.getHalfMoveCounter(value));
 	}
 

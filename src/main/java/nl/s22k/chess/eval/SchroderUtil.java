@@ -6,6 +6,5 @@ public class SchroderUtil {
 	public static final int MASK_NIGHT_BISHOP = 2;
 	public static final int MASK_ROOK = 4;
 	public static final int MASK_QUEEN = 8;
-	public static final int MASK_KING = 16;
 
 }

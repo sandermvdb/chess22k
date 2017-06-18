@@ -22,17 +22,17 @@ public final class CastlingUtil {
 			case 5:
 			case 6:
 			case 7:
-				return 0x20L;// 5
+				return Bitboard.C1;
 			case 8:
 			case 9:
 			case 10:
 			case 11:
-				return 0x2L; // 1
+				return Bitboard.G1;
 			case 12:
 			case 13:
 			case 14:
 			case 15:
-				return 0x22; // 1|5
+				return Bitboard.C1_G1;
 			}
 		} else {
 			switch (cb.castlingRights) {
@@ -45,17 +45,17 @@ public final class CastlingUtil {
 			case 5:
 			case 9:
 			case 13:
-				return 0x2000000000000000L; // 61
+				return Bitboard.C8;
 			case 2:
 			case 6:
 			case 10:
 			case 14:
-				return 0x200000000000000L; // 57
+				return Bitboard.G8;
 			case 3:
 			case 7:
 			case 11:
 			case 15:
-				return 0x2200000000000000L; // 57|61
+				return Bitboard.C8_G8;
 			}
 		}
 		throw new RuntimeException("Unknown castling-right: " + cb.castlingRights);
@@ -90,27 +90,13 @@ public final class CastlingUtil {
 	public static long getRookInBetweenIndex(final int castlingIndex) {
 		switch (castlingIndex) {
 		case 1:
-			return 0x6L; // 1|2
+			return Bitboard.F1_G1;
 		case 5:
-			return 0x70L; // 4|5|6
+			return Bitboard.B1_C1_D1;
 		case 57:
-			return 0x600000000000000L; // 57|58
+			return Bitboard.F8_G8;
 		case 61:
-			return 0x7000000000000000L; // 60|61|62
-		}
-		throw new RuntimeException("Incorrect castling-index: " + castlingIndex);
-	}
-
-	public static long getKingInBetweenIndex(final int castlingIndex) {
-		switch (castlingIndex) {
-		case 1:
-			return 0x6L; // 1|2
-		case 5:
-			return 0x30L; // 4|5
-		case 57:
-			return 0x600000000000000L; // 57|58
-		case 61:
-			return 0x3000000000000000L; // 60|61
+			return Bitboard.B8_C8_D8;
 		}
 		throw new RuntimeException("Incorrect castling-index: " + castlingIndex);
 	}
@@ -119,29 +105,29 @@ public final class CastlingUtil {
 		switch (kingToIndex) {
 		case 1:
 			// white rook from 2 to 0
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= 5;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= 5;
+			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.F1_H1;
+			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.F1_H1;
 			cb.pieceIndexes[2] = EMPTY;
 			cb.pieceIndexes[0] = ROOK;
 			return;
 		case 57:
 			// black rook from 58 to 56
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= 0x500000000000000L;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= 0x500000000000000L;
+			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.F8_H8;
+			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.F8_H8;
 			cb.pieceIndexes[58] = EMPTY;
 			cb.pieceIndexes[56] = ROOK;
 			return;
 		case 5:
 			// white rook from 4 to 7
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= 0x90;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= 0x90;
+			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.A1_D1;
+			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.A1_D1;
 			cb.pieceIndexes[4] = EMPTY;
 			cb.pieceIndexes[7] = ROOK;
 			return;
 		case 61:
 			// black rook from 60 to 63
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= 0x9000000000000000L;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= 0x9000000000000000L;
+			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.A8_D8;
+			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.A8_D8;
 			cb.pieceIndexes[60] = EMPTY;
 			cb.pieceIndexes[63] = ROOK;
 			return;
@@ -153,39 +139,39 @@ public final class CastlingUtil {
 		switch (kingToIndex) {
 		case 1:
 			// white rook from 0 to 2
-			cb.pieces[cb.colorToMove][ROOK] ^= 5;
-			cb.friendlyPieces[cb.colorToMove] ^= 5;
+			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.F1_H1;
+			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.F1_H1;
 			cb.pieceIndexes[0] = EMPTY;
 			cb.pieceIndexes[2] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[0][WHITE][ROOK] ^ ChessBoard.zkPieceValues[2][WHITE][ROOK];
-			cb.psqtScore += EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][2] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][0];
+			cb.psqtScore += EvalConstants.PSQT_ROOK[cb.colorToMove][2] - EvalConstants.PSQT_ROOK[cb.colorToMove][0];
 			return;
 		case 57:
 			// black rook from 56 to 58
-			cb.pieces[cb.colorToMove][ROOK] ^= 0x500000000000000L;
-			cb.friendlyPieces[cb.colorToMove] ^= 0x500000000000000L;
+			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.F8_H8;
+			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.F8_H8;
 			cb.pieceIndexes[56] = EMPTY;
 			cb.pieceIndexes[58] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[56][BLACK][ROOK] ^ ChessBoard.zkPieceValues[58][BLACK][ROOK];
-			cb.psqtScore -= EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][58] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][56];
+			cb.psqtScore += EvalConstants.PSQT_ROOK[cb.colorToMove][58] - EvalConstants.PSQT_ROOK[cb.colorToMove][56];
 			return;
 		case 5:
 			// white rook from 7 to 4
-			cb.pieces[cb.colorToMove][ROOK] ^= 0x90;
-			cb.friendlyPieces[cb.colorToMove] ^= 0x90;
+			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.A1_D1;
+			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.A1_D1;
 			cb.pieceIndexes[7] = EMPTY;
 			cb.pieceIndexes[4] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[7][WHITE][ROOK] ^ ChessBoard.zkPieceValues[4][WHITE][ROOK];
-			cb.psqtScore += EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][4] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][7];
+			cb.psqtScore += EvalConstants.PSQT_ROOK[cb.colorToMove][4] - EvalConstants.PSQT_ROOK[cb.colorToMove][7];
 			return;
 		case 61:
 			// black rook from 63 to 60
-			cb.pieces[cb.colorToMove][ROOK] ^= 0x9000000000000000L;
-			cb.friendlyPieces[cb.colorToMove] ^= 0x9000000000000000L;
+			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.A8_D8;
+			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.A8_D8;
 			cb.pieceIndexes[63] = EMPTY;
 			cb.pieceIndexes[60] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[63][BLACK][ROOK] ^ ChessBoard.zkPieceValues[60][BLACK][ROOK];
-			cb.psqtScore -= EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][60] - EvalConstants.ROOK_POSITION_SCORES[cb.colorToMove][63];
+			cb.psqtScore += EvalConstants.PSQT_ROOK[cb.colorToMove][60] - EvalConstants.PSQT_ROOK[cb.colorToMove][63];
 			return;
 		}
 		throw new RuntimeException("Incorrect king castling to-index: " + kingToIndex);
@@ -200,14 +186,14 @@ public final class CastlingUtil {
 			return false;
 		}
 
-		long kingInBetweenIndexes = getKingInBetweenIndex(toIndex);
-		while (kingInBetweenIndexes != 0) {
+		long kingIndexes = ChessConstants.IN_BETWEEN[fromIndex][toIndex] | Util.POWER_LOOKUP[toIndex];
+		while (kingIndexes != 0) {
 			// king does not move through a checked position?
-			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingInBetweenIndexes), cb.colorToMove, cb.friendlyPieces[cb.colorToMove],
+			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingIndexes), cb.colorToMove, cb.friendlyPieces[cb.colorToMove],
 					cb.pieces[cb.colorToMoveInverse], cb.allPieces)) {
 				return false;
 			}
-			kingInBetweenIndexes &= kingInBetweenIndexes - 1;
+			kingIndexes &= kingIndexes - 1;
 		}
 
 		return true;

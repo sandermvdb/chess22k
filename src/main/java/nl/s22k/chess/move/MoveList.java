@@ -10,8 +10,8 @@ import nl.s22k.chess.eval.SEEUtil;
 public final class MoveList {
 
 	private static final int[] moves = new int[1024];
-	private static final int[] nextToGenerate = new int[ChessConstants.MAX_PLIES + 8];
-	private static final int[] nextToMove = new int[ChessConstants.MAX_PLIES + 8];
+	private static final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES + 8];
+	private static final int[] nextToMove = new int[EngineConstants.MAX_PLIES + 8];
 	private static int currentPly;
 
 	public static void startPly() {
@@ -36,6 +36,10 @@ public final class MoveList {
 		return moves[nextToMove[currentPly]++];
 	}
 
+	public static int previous() {
+		return moves[nextToMove[currentPly] - 1];
+	}
+
 	public static boolean hasNext() {
 		return nextToGenerate[currentPly] != nextToMove[currentPly];
 	}
@@ -44,13 +48,13 @@ public final class MoveList {
 		nextToMove[currentPly] = nextToGenerate[currentPly];
 	}
 
-	public static void addMove(final int cleanMove) {
+	public static void addMove(final int move) {
 
 		if (EngineConstants.ASSERT) {
-			assert MoveUtil.getCleanMove(cleanMove) == cleanMove : "addQuietMove: Adding move with score to move-list!";
+			assert MoveUtil.getCleanMove(move) == move : "Adding move with score to move-list!";
 		}
 
-		moves[nextToGenerate[currentPly]++] = cleanMove;
+		moves[nextToGenerate[currentPly]++] = move;
 	}
 
 	/**

@@ -40,17 +40,19 @@ public class TTUtil {
 
 	public static boolean isInitialized = false;
 
-	public static void init() {
-		keyShifts = 64 - EngineConstants.POWER_2_TT_ENTRIES + 1;
-		maxEntries = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_TT_ENTRIES - 1];
+	public static void init(final boolean force) {
+		if (force || !isInitialized) {
+			keyShifts = 64 - EngineConstants.POWER_2_TT_ENTRIES + 1;
+			maxEntries = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_TT_ENTRIES - 1];
 
-		alwaysReplaceKeys = new int[maxEntries];
-		alwaysReplaceValues = new long[maxEntries];
-		depthReplaceKeys = new int[maxEntries];
-		depthReplaceValues = new long[maxEntries];
-		usageCounter = 0;
+			alwaysReplaceKeys = new int[maxEntries];
+			alwaysReplaceValues = new long[maxEntries];
+			depthReplaceKeys = new int[maxEntries];
+			depthReplaceValues = new long[maxEntries];
+			usageCounter = 0;
 
-		isInitialized = true;
+			isInitialized = true;
+		}
 	}
 
 	public static void clearValues() {
@@ -111,7 +113,7 @@ public class TTUtil {
 			throw new RuntimeException("No best-move found!!");
 		}
 
-		int move = getCleanMove(value);
+		int move = getMove(value);
 		List<Integer> moves = new ArrayList<Integer>();
 		moves.add(move);
 		TreeMove bestMove = new TreeMove(move, getScore(value, 0), scoreType);
@@ -124,7 +126,7 @@ public class TTUtil {
 		while (value != 0 && TTUtil.getFlag(value) == TTUtil.FLAG_EXACT && depth >= 0) {
 			ply++;
 			depth--;
-			move = getCleanMove(value);
+			move = getMove(value);
 			moves.add(move);
 			bestMove.appendMove(new TreeMove(move, getScore(value, ply), ScoreType.EXACT));
 			chessBoard.doMove(move);
@@ -215,7 +217,7 @@ public class TTUtil {
 		return (int) (value >>> FLAG & 3);
 	}
 
-	public static int getCleanMove(final long value) {
+	public static int getMove(final long value) {
 		return (int) (value >>> MOVE & 0x3fffff);
 	}
 
@@ -230,7 +232,7 @@ public class TTUtil {
 	}
 
 	public static String toString(long ttValue) {
-		return "score=" + TTUtil.getScore(ttValue, 0) + " " + new MoveWrapper(getCleanMove(ttValue)) + " depth=" + TTUtil.getDepth(ttValue) + " flag="
+		return "score=" + TTUtil.getScore(ttValue, 0) + " " + new MoveWrapper(getMove(ttValue)) + " depth=" + TTUtil.getDepth(ttValue) + " flag="
 				+ TTUtil.getFlag(ttValue);
 	}
 

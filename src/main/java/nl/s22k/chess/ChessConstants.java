@@ -1,9 +1,11 @@
 package nl.s22k.chess;
 
+import nl.s22k.chess.move.StaticMoves;
+
 public class ChessConstants {
 
-	public static final int MAX_PLIES = 64;
-	public static final int MAX_DEPTH = 666;
+	public static final String FEN_WHITE_PIECES[] = { "1", "P", "N", "B", "R", "Q", "K" };
+	public static final String FEN_BLACK_PIECES[] = { "1", "p", "n", "b", "r", "q", "k" };
 
 	public static final String FEN_START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -19,19 +21,20 @@ public class ChessConstants {
 	public static final int BLACK = 1;
 
 	public static final int[] COLOR_FACTOR = new int[] { 1, -1 };
+	public static final int[] COLOR_FACTOR_8 = new int[] { 8, -8 };
 
-	public static final long[] MASKS_FILE = new long[] { 0x101010101010101L, 0x202020202020202L, 0x404040404040404L, 0x808080808080808L, 0x1010101010101010L,
-			0x2020202020202020L, 0x4040404040404040L, 0x8080808080808080L };
-	public static final long[] MASKS_RANK = new long[] { 0xffL, 0xff00L, 0xff0000L, 0xff000000L, 0xff00000000L, 0xff0000000000L, 0xff000000000000L,
-			0xff00000000000000L };
-	public static final long[] MASK_ADJACENT_FILE = new long[] { 0x202020202020202L, 0x505050505050505L, 0xa0a0a0a0a0a0a0aL, 0x1414141414141414L,
-			0x2828282828282828L, 0x5050505050505050L, 0xa0a0a0a0a0a0a0a0L, 0x4040404040404040L };
+	public static final long[][] KING_SAFETY_BEHIND = new long[2][64];
+	public static final long[] KING_SAFETY_NEXT = new long[64]; // not color specific
+	public static final long[][] KING_SAFETY_FRONT = new long[2][64];
+	public static final long[][] KING_SAFETY_FRONT_FURTHER = new long[2][64];
+	public static final long[][] KING_PAWN_SHIELD_KINGSIDE_MASK = new long[2][8];
+	public static final long[][] KING_PAWN_SHIELD_QUEENSIDE_MASK = new long[2][8];
 
 	public static final long[] MASK_ADJACENT_FILE_UP = new long[64];
 	public static final long[] MASK_ADJACENT_FILE_DOWN = new long[64];
 	static {
 		for (int i = 0; i < 64; i++) {
-			long adjacentFile = MASK_ADJACENT_FILE[i % 8];
+			long adjacentFile = Bitboard.FILES_ADJACENT[i % 8];
 			while (adjacentFile != 0) {
 				if (Long.numberOfTrailingZeros(adjacentFile) > i + 1) {
 					MASK_ADJACENT_FILE_UP[i] |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(adjacentFile)];
@@ -42,27 +45,6 @@ public class ChessConstants {
 			}
 		}
 	}
-
-	public static final String FEN_WHITE_PIECES[] = { "1", "P", "N", "B", "R", "Q", "K" };
-	public static final String FEN_BLACK_PIECES[] = { "1", "p", "n", "b", "r", "q", "k" };
-
-	public static final long MASK_NOT_A_FILE = 0x7f7f7f7f7f7f7f7fL;
-	public static final long MASK_NOT_H_FILE = 0xfefefefefefefefeL;
-
-	public static final long MASK_KING_SIDE = 0x707070707070707L;
-	public static final long MASK_QUEEN_SIDE = 0xe0e0e0e0e0e0e0e0L;
-
-	public static final long MASK_RANK_4567 = 0xffffffff000000L;
-	public static final long MASK_RANK_2345 = 0xffffffff00L;
-	public static final long MASK_RANK_78 = 0xffff000000000000L;
-	public static final long MASK_RANK_12 = 0xffffL;
-
-	public static final long MASK_A1_B1 = 0xc0;
-	public static final long MASK_A8_B8 = 0xc000000000000000L;
-	public static final long MASK_G1_H1 = 0x3;
-	public static final long MASK_G8_H8 = 0x300000000000000L;
-
-	public static final long[] PROMOTION_RANK = { 0xff000000000000L, 0xff00 };
 
 	public static final long[][] ROOK_IN_BETWEEN = new long[64][64];
 	static {
@@ -142,6 +124,85 @@ public class ChessConstants {
 			for (int j = 0; j < 64; j++) {
 				IN_BETWEEN[i][j] = BISHOP_IN_BETWEEN[i][j] | ROOK_IN_BETWEEN[i][j];
 			}
+		}
+	}
+
+	public static final long[][] PASSED_PAWN_MASKS = new long[2][64];
+	static {
+		// fill passed-pawn-masks
+		for (int i = 0; i < 64; i++) {
+			PASSED_PAWN_MASKS[WHITE][i] = ((Bitboard.FILES[i & 7] | Bitboard.FILES_ADJACENT[i & 7]) & ~Bitboard.RANKS[i / 8]) >>> i << i;
+			PASSED_PAWN_MASKS[BLACK][i] = ((Bitboard.FILES[i & 7] | Bitboard.FILES_ADJACENT[i & 7]) & ~Bitboard.RANKS[i / 8]) << (63 - i) >> (63 - i);
+		}
+	}
+
+	static {
+		// fill king-safety masks:
+		//
+		// UUU front-further
+		// FFF front
+		// NKN next
+		// BBB behind
+		//
+		for (int i = 0; i < 64; i++) {
+			KING_SAFETY_NEXT[i] = (StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8]) | Util.POWER_LOOKUP[i];
+
+			if (i > 7) {
+				KING_SAFETY_BEHIND[WHITE][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
+				KING_SAFETY_FRONT[BLACK][i] = StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
+				if (i > 15) {
+					KING_SAFETY_FRONT_FURTHER[BLACK][i] = StaticMoves.KING_MOVES[i] >>> 8 & Bitboard.RANKS[i / 8 - 2];
+				}
+			}
+			if (i < 56) {
+				KING_SAFETY_BEHIND[BLACK][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
+				KING_SAFETY_FRONT[WHITE][i] = StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
+				if (i < 48) {
+					KING_SAFETY_FRONT_FURTHER[WHITE][i] = StaticMoves.KING_MOVES[i] << 8 & Bitboard.RANKS[i / 8 + 2];
+				}
+			}
+		}
+
+		// always 3 wide, even at file 1 and 8
+		for (int i = 0; i < 64; i++) {
+			for (int color = 0; color < 2; color++) {
+				if (i % 8 == 0) {
+					KING_SAFETY_NEXT[i] |= KING_SAFETY_NEXT[i + 1];
+					KING_SAFETY_BEHIND[color][i] |= KING_SAFETY_BEHIND[color][i + 1];
+					KING_SAFETY_FRONT[color][i] |= KING_SAFETY_FRONT[color][i + 1];
+					KING_SAFETY_FRONT_FURTHER[color][i] |= KING_SAFETY_FRONT_FURTHER[color][i + 1];
+				} else if (i % 8 == 7) {
+					KING_SAFETY_NEXT[i] |= KING_SAFETY_NEXT[i - 1];
+					KING_SAFETY_BEHIND[color][i] |= KING_SAFETY_BEHIND[color][i - 1];
+					KING_SAFETY_FRONT[color][i] |= KING_SAFETY_FRONT[color][i - 1];
+					KING_SAFETY_FRONT_FURTHER[color][i] |= KING_SAFETY_FRONT_FURTHER[color][i - 1];
+				}
+			}
+		}
+	}
+
+	static {
+		// king-pawn-shield masks
+		for (int i = 1; i < 64; i += 8) {
+			// king-side
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT[WHITE][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT_FURTHER[WHITE][i];
+
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT[BLACK][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT_FURTHER[BLACK][i];
+		}
+
+		for (int i = 6; i < 64; i += 8) {
+			// queen-side
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT[WHITE][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT_FURTHER[WHITE][i];
+
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_NEXT[i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT[BLACK][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT_FURTHER[BLACK][i];
 		}
 	}
 
