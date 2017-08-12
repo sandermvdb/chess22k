@@ -1,3 +1,19 @@
+1.5 - 12-08-2017 - 2700 elo
+- implemented tapered-eval
+- recognize drawish positions
+- added more evaluation terms to the texel-tuner
+- added some evaluation terms
+  - queen-knight bonus
+  - all pieces now have an endgame psqt
+  - backward pawn
+  - king mobility
+  - bishop outposts
+  - safe mobility for knights and rooks
+  - small king-safety updates
+  - small passed-pawn updates
+  - ...
+
+
 1.4 - 18-06-2017 - 2600 elo
 - tuned evaluation values using the Texel's tuning method
 - implemented futility pruning

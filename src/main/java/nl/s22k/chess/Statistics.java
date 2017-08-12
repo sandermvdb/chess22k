@@ -36,12 +36,14 @@ public class Statistics {
 	public static int mateThreat;
 	public static int razoringHit;
 	public static int futilityPruningHit;
+	public static int drawishByMaterialCount;
 
 	public static long calculateNps() {
 		return moveCount * 1000 / Math.max(getPassedTimeMs(), 1);
 	}
 
 	public static void reset() {
+		drawishByMaterialCount = 0;
 		futilityPruningHit = 0;
 		razoringHit = 0;
 		mateThreat = 0;
@@ -140,6 +142,7 @@ public class Statistics {
 		System.out.println("Stalemate    " + staleMateCount);
 		System.out.println("Repetitions  " + repetitions + "(" + repetitionTests + ")");
 		System.out.println("Draw-by-mtrl " + drawByMaterialCount);
+		System.out.println("Drawish-mtrl " + drawishByMaterialCount);
 		System.out.println("Bad bishop   " + badBishopEndgameCount);
 		System.out.println("Extensions   " + extensions);
 		System.out.println("Mate-threat  " + mateThreat);

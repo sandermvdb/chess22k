@@ -1,7 +1,5 @@
 package nl.s22k.chess.texel;
 
-import java.util.Arrays;
-
 import nl.s22k.chess.ChessConstants;
 
 public class PsqtTuningObject extends TuningObject {
@@ -17,15 +15,42 @@ public class PsqtTuningObject extends TuningObject {
 	}
 
 	@Override
+	public void printOrgValues() {
+		if (showAverage) {
+			int sum = 0;
+			for (int i = 0; i < orgValues.length; i++) {
+				sum += orgValues[i];
+			}
+			System.out.println(name + ": (" + sum / orgValues.length + ")" + getArrayFriendlyFormatted(orgValues));
+		} else {
+			System.out.println(name + ": " + getArrayFriendlyFormatted(orgValues));
+		}
+	}
+
+	@Override
+	public void printNewValues() {
+		if (showAverage) {
+			int sum = 0;
+			for (int i = 0; i < psqtValues[ChessConstants.WHITE].length; i++) {
+				sum += psqtValues[ChessConstants.WHITE][i];
+			}
+			System.out
+					.println(name + ": (" + sum / psqtValues[ChessConstants.WHITE].length + ")" + getArrayFriendlyFormatted(psqtValues[ChessConstants.WHITE]));
+		} else {
+			System.out.println(name + ": " + getArrayFriendlyFormatted(psqtValues[ChessConstants.WHITE]));
+		}
+	}
+
+	@Override
 	public String toString() {
 		if (showAverage) {
 			int sum = 0;
 			for (int i = 0; i < psqtValues[ChessConstants.WHITE].length; i++) {
 				sum += psqtValues[ChessConstants.WHITE][i];
 			}
-			return name + ": " + Arrays.toString(psqtValues[ChessConstants.WHITE]) + " (" + sum / psqtValues[ChessConstants.WHITE].length + ")";
+			return name + ": " + sum / psqtValues[ChessConstants.WHITE].length;
 		}
-		return name + ": " + Arrays.toString(psqtValues[ChessConstants.WHITE]);
+		return name;
 	}
 
 	public void addStep(int i) {
@@ -66,6 +91,19 @@ public class PsqtTuningObject extends TuningObject {
 
 	public boolean skip(int i) {
 		return skipValues.contains(i) || (i & 7) > 3;
+	}
+
+	public static String getArrayFriendlyFormatted(int[] values) {
+		StringBuilder sb = new StringBuilder("\n");
+		for (int i = 7; i >= 0; i--) {
+			sb.append(" ");
+			for (int j = 0; j < 8; j++) {
+				sb.append(String.format("%3s", values[i * 8 + j])).append(",");
+			}
+			sb.append("\n");
+		}
+		sb.delete(sb.length() - 2, sb.length());
+		return sb.toString();
 	}
 
 }

@@ -101,41 +101,12 @@ public final class NegamaxUtil {
 
 		if (!isNullMove && beta - alpha <= 1 && cb.checkingPieces == 0) {
 
-			eval = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateScore(cb);
-
-			/* razoring */
-			if (EngineConstants.ENABLE_RAZORING) {
-				if (depth < RAZORING_MARGIN.length) {
-					if (eval + RAZORING_MARGIN[depth] < alpha) {
-						eval = QuiescenceUtil.calculateBestMove(cb, ply, alpha - RAZORING_MARGIN[depth], beta - RAZORING_MARGIN[depth]);
-						if (eval + RAZORING_MARGIN[depth] <= alpha) {
-							if (Statistics.ENABLED) {
-								Statistics.razoringHit++;
-							}
-							return eval + RAZORING_MARGIN[depth];
-						}
-					}
-				}
-			}
-
-			/* static null move pruning */
-			if (EngineConstants.ENABLE_STATIC_NULL_MOVE) {
-				if (depth < STATIC_NULLMOVE_MARGIN.length && Math.abs(beta) < EvalConstants.SCORE_MATE_BOUND) {
-					if (eval - STATIC_NULLMOVE_MARGIN[depth] >= beta) {
-						if (Statistics.ENABLED) {
-							Statistics.staticNullMovePruningHit++;
-						}
-						return eval - STATIC_NULLMOVE_MARGIN[depth];
-					}
-				}
-			}
-
 			/* null-move */
 			if (EngineConstants.ENABLE_NULL_MOVE) {
-				if (!cb.hasOnlyPawns(cb.colorToMove) && depth > EngineConstants.NULL_MOVE_R && Long.bitCount(cb.allPieces) > 3) {
+				if (!cb.hasOnlyPawns(cb.colorToMove) && depth > 1 + depth / 3 && Long.bitCount(cb.allPieces) > 3) {
 					cb.doNullMove();
-					score = depth - EngineConstants.NULL_MOVE_R == 1 ? -QuiescenceUtil.calculateBestMove(cb, ply + 1, -beta, -beta + 1)
-							: -calculateBestMove(cb, ply + 1, depth - EngineConstants.NULL_MOVE_R - 1, -beta, -beta + 1, true);
+					score = depth - (1 + depth / 3) == 1 ? -QuiescenceUtil.calculateBestMove(cb, ply + 1, -beta, -beta + 1)
+							: -calculateBestMove(cb, ply + 1, depth - (1 + depth / 3) - 1, -beta, -beta + 1, true);
 					cb.undoNullMove();
 					if (score >= beta) {
 						if (Statistics.ENABLED) {
@@ -153,6 +124,35 @@ public final class NegamaxUtil {
 					}
 					if (Statistics.ENABLED) {
 						Statistics.nullMoveFail++;
+					}
+				}
+			}
+
+			eval = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateScore(cb);
+
+			/* razoring */
+			if (EngineConstants.ENABLE_RAZORING) {
+				if (depth < RAZORING_MARGIN.length) {
+					if (eval + RAZORING_MARGIN[depth] < alpha) {
+						eval = QuiescenceUtil.calculateBestMove(cb, ply, alpha - RAZORING_MARGIN[depth], beta - RAZORING_MARGIN[depth]);
+						if (eval + RAZORING_MARGIN[depth] <= alpha) {
+							if (Statistics.ENABLED) {
+								Statistics.razoringHit++;
+							}
+							return eval;
+						}
+					}
+				}
+			}
+
+			/* static null move pruning */
+			if (EngineConstants.ENABLE_STATIC_NULL_MOVE) {
+				if (depth < STATIC_NULLMOVE_MARGIN.length && Math.abs(beta) < EvalConstants.SCORE_MATE_BOUND) {
+					if (eval - STATIC_NULLMOVE_MARGIN[depth] >= beta) {
+						if (Statistics.ENABLED) {
+							Statistics.staticNullMovePruningHit++;
+						}
+						return eval;
 					}
 				}
 			}

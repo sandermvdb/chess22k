@@ -276,14 +276,15 @@ public class MainEngine {
 
 	private static void eval() {
 		System.out.println("Material (no pawn) : " + EvalUtil.calculateMaterialScores(chessBoard));
-		System.out.println("Position           : " + EvalUtil.calculatePositionScores(chessBoard));
-		System.out.println("Mobility           : " + EvalUtil.calculateMobilityScores(chessBoard));
-		System.out.println("King-safety        : " + EvalUtil.calculateKingSafetyScores(chessBoard));
-		System.out.println("Pawn               : " + EvalUtil.calculatePawnScores(chessBoard));
-		System.out.println("Pawn-passed        : " + EvalUtil.calculatePassedPawnScores(chessBoard));
-		System.out.println("Bonus              : " + EvalUtil.calculateBonusses(chessBoard));
-		System.out.println("Penalties          : " + EvalUtil.calculatePenalties(chessBoard));
-		System.out.println("Total              : " + EvalUtil.calculateScore(chessBoard));
+		System.out.println("          Position : " + EvalUtil.calculatePositionScores(chessBoard));
+		System.out.println("          Mobility : " + EvalUtil.calculateMobilityScores(chessBoard));
+		System.out.println("       King-safety : " + EvalUtil.calculateKingSafetyScores(chessBoard));
+		System.out.println("              Pawn : " + EvalUtil.calculatePawnScores(chessBoard));
+		System.out.println("       Pawn-passed : " + EvalUtil.calculatePassedPawnScores(chessBoard));
+		System.out.println("             Bonus : " + EvalUtil.calculateBonusses(chessBoard));
+		System.out.println("         Penalties : " + EvalUtil.calculatePenalties(chessBoard));
+		System.out.println("-------------------------");
+		System.out.println("             Total : " + EvalUtil.calculateScore(chessBoard));
 	}
 
 	private static void sendBestMove() {

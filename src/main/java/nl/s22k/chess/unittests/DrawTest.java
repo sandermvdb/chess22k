@@ -22,6 +22,16 @@ public class DrawTest {
 		Statistics.reset();
 		ChessBoard cb = ChessBoardUtil.getNewCB("8/8/7B/8/8/5k2/5p2/5K2 b - - 19 85 ");
 		NegamaxUtil.start(cb);
+		Statistics.print();
+	}
+
+	@Test
+	public void insufficientMaterialTest2() {
+		System.out.println("insufficientMaterialTest2");
+		Statistics.reset();
+		ChessBoard cb = ChessBoardUtil.getNewCB("8/8/n3B3/8/5K2/8/2k5/8 b - - 99 1 ");
+		NegamaxUtil.start(cb);
+		Statistics.print();
 	}
 
 	@Test

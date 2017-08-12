@@ -96,36 +96,7 @@ public class MoveListAdd {
 		}
 	}
 
-	public static void promotionNotInCheckAttacks(long moves, final int fromIndex, final ChessBoard cb) {
-		while (moves != 0) {
-			if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
-				final int toIndex = Long.numberOfTrailingZeros(moves);
-				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-				if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-				}
-				moves &= moves - 1;
-			} else {
-				// piece is pinned (attack pinner? could be multiple...)
-				while (moves != 0) {
-					final int toIndex = Long.numberOfTrailingZeros(moves);
-					if (cb.isLegalAttackMove(fromIndex, toIndex)) {
-						MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-						MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-						if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-							MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-							MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-						}
-					}
-					moves &= moves - 1;
-				}
-			}
-		}
-	}
-
-	public static void promotionInCheckAttacks(long moves, final int fromIndex, final ChessBoard cb) {
+	public static void promotionAttacks(long moves, final int fromIndex, final ChessBoard cb) {
 		while (moves != 0) {
 			final int toIndex = Long.numberOfTrailingZeros(moves);
 			if (cb.isLegalAttackMove(fromIndex, toIndex)) {

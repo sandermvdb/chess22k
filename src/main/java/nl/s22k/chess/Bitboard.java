@@ -138,6 +138,7 @@ public class Bitboard {
 	public static final long FILE_F = F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8;
 	public static final long FILE_G = G1 | G2 | G3 | G4 | G5 | G6 | G7 | G8;
 	public static final long FILE_H = H1 | H2 | H3 | H4 | H5 | H6 | H7 | H8;
+	public static final long FILE_D_E = FILE_D | FILE_E;
 	public static final long NOT_FILE_A = ~FILE_A;
 	public static final long NOT_FILE_H = ~FILE_H;
 
@@ -148,5 +149,8 @@ public class Bitboard {
 
 	public static final long KING_SIDE = FILE_F | FILE_G | FILE_H;
 	public static final long QUEEN_SIDE = FILE_A | FILE_B | FILE_C;
+
+	public static final long WHITE_SIDE = RANK_1 | RANK_2 | RANK_3 | RANK_4;
+	public static final long BLACK_SIDE = RANK_5 | RANK_6 | RANK_7 | RANK_8;
 
 }

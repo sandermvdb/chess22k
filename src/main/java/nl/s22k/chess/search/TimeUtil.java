@@ -11,6 +11,11 @@ public class TimeUtil {
 	}
 
 	public static void setTimeWindow(long totalTimeLeftMs, final int moveCount, int movesToGo) {
+		if (totalTimeLeftMs == Long.MAX_VALUE) {
+			timeWindowNs = Long.MAX_VALUE;
+			return;
+		}
+
 		if (movesToGo != 0) {
 			// safety margin for last move
 			movesToGo += 2;

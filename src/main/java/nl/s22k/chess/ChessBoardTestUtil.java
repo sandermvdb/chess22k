@@ -18,14 +18,11 @@ public class ChessBoardTestUtil {
 		long pinnedPiecesWhite = cb.pinnedPieces[WHITE];
 		long pinnedPiecesBlack = cb.pinnedPieces[BLACK];
 		int iterativePsqt = cb.psqtScore;
+		int iterativePsqtEg = cb.psqtScoreEg;
 		System.arraycopy(cb.pieceIndexes, 0, testPieceIndexes, 0, cb.pieceIndexes.length);
 
 		assert Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]) == cb.kingIndex[WHITE] : "Incorrect white king-index";
 		assert Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]) == cb.kingIndex[BLACK] : "Incorrect black king-index";
-
-		// endgame
-		assert cb.isEndGame(WHITE) == cb.isEndGame[WHITE] : "Incorrect white endGame";
-		assert cb.isEndGame(BLACK) == cb.isEndGame[BLACK] : "Incorrect black endGame";
 
 		ChessBoardUtil.init(cb);
 
@@ -44,7 +41,8 @@ public class ChessBoardTestUtil {
 		assert (iterativeBlackPieces & iterativeWhitePieces) == 0 : "Overlapping pieces";
 
 		// psqt
-		assert iterativePsqt == cb.psqtScore : "Incorrect psqt";
+		assert iterativePsqt == cb.psqtScore : "Incorrect psqt: " + iterativePsqt + " " + cb.psqtScore;
+		assert iterativePsqtEg == cb.psqtScoreEg : "Incorrect psqt eg: " + iterativePsqtEg + " " + cb.psqtScoreEg;
 
 		// piece-indexes
 		for (int i = 0; i < testPieceIndexes.length; i++) {

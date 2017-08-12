@@ -51,6 +51,12 @@ public class EvalTest {
 		System.out.println(EvalUtil.calculateScore(cb));
 	}
 
+	public void endTest() {
+		System.out.println("End test");
+		ChessBoard cb = ChessBoardUtil.getNewCB("4k3/4p3/8/8/8/8/4P3/4K3 w - - 0 1 ");
+		System.out.println(EvalUtil.calculateScore(cb));
+	}
+
 	@Test
 	public void moveQueenTest() {
 		System.out.println("Queen moved test");
@@ -249,5 +255,11 @@ public class EvalTest {
 	public void pawnStormTest() {
 		ChessBoard cb = ChessBoardUtil.getNewCB("2r4k/1b2npp1/2n1p2p/ppPpPP1P/q1p3P1/P1P3Q1/1BP5/R2B1RK1 b - - 0 28 ");
 		System.out.println(EvalUtil.calculateBonusses(cb));
+	}
+
+	@Test
+	public void passedPawnWithNightTest() {
+		ChessBoard cb = ChessBoardUtil.getNewCB("8/8/6p1/4Np1n/N1K2n1k/6p1/8/8 b");
+		System.out.println(EvalUtil.calculateScore(cb));
 	}
 }

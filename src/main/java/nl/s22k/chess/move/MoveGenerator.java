@@ -224,7 +224,7 @@ public final class MoveGenerator {
 			MoveListAdd.notInCheckPromotionMove(StaticMoves.PAWN_PROMOTION_MOVES[cb.colorToMove][fromIndex] & cb.emptySpaces, fromIndex, cb);
 
 			// promotion attack
-			MoveListAdd.promotionNotInCheckAttacks(StaticMoves.PAWN_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse],
+			MoveListAdd.promotionAttacks(StaticMoves.PAWN_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse],
 					fromIndex, cb);
 
 			piece &= piece - 1;
@@ -348,7 +348,7 @@ public final class MoveGenerator {
 			MoveListAdd.inCheckPromotionMove(StaticMoves.PAWN_PROMOTION_MOVES[cb.colorToMove][fromIndex] & cb.emptySpaces, fromIndex, cb);
 
 			// promotion attack
-			MoveListAdd.promotionInCheckAttacks(StaticMoves.PAWN_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.checkingPieces, fromIndex, cb);
+			MoveListAdd.promotionAttacks(StaticMoves.PAWN_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.checkingPieces, fromIndex, cb);
 
 			piece &= piece - 1;
 		}

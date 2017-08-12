@@ -24,7 +24,7 @@ public class ErrorCalculator implements Callable<Double> {
 
 	@Override
 	public Double call() throws Exception {
-		double error = 0;
+		double totalError = 0;
 
 		for (Entry<String, Double> entry : fens.entrySet()) {
 			ChessBoardUtil.setFenValues(entry.getKey(), cb);
@@ -33,14 +33,13 @@ public class ErrorCalculator implements Callable<Double> {
 			// - calculateSigmoid(ChessConstants.COLOR_FACTOR[cb.colorToMove] * QuiescenceUtil.calculateBestMove(cb, 0,
 			// Util.SHORT_MIN, Util.SHORT_MAX)),
 			// 2);
-			error += Math.pow(entry.getValue() - calculateSigmoid(EvalUtil.calculateScore(cb)), 2);
+			totalError += Math.pow(entry.getValue() - calculateSigmoid(EvalUtil.calculateScore(cb)), 2);
 		}
-		error /= fens.size();
-
-		return error;
+		totalError /= fens.size();
+		return totalError;
 	}
 
-	private static double calculateSigmoid(int score) {
+	public static double calculateSigmoid(int score) {
 		return 1 / (1 + Math.pow(10, -1.3 * score / 400));
 	}
 

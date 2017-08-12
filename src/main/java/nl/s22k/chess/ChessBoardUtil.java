@@ -137,13 +137,6 @@ public class ChessBoardUtil {
 			cb.pawnZobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][BLACK][PAWN];
 			pieces &= pieces - 1;
 		}
-
-		if (cb.isEndGame[WHITE]) {
-			cb.pawnZobristKey ^= ChessBoard.zkEndGame[WHITE];
-		}
-		if (cb.isEndGame[BLACK]) {
-			cb.pawnZobristKey ^= ChessBoard.zkEndGame[BLACK];
-		}
 	}
 
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
@@ -240,10 +233,8 @@ public class ChessBoardUtil {
 		cb.updatePinnedPieces(WHITE);
 		cb.updatePinnedPieces(BLACK);
 
-		cb.isEndGame[WHITE] = cb.isEndGame(WHITE);
-		cb.isEndGame[BLACK] = cb.isEndGame(BLACK);
-
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);
+		cb.psqtScoreEg = EvalUtil.calculatePositionEgScores(cb);
 
 		if (!EngineConstants.isTuningSession) {
 			// cached scores are not used

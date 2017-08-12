@@ -1,5 +1,8 @@
 package nl.s22k.chess;
 
+import static nl.s22k.chess.ChessConstants.BLACK;
+import static nl.s22k.chess.ChessConstants.WHITE;
+
 public class Util {
 
 	public static final short SHORT_MIN = Short.MIN_VALUE + 1;
@@ -47,6 +50,10 @@ public class Util {
 
 	public static long mirrorVertical(long bitboard) {
 		return Long.reverseBytes(bitboard);
+	}
+	
+	public static int getDistance(int index1, int index2){
+		return Math.max(Math.abs(index1 / 8 - index2 / 8),	Math.abs((index1 & 7) - (index2 & 7)));
 	}
 
 }

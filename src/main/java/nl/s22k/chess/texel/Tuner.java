@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
@@ -22,10 +23,82 @@ import nl.s22k.chess.move.MagicUtil;
 
 public class Tuner {
 
-	private static Map<String, Double> fens = new HashMap<String, Double>();
 	private static int numberOfThreads = 6;
 	private static ErrorCalculator[] workers = new ErrorCalculator[numberOfThreads];
 	private static ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+
+	private static double orgError;
+	private static double bestError;
+
+	private static List<TuningObject> getTuningObjects() {
+		List<TuningObject> tuningObjects = new ArrayList<TuningObject>();
+
+		// tuningObjects.add(new TuningObject(EvalConstants.MATERIAL_SCORES, 5, "Material", false, false, 0, 1, 6));
+		// tuningObjects.add(new TuningObject(EvalConstants.INDIVIDUAL_SCORES, 2, "Individual score", false, false,
+		// 12));
+		// tuningObjects.add(new TuningObject(EvalConstants.PINNED_PIECE_SCORES, 4, "Pinned pieces", false, false, 0,
+		// 6));
+		// tuningObjects.add(new TuningObject(EvalConstants.KNIGHT_OUTPOST, 4, "Knight outpost", false, false, 0, 1));
+		// tuningObjects.add(new TuningObject(EvalConstants.BISHOP_OUTPOST, 4, "Bishop outpost", false, false, 0, 1));
+		// tuningObjects.add(new TuningObject(EvalConstants.NIGHT_PAWN_BONUS, 2, "Night pawn", false, false));
+		tuningObjects.add(new TuningObject(EvalConstants.PHASE, 1, "Phase", false, false, 0, 1));
+
+		// // king-safety
+		// // tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_SCORES, 100, 1500, "King safety", false,
+		// // false));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_QUEEN_TROPISM, 1, "King safety queen", false,
+		// true, 0, 1));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_COUNTER_RANKS, 1, "King safety counter ranks",
+		// false, true));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_ATTACK_PATTERN_COUNTER, 1, "King
+		// safety-pattern", false, true));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_COUNTERS, 1, "King safety counters", false,
+		// true));
+		//
+		// // mobility
+		// tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_KNIGHT, 2, "Mobility knight", true, false));
+		// tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_BISHOP, 2, "Mobility bishop", true, false));
+		// tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_ROOK, 2, "Mobility rook", true, false));
+		// tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_QUEEN, 2, "Mobility queen", true, false));
+		// tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_KING, 2, "Mobility king", true, false));
+
+		// pawns
+		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_SCORE_EG, 5, "Passed pawn eg", false, false, 0,
+		// 7));
+		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS, 4, "Pawn shield", false, false, 0, 7));
+		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_MULTIPLIERS, 1, "Passed pawn multiplier", false,
+		// false));
+
+		// // psqt
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.PAWN], 5, "PSQT pawn", true,
+		// 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60,
+		// 61, 62, 63));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.PAWN], 5, "PSQT pawn eg",
+		// true, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58,
+		// 59, 60, 61, 62, 63));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.NIGHT], 5, "PSQT knight",
+		// true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.NIGHT], 5, "PSQT knight
+		// eg", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.BISHOP], 5, "PSQT bishop",
+		// true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.BISHOP], 5, "PSQT bishop
+		// eg", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.ROOK], 5, "PSQT rook",
+		// true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.ROOK], 5, "PSQT rook eg",
+		// true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.QUEEN], 5, "PSQT queen",
+		// true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.QUEEN], 5, "PSQT queen
+		// eg", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.KING], 5, "PSQT king",
+		// true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.KING], 5, "PSQT king eg",
+		// true));
+
+		return tuningObjects;
+	}
 
 	public static void main(String[] args) {
 		// setup
@@ -35,7 +108,8 @@ public class Tuner {
 		MagicUtil.init();
 
 		// read all fens, including score
-		loadFens();
+		Map<String, Double> fens = loadFens("d:\\backup\\chess\\quiet-labeled.epd");
+		System.out.println("Fens found : " + fens.size());
 
 		// init workers
 		ChessBoard.initTuningInstances(numberOfThreads);
@@ -59,64 +133,18 @@ public class Tuner {
 		printInfo(tuningObjects);
 		localOptimize(tuningObjects);
 		executor.shutdown();
-		System.out.println("\nDone\n");
+		System.out.println(String.format("\nDone: %s -> %s\n", orgError, bestError));
 		for (TuningObject tuningObject : tuningObjects) {
-			tuningObject.printOrgValue();
-			System.out.println(tuningObject);
+			tuningObject.printOrgValues();
+			tuningObject.printNewValues();
 		}
 	}
 
-	private static List<TuningObject> getTuningObjects() {
-		List<TuningObject> tuningObjects = new ArrayList<TuningObject>();
-
-		tuningObjects.add(new TuningObject(EvalConstants.MATERIAL_SCORES, 5, "Material", false, false, 0, 1, 6));
-		tuningObjects.add(new TuningObject(EvalConstants.MATERIAL_SCORES_ENDGAME, 5, "Material endgame", false, false, 0));
-		tuningObjects.add(new TuningObject(EvalConstants.INDIVIDUAL_SCORES, 2, "Individual score", false, false));
-		tuningObjects.add(new TuningObject(EvalConstants.PINNED_PIECE_SCORES, 4, "Pinned pieces", false, false, 0, 6));
-
-		// king-safety
-		tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_SCORES, 4, "King safety", false, false));
-		tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_COUNTER_RANKS, 1, "King safety counter", false, true));
-		tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_ATTACK_PATTERN_COUNTER, 1, "King safety pattern", false, true));
-
-		// mobility
-		tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_KNIGHT, 2, "Mobility knight", true, false));
-		tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_BISHOP, 2, "Mobility bishop", true, false));
-		tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_ROOK, 2, "Mobility rook", true, false));
-		tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_QUEEN, 2, "Mobility queen", true, false));
-
-		// pawns
-		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_STORM_BONUS, 4, "Pawn storm", false, false, 0, 7));
-		tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_SCORE, 5, "Passed pawn", false, false, 0, 7));
-		tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS, 4, "Pawn shield", false, false, 0, 7));
-		tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_MULTIPLIERS, 1, "Passed pawn multiplier", false, false));
-
-		// psqt
-		tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_PAWN, 5, "PSQT pawn", true, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60, 61, 62, 63));
-		tuningObjects.add(
-				new PsqtTuningObject(EvalConstants.PSQT_PAWN_ENDGAME, 5, "PSQT pawn endgame", true, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60, 61, 62, 63));
-		tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_ROOK, 5, "PSQT rook", true));
-		tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_BISHOP, 5, "PSQT bishop", true));
-		tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_KNIGHT, 5, "PSQT knight", true));
-		tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_KING, 5, "PSQT king", true));
-		tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_KING_ENDGAME, 5, "PSQT king endgame", true));
-
-		return tuningObjects;
-	}
-
-	private static void loadFens() {
-
-		// loadFen("d:\\chess\\white-wins.epd", 1, 20);
-		// loadFen("d:\\chess\\draws.epd", 0.5f, 20);
-		// loadFen("d:\\chess\\black-wins.epd", 0, 20);
-
-		loadFen("d:\\chess\\quiet-labeled.epd");
-
-		System.out.println(fens.size() + " fens found");
-	}
-
-	private static void loadFen(String fileName) {
+	public static Map<String, Double> loadFens(String fileName) {
 		System.out.println("Loading " + fileName);
+
+		Map<String, Double> fens = new HashMap<String, Double>();
+		int checkCount = 0;
 
 		try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
 			String line = br.readLine();
@@ -134,57 +162,41 @@ public class Tuner {
 				} else {
 					throw new RuntimeException("Unknown result: " + values[1]);
 				}
-				fens.put(values[0], score);
 
-				line = br.readLine();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-	}
-
-	private static void loadFen(String fileName, double score, int bookMoves) {
-
-		System.out.println("Loading " + fileName);
-
-		try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
-			String line = br.readLine();
-			int currentMoveNumber = 0;
-
-			while (line != null) {
-				if (line.equals("")) {
-					currentMoveNumber = 0;
+				ChessBoard cb = ChessBoardUtil.getNewCB(values[0]);
+				if (cb.checkingPieces == 0) {
+					fens.put(values[0], score);
 				} else {
-					currentMoveNumber++;
-					if (currentMoveNumber > bookMoves) {
-						fens.put(line.substring(0, line.indexOf(" c0 ")), score);
-					}
+					checkCount++;
 				}
+
 				line = br.readLine();
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 
+		System.out.println("In check   : " + checkCount);
+		return fens;
 	}
 
 	private static void printInfo(List<TuningObject> tuningObjects) {
 		Statistics.reset();
 		System.out.println("\nNumber of threads: " + numberOfThreads);
-		System.out.println(String.format("Initial error: %s (%s ms)", calculateErrorMultiThreaded(), Statistics.getPassedTimeMs()));
 		System.out.println("\nValues that are being tuned:");
 
 		int totalValues = 0;
 		for (TuningObject tuningObject : tuningObjects) {
-			System.out.println(tuningObject);
+			tuningObject.printOrgValues();
 			totalValues += tuningObject.tunedValues;
 		}
+		System.out.println(String.format("\nInitial error: %s (%s ms)", calculateErrorMultiThreaded(), Statistics.getPassedTimeMs()));
 		System.out.println("Total values to be tuned: " + totalValues + "\n");
 	}
 
 	private static void localOptimize(List<TuningObject> tuningObjects) {
 		double bestError = calculateErrorMultiThreaded();
+		orgError = bestError;
 		boolean improved = true;
 		while (improved) {
 			improved = false;
@@ -193,30 +205,47 @@ public class Tuner {
 					if (tuningObject.skip(i)) {
 						continue;
 					}
-					tuningObject.addStep(i);
-					double newError = calculateErrorMultiThreaded();
-					if (newError < bestError) {
-						bestError = newError;
-						System.out.println(tuningObject + ": " + bestError);
-						improved = true;
-					} else {
-						tuningObject.removeStep(i);
+					if (tuningObject.isMaxReached(i)) {
 						if (tuningObject.allScoresAboveZero && tuningObject.scoreIsZero(i)) {
 							continue;
 						}
 						tuningObject.removeStep(i);
+						double newError = calculateErrorMultiThreaded();
 						newError = calculateErrorMultiThreaded();
 						if (newError < bestError) {
 							bestError = newError;
-							System.out.println(tuningObject + ": " + bestError);
+							System.out.println(String.format("%s: %f", tuningObject, bestError));
 							improved = true;
 						} else {
 							tuningObject.addStep(i);
+						}
+					} else {
+						tuningObject.addStep(i);
+						double newError = calculateErrorMultiThreaded();
+						if (newError < bestError) {
+							bestError = newError;
+							System.out.println(String.format("%s: %f", tuningObject, bestError));
+							improved = true;
+						} else {
+							tuningObject.removeStep(i);
+							if (tuningObject.allScoresAboveZero && tuningObject.scoreIsZero(i)) {
+								continue;
+							}
+							tuningObject.removeStep(i);
+							newError = calculateErrorMultiThreaded();
+							if (newError < bestError) {
+								bestError = newError;
+								System.out.println(String.format("%s: %f", tuningObject, bestError));
+								improved = true;
+							} else {
+								tuningObject.addStep(i);
+							}
 						}
 					}
 				}
 			}
 		}
+		Tuner.bestError = bestError;
 	}
 
 	private static double calculateErrorMultiThreaded() {

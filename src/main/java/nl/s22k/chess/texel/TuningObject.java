@@ -13,6 +13,7 @@ public class TuningObject {
 	public int tunedValues;
 	public boolean showAverage;
 	public boolean allScoresAboveZero;
+	public int maxValue = Integer.MAX_VALUE;
 
 	public TuningObject(int[] values, int step, String name, boolean showAverage, boolean allScoresAboveZero, Integer... skipValues) {
 		this.values = values;
@@ -27,6 +28,27 @@ public class TuningObject {
 		tunedValues = values.length - this.skipValues.size();
 		orgValues = new int[values.length];
 		System.arraycopy(values, 0, orgValues, 0, values.length);
+	}
+
+	public TuningObject(int[] values, int step, int maxValue, String name, boolean showAverage, boolean allScoresAboveZero, Integer... skipValues) {
+		this(values, step, name, showAverage, allScoresAboveZero, skipValues);
+		this.maxValue = maxValue;
+	}
+
+	public void printOrgValues() {
+		if (showAverage) {
+			int sum = 0;
+			for (int i = 0; i < values.length; i++) {
+				sum += values[i];
+			}
+			System.out.println(name + ": " + Arrays.toString(orgValues) + " (" + sum / orgValues.length + ")");
+		} else {
+			System.out.println(name + ": " + Arrays.toString(orgValues));
+		}
+	}
+
+	public void printNewValues() {
+		System.out.println(toString());
 	}
 
 	@Override
@@ -57,20 +79,12 @@ public class TuningObject {
 		return skipValues.contains(i);
 	}
 
-	public void printOrgValue() {
-		if (showAverage) {
-			int sum = 0;
-			for (int i = 0; i < values.length; i++) {
-				sum += values[i];
-			}
-			System.out.println(name + ": " + Arrays.toString(orgValues) + " (" + sum / orgValues.length + ")");
-		} else {
-			System.out.println(name + ": " + Arrays.toString(orgValues));
-		}
-	}
-
 	public boolean scoreIsZero(int i) {
 		return values[i] == 0;
+	}
+
+	public boolean isMaxReached(int i) {
+		return values[i] >= maxValue;
 	}
 
 }
