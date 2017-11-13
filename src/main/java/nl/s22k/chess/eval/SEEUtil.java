@@ -8,6 +8,7 @@ import static nl.s22k.chess.ChessConstants.QUEEN;
 import static nl.s22k.chess.ChessConstants.ROOK;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
@@ -17,93 +18,87 @@ import nl.s22k.chess.move.StaticMoves;
 
 public class SEEUtil {
 
-	private static int getSmallestAttackSeeMove(final ChessBoard cb, final int colorToMove, final int toIndex, final int attackedPieceIndex,
-			final long allPieces) {
+	private static int getSmallestAttackSeeMove(final ChessBoard cb, final int colorToMove, final int toIndex, final long allPieces, final long movablePieces) {
 
-		// TODO EP?
-		// TODO verify SEE-score against q-search?
-		// TODO skip pawn and knight if they are already played
-		// TODO pinned-pieces could maybe attack the pinner (except for night)
+		// TODO stop when bad-capture
 
 		// put 'super-piece' in see position
 		long attackMove;
 
 		// pawn non-promotion attacks
-		attackMove = StaticMoves.PAWN_NON_PROMOTION_ATTACKS[1 - colorToMove][toIndex] & cb.pieces[colorToMove][PAWN] & allPieces;
+		attackMove = StaticMoves.PAWN_NON_PROMOTION_ATTACKS[1 - colorToMove][toIndex] & cb.pieces[colorToMove][PAWN] & movablePieces;
 		if (attackMove != 0) {
-			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, PAWN, attackedPieceIndex);
+			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), PAWN);
 		}
 
 		// knight attacks
-		attackMove = cb.pieces[colorToMove][NIGHT] & StaticMoves.KNIGHT_MOVES[toIndex] & allPieces & ~cb.pinnedPieces[colorToMove];
+		attackMove = cb.pieces[colorToMove][NIGHT] & StaticMoves.KNIGHT_MOVES[toIndex] & movablePieces;
 		if (attackMove != 0) {
-			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, NIGHT, attackedPieceIndex);
+			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), NIGHT);
 		}
 
 		// bishop attacks
-		attackMove = cb.pieces[colorToMove][BISHOP] & MagicUtil.getBishopMoves(toIndex, allPieces) & allPieces & ~cb.pinnedPieces[colorToMove];
+		attackMove = cb.pieces[colorToMove][BISHOP] & MagicUtil.getBishopMoves(toIndex, allPieces) & movablePieces;
 		if (attackMove != 0) {
-			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, BISHOP, attackedPieceIndex);
+			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), BISHOP);
 		}
 
 		// rook attacks
-		attackMove = cb.pieces[colorToMove][ROOK] & MagicUtil.getRookMoves(toIndex, allPieces) & allPieces & ~cb.pinnedPieces[colorToMove];
+		attackMove = cb.pieces[colorToMove][ROOK] & MagicUtil.getRookMoves(toIndex, allPieces) & movablePieces;
 		if (attackMove != 0) {
-			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, ROOK, attackedPieceIndex);
+			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), ROOK);
 		}
 
 		// pawn promotion attacks
-		attackMove = StaticMoves.PAWN_PROMOTION_ATTACKS[1 - colorToMove][toIndex] & cb.pieces[colorToMove][PAWN] & allPieces & ~cb.pinnedPieces[colorToMove];
+		attackMove = StaticMoves.PAWN_PROMOTION_ATTACKS[1 - colorToMove][toIndex] & cb.pieces[colorToMove][PAWN] & movablePieces;
 		if (attackMove != 0) {
-			return MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, Long.numberOfTrailingZeros(attackMove), toIndex, attackedPieceIndex);
+			return MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_Q, Long.numberOfTrailingZeros(attackMove), toIndex, 0);
 		}
 
 		// queen attacks
 		if (cb.pieces[colorToMove][QUEEN] != 0) {
 			attackMove = (cb.pieces[colorToMove][QUEEN] & MagicUtil.getRookMoves(toIndex, allPieces)
-					| cb.pieces[colorToMove][QUEEN] & MagicUtil.getBishopMoves(toIndex, allPieces)) & allPieces & ~cb.pinnedPieces[colorToMove];
+					| cb.pieces[colorToMove][QUEEN] & MagicUtil.getBishopMoves(toIndex, allPieces)) & movablePieces;
 			if (attackMove != 0) {
-				return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, QUEEN, attackedPieceIndex);
+				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), QUEEN);
 			}
 		}
 
 		// king attacks
-		attackMove = StaticMoves.KING_MOVES[toIndex] & cb.pieces[colorToMove][KING];
-		if (attackMove != 0) {
-			return MoveUtil.createAttackMove(Long.numberOfTrailingZeros(attackMove), toIndex, KING, attackedPieceIndex);
+		if ((StaticMoves.KING_MOVES[toIndex] & cb.pieces[colorToMove][KING]) != 0) {
+			return MoveUtil.createSeeAttackMove(cb.kingIndex[colorToMove], KING);
 		}
 
 		return 0;
 	}
 
-	private static int getSeeScore(final ChessBoard cb, final int colorToMove, final int toIndex, final int attackedPieceIndex, long allPieces) {
+	private static int getSeeScore(final ChessBoard cb, final int colorToMove, final int toIndex, final int attackedPieceIndex, long allPieces,
+			long pinnedPieces) {
 
-		final int move = getSmallestAttackSeeMove(cb, colorToMove, toIndex, attackedPieceIndex, allPieces);
+		final int move = getSmallestAttackSeeMove(cb, colorToMove, toIndex, allPieces, allPieces & ~pinnedPieces);
 
 		/* skip if the square isn't attacked anymore by this side */
 		if (move == 0) {
 			return 0;
 		}
-		if (MoveUtil.getAttackedPieceIndex(move) == KING) {
+		if (attackedPieceIndex == KING) {
 			return EvalConstants.MATERIAL_SCORES[KING];
 		}
 
 		allPieces ^= Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)];
+		pinnedPieces = cb.getPinnedPieces(1 - colorToMove, allPieces ^ Util.POWER_LOOKUP[toIndex]);
 
 		// add score when promotion
-		if (MoveUtil.getMoveType(move) == MoveUtil.PROMOTION_Q) {
-			// TODO stop when bad-capture
+		if (MoveUtil.isPromotion(move)) {
 
 			/* Do not consider captures if they lose material, therefore max zero */
-			return EvalConstants.QUEEN_PROMOTION_SCORE + Math.max(0,
-					EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)] - getSeeScore(cb, 1 - colorToMove, toIndex, QUEEN, allPieces));
-
+			return Math.max(0, EvalConstants.PROMOTION_SCORE[ChessConstants.QUEEN] + EvalConstants.MATERIAL_SCORES[attackedPieceIndex]
+					- getSeeScore(cb, 1 - colorToMove, toIndex, QUEEN, allPieces, pinnedPieces));
 		} else {
-			// TODO stop when bad-capture
 
 			/* Do not consider captures if they lose material, therefore max zero */
-			return Math.max(0, EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]
-					- getSeeScore(cb, 1 - colorToMove, toIndex, MoveUtil.getSourcePieceIndex(move), allPieces));
+			return Math.max(0, EvalConstants.MATERIAL_SCORES[attackedPieceIndex]
+					- getSeeScore(cb, 1 - colorToMove, toIndex, MoveUtil.getSourcePieceIndex(move), allPieces, pinnedPieces));
 		}
 
 	}
@@ -114,51 +109,23 @@ public class SEEUtil {
 			Statistics.seeNodes++;
 		}
 
-		final long allPieces = cb.allPieces & ~Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)];
-
-		// promotion non-attack move
-		if (MoveUtil.getAttackedPieceIndex(move) == 0) {
-			if (EngineConstants.ASSERT) {
+		if (EngineConstants.ASSERT) {
+			if (MoveUtil.getAttackedPieceIndex(move) == 0) {
 				assert MoveUtil.getMoveType(move) != 0 : "Calculating seeScore for quiet move";
 			}
-
-			switch (MoveUtil.getMoveType(move)) {
-			case MoveUtil.PROMOTION_B:
-				return EvalConstants.BISHOP_PROMOTION_SCORE - getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), BISHOP, allPieces);
-			case MoveUtil.PROMOTION_N:
-				return EvalConstants.KNIGHT_PROMOTION_SCORE - getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), NIGHT, allPieces);
-			case MoveUtil.PROMOTION_R:
-				return EvalConstants.ROOK_PROMOTION_SCORE - getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), ROOK, allPieces);
-			case MoveUtil.PROMOTION_Q:
-				return EvalConstants.QUEEN_PROMOTION_SCORE - getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), QUEEN, allPieces);
-			}
-
 		}
 
-		// // TODO colorToMove can always stop the capture sequence (does not make any difference...)
-		// if (EvalConstants.MATERIAL_SCORES[MoveUtil.getSourcePieceIndex(move)] <=
-		// EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]) {
-		// return EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)] -
-		// EvalConstants.MATERIAL_SCORES[MoveUtil.getSourcePieceIndex(move)];
-		// }
+		final long allPieces = cb.allPieces & ~Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)];
+		final long pinnedPieces = cb.getPinnedPieces(cb.colorToMoveInverse, allPieces);
 
 		// add score when promotion
-		switch (MoveUtil.getMoveType(move)) {
-		case MoveUtil.PROMOTION_B:
-			return EvalConstants.BISHOP_PROMOTION_SCORE + EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]
-					- getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), BISHOP, allPieces);
-		case MoveUtil.PROMOTION_N:
-			return EvalConstants.KNIGHT_PROMOTION_SCORE + EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]
-					- getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), NIGHT, allPieces);
-		case MoveUtil.PROMOTION_R:
-			return EvalConstants.ROOK_PROMOTION_SCORE + EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]
-					- getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), ROOK, allPieces);
-		case MoveUtil.PROMOTION_Q:
-			return EvalConstants.QUEEN_PROMOTION_SCORE + EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]
-					- getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), QUEEN, allPieces);
-		default:
+		if (MoveUtil.isPromotion(move)) {
+			return EvalConstants.PROMOTION_SCORE[MoveUtil.getMoveType(move)] + EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]
+					- getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), MoveUtil.getMoveType(move), allPieces, pinnedPieces);
+		} else {
 			return EvalConstants.MATERIAL_SCORES[MoveUtil.getAttackedPieceIndex(move)]
-					- getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), MoveUtil.getSourcePieceIndex(move), allPieces);
+					- getSeeScore(cb, cb.colorToMoveInverse, MoveUtil.getToIndex(move), MoveUtil.getSourcePieceIndex(move), allPieces, pinnedPieces);
 		}
+
 	}
 }

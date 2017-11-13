@@ -3,7 +3,8 @@ package nl.s22k.chess.engine;
 public class EngineConstants {
 
 	public static final int MAX_PLIES = 64;
-	public static final int MAX_DEPTH = 666;
+	public static final int PLIES_EXTENDED = 24;
+	public static final int MAX_MOVES = 768;
 
 	public static final boolean ASSERT = false;
 	public static final boolean TEST_EVAL_VALUES = false;

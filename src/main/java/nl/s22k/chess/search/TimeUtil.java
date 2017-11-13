@@ -25,15 +25,12 @@ public class TimeUtil {
 			return;
 		}
 
-		if (moveCount >= 80) {
-			// end-game (80+)
-			timeWindowNs = 1000000 * totalTimeLeftMs / 40;
-		} else if (moveCount >= 40) {
-			// middle-game (40-80)
-			timeWindowNs = (long) (1000000 * totalTimeLeftMs / (100 - moveCount) / 1.8);
+		if (moveCount > 50) {
+			// every move gets less and less time
+			timeWindowNs = 1000000 * totalTimeLeftMs / 50;
 		} else {
-			// start-game (0-40)
-			timeWindowNs = 1000000 * totalTimeLeftMs / (100 - moveCount) / 1;
+			// first 50 moves get 50% of the total time
+			timeWindowNs = 1000000 * totalTimeLeftMs / (100 - moveCount);
 		}
 	}
 

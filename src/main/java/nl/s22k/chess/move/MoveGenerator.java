@@ -73,7 +73,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.quietNotPinnedMoves(StaticMoves.KNIGHT_MOVES[fromIndex] & cb.emptySpaces, fromIndex, NIGHT);
@@ -81,7 +81,7 @@ public final class MoveGenerator {
 		}
 
 		// rooks + queens
-		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.quietNotPinnedMoves(MagicUtil.getRookMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.emptySpaces, fromIndex,
@@ -90,7 +90,7 @@ public final class MoveGenerator {
 		}
 
 		// rooks + queens
-		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.quietNotInCheckPinnedMoves(MagicUtil.getRookMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.emptySpaces,
@@ -99,7 +99,7 @@ public final class MoveGenerator {
 		}
 
 		// bishops + queens
-		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.quietNotPinnedMoves(MagicUtil.getBishopMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.emptySpaces, fromIndex,
@@ -108,7 +108,7 @@ public final class MoveGenerator {
 		}
 
 		// bishops + queens
-		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.quietNotInCheckPinnedMoves(MagicUtil.getBishopMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.emptySpaces,
@@ -117,7 +117,7 @@ public final class MoveGenerator {
 		}
 
 		// pawns
-		piece = cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces[cb.colorToMove];
+		piece = cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 
@@ -134,7 +134,7 @@ public final class MoveGenerator {
 		}
 
 		// pawns
-		piece = cb.pieces[cb.colorToMove][PAWN] & cb.pinnedPieces[cb.colorToMove];
+		piece = cb.pieces[cb.colorToMove][PAWN] & cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 
@@ -171,7 +171,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.notInCheckAttacks(StaticMoves.KNIGHT_MOVES[fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse], fromIndex, cb);
@@ -224,8 +224,8 @@ public final class MoveGenerator {
 			MoveListAdd.notInCheckPromotionMove(StaticMoves.PAWN_PROMOTION_MOVES[cb.colorToMove][fromIndex] & cb.emptySpaces, fromIndex, cb);
 
 			// promotion attack
-			MoveListAdd.promotionAttacks(StaticMoves.PAWN_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse],
-					fromIndex, cb);
+			MoveListAdd.promotionAttacks(StaticMoves.PAWN_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse], fromIndex,
+					cb);
 
 			piece &= piece - 1;
 		}
@@ -246,43 +246,43 @@ public final class MoveGenerator {
 		final long inBetween = ChessConstants.IN_BETWEEN[cb.kingIndex[cb.colorToMove]][Long.numberOfTrailingZeros(cb.checkingPieces)];
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
-			MoveListAdd.quietNotPinnedMoves(StaticMoves.KNIGHT_MOVES[fromIndex] & cb.emptySpaces & inBetween, fromIndex, NIGHT);
+			MoveListAdd.quietNotPinnedMoves(StaticMoves.KNIGHT_MOVES[fromIndex] & inBetween, fromIndex, NIGHT);
 			piece &= piece - 1;
 		}
 
 		// rooks + queens
-		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
-			MoveListAdd.quietNotPinnedMoves(MagicUtil.getRookMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.emptySpaces & inBetween,
-					fromIndex, cb.pieceIndexes[fromIndex]);
+			MoveListAdd.quietNotPinnedMoves(MagicUtil.getRookMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & inBetween, fromIndex,
+					cb.pieceIndexes[fromIndex]);
 			piece &= piece - 1;
 		}
 
 		// bishops + queens
-		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
-			MoveListAdd.quietNotPinnedMoves(MagicUtil.getBishopMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.emptySpaces & inBetween,
-					fromIndex, cb.pieceIndexes[fromIndex]);
+			MoveListAdd.quietNotPinnedMoves(MagicUtil.getBishopMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & inBetween, fromIndex,
+					cb.pieceIndexes[fromIndex]);
 			piece &= piece - 1;
 		}
 
 		// pawns
-		piece = cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces[cb.colorToMove];
+		piece = cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 
 			// 1-move
-			MoveListAdd.quietNotPinnedMoves(StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex] & cb.emptySpaces & inBetween, fromIndex, PAWN);
+			MoveListAdd.quietNotPinnedMoves(StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex] & inBetween, fromIndex, PAWN);
 
 			// 2-move
 			final long moves = StaticMoves.PAWN_MOVES_2[cb.colorToMove][fromIndex];
 			if (moves > 0 && (cb.allPieces & StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex]) == 0) {
-				MoveListAdd.quietNotPinnedMoves(moves & cb.emptySpaces & inBetween, fromIndex, PAWN);
+				MoveListAdd.quietNotPinnedMoves(moves & inBetween, fromIndex, PAWN);
 			}
 
 			piece &= piece - 1;
@@ -300,7 +300,7 @@ public final class MoveGenerator {
 		int fromIndex;
 
 		// knights
-		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces[cb.colorToMove];
+		long piece = cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.inCheckAttacks(cb.checkingPieces & StaticMoves.KNIGHT_MOVES[fromIndex], fromIndex, cb);
@@ -308,7 +308,7 @@ public final class MoveGenerator {
 		}
 
 		// rooks + queens
-		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][ROOK] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.inCheckAttacks(MagicUtil.getRookMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.checkingPieces, fromIndex, cb);
@@ -316,7 +316,7 @@ public final class MoveGenerator {
 		}
 
 		// bishops + queens
-		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces[cb.colorToMove];
+		piece = (cb.pieces[cb.colorToMove][BISHOP] | cb.pieces[cb.colorToMove][QUEEN]) & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 			MoveListAdd.inCheckAttacks(MagicUtil.getBishopMoves(fromIndex, cb.allPieces, cb.friendlyPieces[cb.colorToMove]) & cb.checkingPieces, fromIndex, cb);
@@ -324,7 +324,7 @@ public final class MoveGenerator {
 		}
 
 		// pawns (non-promoting)
-		piece = cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces[cb.colorToMove];
+		piece = cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 
@@ -340,7 +340,7 @@ public final class MoveGenerator {
 		}
 
 		// pawns (promoting)
-		piece = cb.pieces[cb.colorToMove][PAWN] & Bitboard.RANK_PROMOTION[cb.colorToMove] & ~cb.pinnedPieces[cb.colorToMove];
+		piece = cb.pieces[cb.colorToMove][PAWN] & Bitboard.RANK_PROMOTION[cb.colorToMove] & ~cb.pinnedPieces;
 		while (piece != 0) {
 			fromIndex = Long.numberOfTrailingZeros(piece);
 

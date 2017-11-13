@@ -19,8 +19,8 @@ public class EvalTest {
 
 	@Test
 	public void test() {
-		ChessBoard cb = ChessBoardUtil.getNewCB("4r1k1/5p2/2b3p1/R2p3p/p2B1K1P/P1P2P2/6P1/8 w - - 6 39 ");
-		EvalUtil.calculatePawnScores(cb);
+		ChessBoard cb = ChessBoardUtil.getNewCB("rn1qkbnr/pp1b3p/4ppp1/3p3Q/3p4/2PBP2P/PP3PP1/RNB2KNR w kq - 0 1 ");
+		EvalUtil.calculateScore(cb);
 	}
 
 	@Test

@@ -1,3 +1,16 @@
+1.6 - 03-11-2017 - 2800 elo
+- more accurate SEE (pinned pieces)
+- improved king safety
+- added some eval terms
+  - pawn-push threat
+  - rook on 7th with king on 8th
+  - hanging pieces
+  - connected pawns
+  - passed-pawn candidates
+- take more time when loosing
+- fixed some crashes
+
+
 1.5 - 12-08-2017 - 2700 elo
 - implemented tapered-eval
 - recognize drawish positions

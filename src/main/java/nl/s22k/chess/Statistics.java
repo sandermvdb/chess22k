@@ -11,7 +11,7 @@ public class Statistics {
 
 	public static boolean panic = false;
 	public static long startTime = System.nanoTime();
-	public static long evalNodes, abNodes, seeNodes;
+	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
 	public static int depth, maxDepth;
@@ -43,6 +43,9 @@ public class Statistics {
 	}
 
 	public static void reset() {
+		pvNodes = 0;
+		cutNodes = 0;
+		allNodes = 0;
 		drawishByMaterialCount = 0;
 		futilityPruningHit = 0;
 		razoringHit = 0;
@@ -104,6 +107,9 @@ public class Statistics {
 		}
 		System.out.println("NPS         " + calculateNps() / 1000 + "k");
 		System.out.println("AB-nodes    " + abNodes);
+		System.out.println("PV-nodes    " + pvNodes);
+		System.out.println("Cut-nodes   " + cutNodes);
+		System.out.println("All-nodes   " + allNodes);
 		System.out.println("See-nodes   " + seeNodes);
 		System.out.println("Evaluated   " + evalNodes);
 		System.out.println("Q-Checks    " + qChecks);

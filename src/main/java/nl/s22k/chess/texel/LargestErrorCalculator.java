@@ -22,7 +22,7 @@ public class LargestErrorCalculator {
 		EngineConstants.isTuningSession = true;
 		MagicUtil.init();
 
-		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\quiet-labeled.epd");
+		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\epds\\quiet-labeled.epd", true, false);
 		System.out.println(fens.size() + " fens found");
 
 		ChessBoard cb = ChessBoardUtil.getNewCB();

@@ -93,6 +93,10 @@ public class Bitboard {
 	public static final long F1_H1 = F1 | H1;
 	public static final long F1_H8 = F1 | H8;
 	public static final long G1_H1 = G1 | H1;
+	public static final long B3_C2 = B3 | C2;
+	public static final long G3_F2 = G3 | F2;
+	public static final long B6_C7 = B6 | C7;
+	public static final long G6_F7 = G6 | F7;
 	public static final long A8_B8 = A8 | B8;
 	public static final long A8_D8 = A8 | D8;
 	public static final long B8_C8 = B8 | C8;
@@ -101,8 +105,12 @@ public class Bitboard {
 	public static final long F8_G8 = F8 | G8;
 	public static final long F8_H8 = F8 | H8;
 	public static final long G8_H8 = G8 | H8;
+	public static final long A1_B1_C1 = A1 | B1 | C1;
 	public static final long B1_C1_D1 = B1 | C1 | D1;
+	public static final long F1_G1_H1 = F1 | G1 | H1;
+	public static final long A8_B8_C8 = A8 | B8 | C8;
 	public static final long B8_C8_D8 = B8 | C8 | D8;
+	public static final long F8_G8_H8 = F8 | G8 | H8;
 	public static final long A1_B1_A2_B2 = A1 | B1 | A2 | B2;
 	public static final long D1_E1_D2_E2 = D1 | E1 | D2 | E2;
 	public static final long G1_H1_G2_H2 = G1 | H1 | G2 | H2;
@@ -111,6 +119,7 @@ public class Bitboard {
 	public static final long G7_H7_G8_H8 = G7 | H7 | G8 | H8;
 	public static final long WHITE_SQUARES = 0xaa55aa55aa55aa55L;
 	public static final long BLACK_SQUARES = ~WHITE_SQUARES;
+	public static final long CORNER_SQUARES = A1 | H1 | A8 | H8;
 
 	// ranks
 	public static final long RANK_1 = A1 | B1 | C1 | D1 | E1 | F1 | G1 | H1;
@@ -152,5 +161,13 @@ public class Bitboard {
 
 	public static final long WHITE_SIDE = RANK_1 | RANK_2 | RANK_3 | RANK_4;
 	public static final long BLACK_SIDE = RANK_5 | RANK_6 | RANK_7 | RANK_8;
+
+	public static long getWhitePawnAttacks(final long pawns) {
+		return pawns << 9 & Bitboard.NOT_FILE_H | pawns << 7 & Bitboard.NOT_FILE_A;
+	}
+
+	public static long getBlackPawnAttacks(final long pawns) {
+		return pawns >>> 9 & Bitboard.NOT_FILE_A | pawns >>> 7 & Bitboard.NOT_FILE_H;
+	}
 
 }

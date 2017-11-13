@@ -3,15 +3,14 @@ package nl.s22k.chess.move;
 import java.util.Arrays;
 
 import nl.s22k.chess.ChessBoard;
-import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.SEEUtil;
 
 public final class MoveList {
 
 	private static final int[] moves = new int[1024];
-	private static final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES + 8];
-	private static final int[] nextToMove = new int[EngineConstants.MAX_PLIES + 8];
+	private static final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
+	private static final int[] nextToMove = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
 	private static int currentPly;
 
 	public static void startPly() {
@@ -65,6 +64,12 @@ public final class MoveList {
 	}
 
 	public static void setSeeScores(final ChessBoard cb) {
+		// TODO
+		/*
+		 * Regarding move-ordering: for all captures of type M x N, if M is equal to or less valuable than N, just use
+		 * val(N) - val(M) for the value (assume your piece will be recaptured)
+		 */
+
 		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
 			moves[j] = MoveUtil.setSeeMove(moves[j], SEEUtil.getSeeCaptureScore(cb, moves[j]));
 		}
@@ -92,6 +97,14 @@ public final class MoveList {
 			moves[j--] = moves[i];
 			moves[i++] = tmp;
 		}
+	}
+
+	public static String getMovesAsString() {
+		StringBuilder sb = new StringBuilder();
+		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
+			sb.append(new MoveWrapper(moves[j]) + ", ");
+		}
+		return sb.toString();
 	}
 
 }

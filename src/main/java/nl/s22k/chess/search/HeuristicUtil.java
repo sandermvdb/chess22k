@@ -8,8 +8,8 @@ import nl.s22k.chess.move.MoveUtil;
 
 public class HeuristicUtil {
 
-	private static final int[] KILLER_MOVE_1 = new int[EngineConstants.MAX_PLIES + 4];
-	private static final int[] KILLER_MOVE_2 = new int[EngineConstants.MAX_PLIES + 4];
+	private static final int[] KILLER_MOVE_1 = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
+	private static final int[] KILLER_MOVE_2 = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
 
 	public static final int[][] HH_MOVES = new int[2][64 * 64];
 	public static final int[][] BF_MOVES = new int[2][64 * 64];

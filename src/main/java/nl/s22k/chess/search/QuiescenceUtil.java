@@ -61,14 +61,14 @@ public class QuiescenceUtil {
 
 		while (MoveList.hasNext()) {
 			final int move = MoveList.next();
-			if (MoveUtil.getMoveType(move) == MoveUtil.PROMOTION_N) {
+			if (MoveUtil.isPromotion(move) && MoveUtil.getMoveType(move) != MoveUtil.TYPE_PROMOTION_Q) {
 				continue;
 			}
 
 			/* prune bad-captures */
 			if (EngineConstants.ENABLE_Q_PRUNE_BAD_CAPTURES && MoveUtil.getScore(move) < 0) {
 				// no SEE score is assigned when in check so no moves will then be skipped
-				continue;
+				break;
 			}
 
 			cb.doMove(move);

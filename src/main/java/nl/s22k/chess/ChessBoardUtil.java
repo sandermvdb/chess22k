@@ -62,6 +62,14 @@ public class ChessBoardUtil {
 			if (!fenArray[2].contains("q")) {
 				cb.castlingRights &= 14;
 			}
+		} else {
+			// try to guess the castling rights
+			if (cb.kingIndex[WHITE] != 3) {
+				cb.castlingRights &= 3; // 0011
+			}
+			if (cb.kingIndex[BLACK] != 59) {
+				cb.castlingRights &= 12; // 1100
+			}
 		}
 
 		if (fenArray.length > 3) {
@@ -100,8 +108,7 @@ public class ChessBoardUtil {
 		Arrays.fill(cb.zobristKeyHistory, 0);
 		Arrays.fill(cb.pawnZobristKeyHistory, 0);
 		Arrays.fill(cb.checkingPiecesHistory, 0);
-		Arrays.fill(cb.pinnedPiecesHistory[WHITE], 0);
-		Arrays.fill(cb.pinnedPiecesHistory[BLACK], 0);
+		Arrays.fill(cb.pinnedPiecesHistory, 0);
 	}
 
 	public static void calculateZobristKeys(ChessBoard cb) {
@@ -209,6 +216,11 @@ public class ChessBoardUtil {
 	public static void init(ChessBoard cb) {
 		cb.kingIndex[WHITE] = Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]);
 		cb.kingIndex[BLACK] = Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]);
+		cb.kingArea[WHITE] = ChessConstants.KING_SAFETY_FRONT_FURTHER[WHITE][cb.kingIndex[WHITE]] | ChessConstants.KING_SAFETY_FRONT[WHITE][cb.kingIndex[WHITE]]
+				| ChessConstants.KING_SAFETY_NEXT[cb.kingIndex[WHITE]] | ChessConstants.KING_SAFETY_BEHIND[WHITE][cb.kingIndex[WHITE]];
+		cb.kingArea[BLACK] = ChessConstants.KING_SAFETY_FRONT_FURTHER[BLACK][cb.kingIndex[BLACK]] | ChessConstants.KING_SAFETY_FRONT[BLACK][cb.kingIndex[BLACK]]
+				| ChessConstants.KING_SAFETY_NEXT[cb.kingIndex[BLACK]] | ChessConstants.KING_SAFETY_BEHIND[BLACK][cb.kingIndex[BLACK]];
+
 		cb.colorToMoveInverse = 1 - cb.colorToMove;
 		cb.friendlyPieces[WHITE] = cb.pieces[WHITE][PAWN] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][KING] | cb.pieces[WHITE][ROOK]
 				| cb.pieces[WHITE][QUEEN];
@@ -229,10 +241,7 @@ public class ChessBoardUtil {
 		}
 
 		cb.checkingPieces = CheckUtil.getCheckingPieces(cb);
-
-		cb.updatePinnedPieces(WHITE);
-		cb.updatePinnedPieces(BLACK);
-
+		cb.pinnedPieces = cb.getPinnedPieces();
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);
 		cb.psqtScoreEg = EvalUtil.calculatePositionEgScores(cb);
 
@@ -256,8 +265,28 @@ public class ChessBoardUtil {
 				sb.append("/");
 			}
 		}
+
+		// color to move
 		String colorToMove = cb.colorToMove == WHITE ? "w" : "b";
-		sb.append(" ").append(colorToMove);
+		sb.append(" ").append(colorToMove).append(" ");
+
+		// castling rights
+		if (cb.castlingRights == 0) {
+			sb.append("-");
+		} else {
+			if ((cb.castlingRights & 8) != 0) { // 1000
+				sb.append("K");
+			}
+			if ((cb.castlingRights & 4) != 0) { // 0100
+				sb.append("Q");
+			}
+			if ((cb.castlingRights & 2) != 0) { // 0010
+				sb.append("k");
+			}
+			if ((cb.castlingRights & 1) != 0) { // 0001
+				sb.append("q");
+			}
+		}
 
 		String fen = sb.toString();
 		fen = fen.replaceAll("11111111", "8");

@@ -15,10 +15,11 @@ public class ChessBoardTestUtil {
 		long iterativeWhitePieces = cb.friendlyPieces[WHITE];
 		long iterativeBlackPieces = cb.friendlyPieces[BLACK];
 		long iterativeAllPieces = cb.allPieces;
-		long pinnedPiecesWhite = cb.pinnedPieces[WHITE];
-		long pinnedPiecesBlack = cb.pinnedPieces[BLACK];
+		long pinnedPieces = cb.pinnedPieces;
 		int iterativePsqt = cb.psqtScore;
 		int iterativePsqtEg = cb.psqtScoreEg;
+		long whiteKingArea = cb.kingArea[WHITE];
+		long blackKingArea = cb.kingArea[BLACK];
 		System.arraycopy(cb.pieceIndexes, 0, testPieceIndexes, 0, cb.pieceIndexes.length);
 
 		assert Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]) == cb.kingIndex[WHITE] : "Incorrect white king-index";
@@ -30,9 +31,12 @@ public class ChessBoardTestUtil {
 		assert iterativeZK == cb.zobristKey : "Incorrect zobrist-key";
 		assert iterativeZKPawn == cb.pawnZobristKey : "Incorrect pawn-zobrist-key";
 
+		// king area
+		assert whiteKingArea == cb.kingArea[WHITE] : "Incorrect white king area";
+		assert blackKingArea == cb.kingArea[BLACK] : "Incorrect black king area";
+
 		// pinned-pieces
-		assert pinnedPiecesWhite == cb.pinnedPieces[WHITE] : "Incorrect white pinned-pieces";
-		assert pinnedPiecesBlack == cb.pinnedPieces[BLACK] : "Incorrect black pinned-pieces";
+		assert pinnedPieces == cb.pinnedPieces : "Incorrect pinned-pieces";
 
 		// combined pieces
 		assert iterativeWhitePieces == cb.friendlyPieces[WHITE] : "Incorrect whitePieces";

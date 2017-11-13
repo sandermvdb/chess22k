@@ -46,7 +46,7 @@ public class MoveTest {
 
 	@Test
 	public void promotionMove() {
-		int move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, 10, 61);
+		int move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, 10, 61);
 		System.out.println(MoveUtil.getFromIndex(move) + " 10");
 		System.out.println(MoveUtil.getToIndex(move) + " 61");
 		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 1");
@@ -58,7 +58,7 @@ public class MoveTest {
 
 	@Test
 	public void promotionAttackMove() {
-		int move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, 10, 61, ChessConstants.ROOK);
+		int move = MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_Q, 10, 61, ChessConstants.ROOK);
 		System.out.println(MoveUtil.getFromIndex(move) + " 10");
 		System.out.println(MoveUtil.getToIndex(move) + " 61");
 		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 1");
@@ -76,7 +76,7 @@ public class MoveTest {
 		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 1");
 		System.out.println(MoveUtil.getAttackedPieceIndex(move) + " 1");
 		System.out.println(MoveUtil.isPromotion(move) + " false");
-		System.out.println((MoveUtil.getMoveType(move) == MoveUtil.EP) + " true");
+		System.out.println((MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) + " true");
 		System.out.println("");
 	}
 

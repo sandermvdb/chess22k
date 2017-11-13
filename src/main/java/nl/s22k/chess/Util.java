@@ -37,6 +37,14 @@ public class Util {
 			array[array.length - 1 - i] = temp;
 		}
 	}
+	
+	public static void reverse(long[] array) {
+		for (int i = 0; i < array.length / 2; i++) {
+			long temp = array[i];
+			array[i] = array[array.length - 1 - i];
+			array[array.length - 1 - i] = temp;
+		}
+	}
 
 	public static long mirrorHorizontal(long bitboard) {
 		long k1 = 0x5555555555555555L;

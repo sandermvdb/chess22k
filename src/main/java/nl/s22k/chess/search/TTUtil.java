@@ -104,7 +104,7 @@ public class TTUtil {
 		return (int) (zobristKey >>> keyShifts);
 	}
 
-	public static void setBestMoveInStatistics(ChessBoard chessBoard, int depth, ScoreType scoreType) {
+	public static void setBestMoveInStatistics(ChessBoard chessBoard, ScoreType scoreType) {
 		if (NegamaxUtil.stop) {
 			return;
 		}
@@ -114,23 +114,20 @@ public class TTUtil {
 		}
 
 		int move = getMove(value);
-		List<Integer> moves = new ArrayList<Integer>();
+		List<Integer> moves = new ArrayList<Integer>(8);
 		moves.add(move);
 		TreeMove bestMove = new TreeMove(move, getScore(value, 0), scoreType);
-
 		chessBoard.doMove(move);
 
-		value = getTTValue(chessBoard.zobristKey);
-
-		int ply = 0;
-		while (value != 0 && TTUtil.getFlag(value) == TTUtil.FLAG_EXACT && depth >= 0) {
-			ply++;
-			depth--;
+		for (int i = 0; i < 8; i++) {
+			value = getTTValue(chessBoard.zobristKey);
+			if (value == 0) {
+				break;
+			}
 			move = getMove(value);
 			moves.add(move);
-			bestMove.appendMove(new TreeMove(move, getScore(value, ply), ScoreType.EXACT));
+			bestMove.appendMove(new TreeMove(move));
 			chessBoard.doMove(move);
-			value = getTTValue(chessBoard.zobristKey);
 		}
 		for (int i = moves.size() - 1; i >= 0; i--) {
 			chessBoard.undoMove(moves.get(i));

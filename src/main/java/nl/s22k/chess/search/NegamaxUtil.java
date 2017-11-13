@@ -10,7 +10,6 @@ import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.engine.MainEngine;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
-import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveList;
 import nl.s22k.chess.move.MoveUtil;
@@ -199,6 +198,7 @@ public final class NegamaxUtil {
 				}
 				break;
 			case MOVE_ATTACKING:
+				// TODO no ordering at ALL-nodes?
 				MoveGenerator.generateAttacks(cb);
 				if (EngineConstants.ENABLE_SEE) {
 					MoveList.setSeeScores(cb);
@@ -432,6 +432,13 @@ public final class NegamaxUtil {
 
 		/* update statistics */
 		if (Statistics.ENABLED) {
+			if (flag == TTUtil.FLAG_LOWER) {
+				Statistics.cutNodes++;
+			} else if (flag == TTUtil.FLAG_UPPER) {
+				Statistics.allNodes++;
+			} else {
+				Statistics.pvNodes++;
+			}
 			if (bestMove == ttMove) {
 				if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_LOWER) {
 					Statistics.bestMoveTTLower++;
@@ -444,11 +451,11 @@ public final class NegamaxUtil {
 				Statistics.bestMovePromotion++;
 			} else if (MoveUtil.getAttackedPieceIndex(bestMove) != 0) {
 				// slow but disabled when statistics are disabled
-				if (SEEUtil.getSeeCaptureScore(cb, bestMove) < 0) {
-					Statistics.bestMoveLosingCapture++;
-				} else {
-					Statistics.bestMoveWinningCapture++;
-				}
+				// if (SEEUtil.getSeeCaptureScore(cb, bestMove) < 0) {
+				// Statistics.bestMoveLosingCapture++;
+				// } else {
+				// Statistics.bestMoveWinningCapture++;
+				// }
 			} else if (bestMove == killer1Move) {
 				Statistics.bestMoveKiller1++;
 			} else if (bestMove == killer2Move) {
@@ -482,8 +489,6 @@ public final class NegamaxUtil {
 		int depth = 1;
 		int alpha = Util.SHORT_MIN;
 		int beta = Util.SHORT_MAX;
-
-		int previousScore;
 		int score = Util.SHORT_MIN;
 		boolean panic = false;
 
@@ -495,8 +500,10 @@ public final class NegamaxUtil {
 
 			while (true) {
 
+				final boolean loosing = score < -50;
+
 				// stop if depth!=1 and no time is left
-				if (depth != 1 && !TimeUtil.isTimeLeft()) {
+				if (!loosing && depth != 1 && !TimeUtil.isTimeLeft()) {
 					if (panic) {
 						panic = false;
 					} else {
@@ -504,7 +511,7 @@ public final class NegamaxUtil {
 					}
 				}
 
-				previousScore = score;
+				final int previousScore = score;
 				score = calculateBestMove(chessBoard, 0, depth, alpha, beta, true);
 
 				if (depth > 8 && score + 100 < previousScore && Math.abs(score) < EvalConstants.SCORE_MATE_BOUND) {
@@ -521,7 +528,7 @@ public final class NegamaxUtil {
 						alpha = Math.max(alpha - delta, Util.SHORT_MIN);
 					}
 					delta += delta / 2;
-					TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.ALPHA);
+					TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.ALPHA);
 					if (!TimeUtil.isTimeLeft()) {
 						if (Statistics.ENABLED) {
 							Statistics.panic = true;
@@ -536,14 +543,14 @@ public final class NegamaxUtil {
 						beta = Math.min(beta + delta, Util.SHORT_MAX);
 					}
 					delta += delta / 2;
-					TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.BETA);
+					TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.BETA);
 					MainEngine.sendPlyInfo();
 				} else {
 					if (EngineConstants.ENABLE_ASPIRATION_WINDOW) {
 						alpha = Math.max(score - delta, Util.SHORT_MIN);
 						beta = Math.min(score + delta, Util.SHORT_MAX);
 					}
-					TTUtil.setBestMoveInStatistics(chessBoard, depth, ScoreType.EXACT);
+					TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.EXACT);
 					MainEngine.sendPlyInfo();
 					break;
 				}

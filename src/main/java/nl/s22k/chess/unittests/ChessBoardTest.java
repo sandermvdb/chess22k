@@ -25,7 +25,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateAttacks(cb);
 		while (MoveList.hasNext()) {
 			int move = MoveList.next();
-			if (MoveUtil.getMoveType(move) == MoveUtil.EP) {
+			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) {
 				System.out.println("EP-move foud");
 			}
 		}
@@ -43,7 +43,7 @@ public class ChessBoardTest {
 	public void testWhitePromotion() {
 		System.out.println("testWhitePromotion");
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB("rnbqkbn1/ppppppPp/8/8/8/8/PPPPPP1P/RNBQKBNR w - - 0 1");
-		int move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, 49, 56);
+		int move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, 49, 56);
 		chessBoard.doMove(move);
 	}
 
@@ -51,7 +51,7 @@ public class ChessBoardTest {
 	public void testBlackPromotion() {
 		System.out.println("testBlackPromotion");
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB("rnbqkbnr/pppppppp/8/8/8/8/PpPPPPPP/4KBNR b - - 0 1");
-		int move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, 14, 7);
+		int move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, 14, 7);
 		chessBoard.doMove(move);
 	}
 
@@ -59,7 +59,7 @@ public class ChessBoardTest {
 	public void testAttackedPromotion() {
 		System.out.println("testAttackedPromotion");
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB("rnbqkbnr/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1");
-		int move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, 49, 56, ChessConstants.ROOK);
+		int move = MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_Q, 49, 56, ChessConstants.ROOK);
 		chessBoard.doMove(move);
 	}
 
@@ -74,7 +74,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateAttacks(chessBoard);
 		while (MoveList.hasNext()) {
 			int epMove = MoveList.next();
-			if (MoveUtil.getMoveType(move) == MoveUtil.EP) {
+			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) {
 				System.out.println("EP-move found");
 				chessBoard.doMove(epMove);
 				chessBoard.undoMove(epMove);
@@ -95,7 +95,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int epMove = MoveList.next();
-			if (MoveUtil.getMoveType(move) == MoveUtil.EP) {
+			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) {
 				System.out.println("EP-move found");
 				chessBoard.doMove(epMove);
 				chessBoard.undoMove(epMove);
@@ -110,7 +110,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int castlingMove = MoveList.next();
-			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.CASTLING) {
+			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.TYPE_CASTLING) {
 				System.out.println("Castling-move found");
 				chessBoard.doMove(castlingMove);
 				chessBoard.undoMove(castlingMove);
@@ -125,7 +125,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int castlingMove = MoveList.next();
-			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.CASTLING) {
+			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.TYPE_CASTLING) {
 				System.out.println("Castling-move found");
 				chessBoard.doMove(castlingMove);
 				chessBoard.undoMove(castlingMove);
@@ -140,7 +140,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int castlingMove = MoveList.next();
-			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.CASTLING) {
+			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.TYPE_CASTLING) {
 				System.out.println("Castling-move found");
 				chessBoard.doMove(castlingMove);
 				chessBoard.undoMove(castlingMove);
@@ -155,7 +155,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int castlingMove = MoveList.next();
-			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.CASTLING) {
+			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.TYPE_CASTLING) {
 				System.out.println("Castling-move found");
 				chessBoard.doMove(castlingMove);
 				chessBoard.undoMove(castlingMove);
@@ -170,7 +170,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int castlingMove = MoveList.next();
-			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.CASTLING) {
+			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.TYPE_CASTLING) {
 				System.out.println("Castling-move found");
 				chessBoard.doMove(castlingMove);
 				chessBoard.undoMove(castlingMove);
@@ -181,7 +181,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int castlingMove = MoveList.next();
-			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.CASTLING) {
+			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.TYPE_CASTLING) {
 				System.out.println("2nd castling-move found");
 				chessBoard.doMove(castlingMove);
 				chessBoard.undoMove(castlingMove);
@@ -207,7 +207,7 @@ public class ChessBoardTest {
 		MoveGenerator.generateMoves(chessBoard);
 		while (MoveList.hasNext()) {
 			int castlingMove = MoveList.next();
-			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.CASTLING) {
+			if (MoveUtil.getMoveType(castlingMove) == MoveUtil.TYPE_CASTLING) {
 				System.out.println("Castling-move found");
 				chessBoard.doMove(castlingMove);
 				chessBoard.undoMove(castlingMove);

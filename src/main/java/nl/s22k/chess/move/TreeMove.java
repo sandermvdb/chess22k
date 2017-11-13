@@ -9,6 +9,10 @@ public class TreeMove {
 	public int score;
 	public ScoreType scoreType;
 
+	public TreeMove(int move) {
+		this.move = move;
+	}
+
 	public TreeMove(int move, int score, ScoreType scoreType) {
 		this.move = move;
 		this.score = score;

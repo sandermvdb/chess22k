@@ -19,6 +19,9 @@ public class MoveWrapper {
 	public int toIndex;
 	public int move;
 	public int score;
+	
+	public int pieceIndex;
+	public int pieceIndexAttacked;
 
 	public boolean isNightPromotion = false;
 	public boolean isQueenPromotion = false;
@@ -38,28 +41,31 @@ public class MoveWrapper {
 		toIndex = MoveUtil.getToIndex(move);
 		toFile = (char) (104 - toIndex % 8);
 		toRank = toIndex / 8 + 1;
+		
+		pieceIndex = MoveUtil.getSourcePieceIndex(move);
+		pieceIndexAttacked = MoveUtil.getAttackedPieceIndex(move);
 
 		score = MoveUtil.getScore(move);
 
 		switch (MoveUtil.getMoveType(move)) {
-		case MoveUtil.NORMAL:
+		case MoveUtil.TYPE_NORMAL:
 			break;
-		case MoveUtil.CASTLING:
+		case MoveUtil.TYPE_CASTLING:
 			isCastling = true;
 			break;
-		case MoveUtil.EP:
+		case MoveUtil.TYPE_EP:
 			isEP = true;
 			break;
-		case MoveUtil.PROMOTION_B:
+		case MoveUtil.TYPE_PROMOTION_B:
 			isBishopPromotion = true;
 			break;
-		case MoveUtil.PROMOTION_N:
+		case MoveUtil.TYPE_PROMOTION_N:
 			isNightPromotion = true;
 			break;
-		case MoveUtil.PROMOTION_Q:
+		case MoveUtil.TYPE_PROMOTION_Q:
 			isQueenPromotion = true;
 			break;
-		case MoveUtil.PROMOTION_R:
+		case MoveUtil.TYPE_PROMOTION_R:
 			isRookPromotion = true;
 			break;
 		default:
@@ -78,11 +84,8 @@ public class MoveWrapper {
 		toRank = Integer.parseInt(moveString.substring(3, 4));
 		toIndex = (toRank - 1) * 8 + 104 - toFile;
 
-		int zkSourceIndex = 0;
-		int zkAttackIndex = 0;
-
 		//@formatter:off
-		zkSourceIndex = 
+		pieceIndex = 
 				  (cb.pieces[cb.colorToMove][ChessConstants.PAWN] & Util.POWER_LOOKUP[fromIndex]) != 0 ? ChessConstants.PAWN
 				: (cb.pieces[cb.colorToMove][ChessConstants.BISHOP] & Util.POWER_LOOKUP[fromIndex]) != 0 ? ChessConstants.BISHOP
 				: (cb.pieces[cb.colorToMove][ChessConstants.NIGHT] & Util.POWER_LOOKUP[fromIndex]) != 0 ? ChessConstants.NIGHT
@@ -90,11 +93,11 @@ public class MoveWrapper {
 				: (cb.pieces[cb.colorToMove][ChessConstants.QUEEN] & Util.POWER_LOOKUP[fromIndex]) != 0 ? ChessConstants.QUEEN
 				: (cb.pieces[cb.colorToMove][ChessConstants.ROOK] & Util.POWER_LOOKUP[fromIndex]) != 0 ? ChessConstants.ROOK 
 				: -1;
-		if (zkSourceIndex == -1) {
+		if (pieceIndex == -1) {
 			throw new RuntimeException("Source piece not found at index " + fromIndex);
 		}
 
-		zkAttackIndex = 
+		pieceIndexAttacked = 
 				  (cb.pieces[cb.colorToMoveInverse][ChessConstants.PAWN] & Util.POWER_LOOKUP[toIndex]) != 0 ? ChessConstants.PAWN
 				: (cb.pieces[cb.colorToMoveInverse][ChessConstants.BISHOP] & Util.POWER_LOOKUP[toIndex]) != 0 ? ChessConstants.BISHOP
 				: (cb.pieces[cb.colorToMoveInverse][ChessConstants.NIGHT] & Util.POWER_LOOKUP[toIndex]) != 0 ? ChessConstants.NIGHT
@@ -104,58 +107,58 @@ public class MoveWrapper {
 				: 0;
 		//@formatter:on
 
-		if (zkAttackIndex == 0) {
-			if (zkSourceIndex == ChessConstants.PAWN && (toRank == 1 || toRank == 8)) {
+		if (pieceIndexAttacked == 0) {
+			if (pieceIndex == ChessConstants.PAWN && (toRank == 1 || toRank == 8)) {
 				if (moveString.length() == 5) {
 					if (moveString.substring(4, 5).equals("n")) {
 						isNightPromotion = true;
-						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, toIndex);
+						move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex);
 					} else if (moveString.substring(4, 5).equals("r")) {
 						isRookPromotion = true;
-						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, toIndex);
+						move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex);
 					} else if (moveString.substring(4, 5).equals("b")) {
 						isBishopPromotion = true;
-						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, toIndex);
+						move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex);
 					} else if (moveString.substring(4, 5).equals("q")) {
 						isQueenPromotion = true;
-						move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex);
+						move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex);
 					}
 				} else {
 					isQueenPromotion = true;
-					move = MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex);
+					move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex);
 				}
 			} else {
-				if (zkSourceIndex == ChessConstants.KING && (fromIndex - toIndex == 2 || fromIndex - toIndex == -2)) {
+				if (pieceIndex == ChessConstants.KING && (fromIndex - toIndex == 2 || fromIndex - toIndex == -2)) {
 					// castling
 					move = MoveUtil.createCastlingMove(fromIndex, toIndex);
-				} else if (zkSourceIndex == ChessConstants.PAWN && toIndex % 8 != fromIndex % 8) {
+				} else if (pieceIndex == ChessConstants.PAWN && toIndex % 8 != fromIndex % 8) {
 					// ep
 					move = MoveUtil.createEPMove(fromIndex, toIndex);
 				} else {
-					move = MoveUtil.createMove(fromIndex, toIndex, zkSourceIndex);
+					move = MoveUtil.createMove(fromIndex, toIndex, pieceIndex);
 				}
 			}
 		} else {
-			if (zkSourceIndex == ChessConstants.PAWN && (toRank == 1 || toRank == 8)) {
+			if (pieceIndex == ChessConstants.PAWN && (toRank == 1 || toRank == 8)) {
 				if (moveString.length() == 5) {
 					if (moveString.substring(4, 5).equals("n")) {
 						isNightPromotion = true;
-						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, zkAttackIndex);
+						move = MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex, pieceIndexAttacked);
 					} else if (moveString.substring(4, 5).equals("r")) {
 						isRookPromotion = true;
-						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, zkAttackIndex);
+						move = MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex, pieceIndexAttacked);
 					} else if (moveString.substring(4, 5).equals("b")) {
 						isBishopPromotion = true;
-						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, zkAttackIndex);
+						move = MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex, pieceIndexAttacked);
 					} else if (moveString.substring(4, 5).equals("q")) {
 						isQueenPromotion = true;
-						move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, zkAttackIndex);
+						move = MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex, pieceIndexAttacked);
 					}
 				} else {
-					move = MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, zkAttackIndex);
+					move = MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex, pieceIndexAttacked);
 				}
 			} else {
-				move = MoveUtil.createAttackMove(fromIndex, toIndex, zkSourceIndex, zkAttackIndex);
+				move = MoveUtil.createAttackMove(fromIndex, toIndex, pieceIndex, pieceIndexAttacked);
 			}
 		}
 	}

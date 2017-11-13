@@ -30,7 +30,7 @@ public class MoveListAdd {
 		if (moves == 0) {
 			return;
 		}
-		if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
+		if ((cb.pinnedPieces & Util.POWER_LOOKUP[fromIndex]) == 0) {
 			while (moves != 0) {
 				final int toIndex = Long.numberOfTrailingZeros(moves);
 				MoveList.addMove(MoveUtil.createAttackMove(fromIndex, toIndex, cb.pieceIndexes[fromIndex], cb.pieceIndexes[toIndex]));
@@ -60,22 +60,22 @@ public class MoveListAdd {
 		if (move == 0) {
 			return;
 		}
-		if ((cb.pinnedPieces[cb.colorToMove] & Util.POWER_LOOKUP[fromIndex]) == 0) {
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, Long.numberOfTrailingZeros(move)));
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, Long.numberOfTrailingZeros(move)));
+		if ((cb.pinnedPieces & Util.POWER_LOOKUP[fromIndex]) == 0) {
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, Long.numberOfTrailingZeros(move)));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, Long.numberOfTrailingZeros(move)));
 			if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, Long.numberOfTrailingZeros(move)));
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, Long.numberOfTrailingZeros(move)));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, Long.numberOfTrailingZeros(move)));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, Long.numberOfTrailingZeros(move)));
 			}
 		} else {
 			// piece is pinned
 			final int toIndex = Long.numberOfTrailingZeros(move);
 			if (cb.isLegalMove(fromIndex, toIndex)) {
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex));
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, toIndex));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex));
 				if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, toIndex));
-					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, toIndex));
+					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex));
+					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex));
 				}
 			}
 		}
@@ -87,11 +87,11 @@ public class MoveListAdd {
 		}
 		final int toIndex = Long.numberOfTrailingZeros(move);
 		if (cb.isLegalMove(fromIndex, toIndex)) {
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_Q, fromIndex, toIndex));
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_N, fromIndex, toIndex));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex));
 			if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_B, fromIndex, toIndex));
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.PROMOTION_R, fromIndex, toIndex));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex));
+				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex));
 			}
 		}
 	}
@@ -100,11 +100,11 @@ public class MoveListAdd {
 		while (moves != 0) {
 			final int toIndex = Long.numberOfTrailingZeros(moves);
 			if (cb.isLegalAttackMove(fromIndex, toIndex)) {
-				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_Q, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_N, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+				MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
 				if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_B, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
-					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.PROMOTION_R, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
+					MoveList.addMove(MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex, cb.pieceIndexes[toIndex]));
 				}
 			}
 			moves &= moves - 1;

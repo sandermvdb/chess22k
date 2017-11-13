@@ -61,30 +61,28 @@ public final class CastlingUtil {
 		throw new RuntimeException("Unknown castling-right: " + cb.castlingRights);
 	}
 
-	public static void setRookMovedOrAttackedCastlingRights(final ChessBoard cb, final int rookIndex) {
+	public static int getRookMovedOrAttackedCastlingRights(final int castlingRights, final int rookIndex) {
 		switch (rookIndex) {
 		case 0:
-			cb.castlingRights &= 7; // 0111
-			break;
+			return castlingRights & 7; // 0111
 		case 7:
-			cb.castlingRights &= 11; // 1011
-			break;
+			return castlingRights & 11; // 1011
 		case 56:
-			cb.castlingRights &= 13; // 1101
-			break;
+			return castlingRights & 13; // 1101
 		case 63:
-			cb.castlingRights &= 14; // 1110
+			return castlingRights & 14; // 1110
 		}
+		return castlingRights;
 	}
 
-	public static void setKingMovedCastlingRights(final ChessBoard cb, final int kingIndex) {
+	public static int getKingMovedCastlingRights(final int castlingRights, final int kingIndex) {
 		switch (kingIndex) {
 		case 3:
-			cb.castlingRights &= 3; // 0011
-			break;
+			return castlingRights & 3; // 0011
 		case 59:
-			cb.castlingRights &= 12; // 1100
+			return castlingRights & 12; // 1100
 		}
+		return castlingRights;
 	}
 
 	public static long getRookInBetweenIndex(final int castlingIndex) {

@@ -21,9 +21,7 @@ import nl.s22k.chess.search.TimeUtil;
 
 public class MainEngine {
 
-	// TODO use UCI-constants
-
-	private static ChessBoard chessBoard;
+	private static ChessBoard cb;
 	public static boolean quiet = false;
 	public static String startFen = "";
 
@@ -41,7 +39,7 @@ public class MainEngine {
 							}
 						}
 
-						NegamaxUtil.start(chessBoard);
+						NegamaxUtil.start(cb);
 
 						// calculation ready
 						calculating = false;
@@ -50,7 +48,7 @@ public class MainEngine {
 
 						sendBestMove();
 					} catch (Throwable t) {
-						ErrorLogger.log(chessBoard, t);
+						ErrorLogger.log(cb, t);
 					}
 				}
 			}
@@ -114,7 +112,7 @@ public class MainEngine {
 
 	public static void main(String[] args) {
 		MagicUtil.init();
-		chessBoard = ChessBoardUtil.getNewCB();
+		cb = ChessBoardUtil.getNewCB();
 		searchThread.start();
 		maxTimeThread.start();
 		infoThread.start();
@@ -142,7 +140,7 @@ public class MainEngine {
 					EvalCache.clearValues();
 				} else if (tokens[0].equals("position")) {
 					if (tokens[1].equals("startpos")) {
-						chessBoard = ChessBoardUtil.getNewCB();
+						cb = ChessBoardUtil.getNewCB();
 						if (tokens.length == 2) {
 							// position startpos
 							position(new String[] {});
@@ -159,7 +157,7 @@ public class MainEngine {
 						if (tokens.length > 6) {
 							fen += " " + tokens[7];
 						}
-						chessBoard = ChessBoardUtil.getNewCB(fen);
+						cb = ChessBoardUtil.getNewCB(fen);
 						if (tokens.length == 8) {
 							// position fen 4k3/8/8/8/8/3K4 b kq - 0 1
 							position(new String[] {});
@@ -169,7 +167,7 @@ public class MainEngine {
 						}
 					}
 				} else if (tokens[0].equals("go")) {
-					go(tokens, chessBoard.moveCounter, chessBoard.colorToMove);
+					go(tokens, cb.moveCounter, cb.colorToMove);
 				} else if (tokens[0].equals("eval")) {
 					eval();
 				} else if (tokens[0].equals("setoption")) {
@@ -184,7 +182,7 @@ public class MainEngine {
 				}
 			}
 		} catch (Throwable t) {
-			ErrorLogger.log(chessBoard, t);
+			ErrorLogger.log(cb, t);
 		}
 
 	}
@@ -235,6 +233,10 @@ public class MainEngine {
 		// go
 		// go infinite
 		if (goCommandTokens.length == 1 || goCommandTokens[1].equals("infinite")) {
+			HeuristicUtil.clearTables();
+			TTUtil.clearValues();
+			PawnEvalCache.clearValues();
+			EvalCache.clearValues();
 			TimeUtil.setInfiniteWindow();
 		} else {
 			long totalTimeLeft = Long.MAX_VALUE;
@@ -266,25 +268,26 @@ public class MainEngine {
 	private static void position(String[] moveTokens) {
 		// apply moves
 		for (String moveToken : moveTokens) {
-			MoveWrapper move = new MoveWrapper(moveToken, chessBoard);
-			chessBoard.doMove(move.move);
-			RepetitionTable.addValue(chessBoard.zobristKey);
+			MoveWrapper move = new MoveWrapper(moveToken, cb);
+			cb.doMove(move.move);
+			RepetitionTable.addValue(cb.zobristKey);
 		}
-		TTUtil.halfMoveCounter = chessBoard.moveCounter;
-		startFen = chessBoard.toString();
+		TTUtil.halfMoveCounter = cb.moveCounter;
+		startFen = cb.toString();
 	}
 
 	private static void eval() {
-		System.out.println("Material (no pawn) : " + EvalUtil.calculateMaterialScores(chessBoard));
-		System.out.println("          Position : " + EvalUtil.calculatePositionScores(chessBoard));
-		System.out.println("          Mobility : " + EvalUtil.calculateMobilityScores(chessBoard));
-		System.out.println("       King-safety : " + EvalUtil.calculateKingSafetyScores(chessBoard));
-		System.out.println("              Pawn : " + EvalUtil.calculatePawnScores(chessBoard));
-		System.out.println("       Pawn-passed : " + EvalUtil.calculatePassedPawnScores(chessBoard));
-		System.out.println("             Bonus : " + EvalUtil.calculateBonusses(chessBoard));
-		System.out.println("         Penalties : " + EvalUtil.calculatePenalties(chessBoard));
+		EvalUtil.calculateMobilityScoresAndSetAttackBoards(cb);
+		System.out.println("      Material : " + EvalUtil.calculateMaterialIncludingPawnScores(cb));
+		System.out.println("      Position : " + EvalUtil.calculatePositionScores(cb));
+		System.out.println("      Mobility : " + (cb.mobilityScore[EvalUtil.MG] + cb.mobilityScore[EvalUtil.MG]) / 2);
+		System.out.println("   King-safety : " + EvalUtil.calculateKingSafetyScores(cb));
+		System.out.println("          Pawn : " + EvalUtil.calculatePawnWithoutMaterialScores(cb));
+		System.out.println("   Pawn-passed : " + EvalUtil.calculatePassedPawnScores(cb));
+		System.out.println("         Bonus : " + EvalUtil.calculateBonusses(cb));
+		System.out.println("     Penalties : " + EvalUtil.calculatePenalties(cb));
 		System.out.println("-------------------------");
-		System.out.println("             Total : " + EvalUtil.calculateScore(chessBoard));
+		System.out.println("         Total : " + EvalUtil.calculateScore(cb));
 	}
 
 	private static void sendBestMove() {
