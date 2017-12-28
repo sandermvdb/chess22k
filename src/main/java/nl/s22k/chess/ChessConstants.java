@@ -20,8 +20,8 @@ public class ChessConstants {
 	public static final int WHITE = 0;
 	public static final int BLACK = 1;
 
-	public static final int[] COLOR_FACTOR = new int[] { 1, -1 };
-	public static final int[] COLOR_FACTOR_8 = new int[] { 8, -8 };
+	public static final int[] COLOR_FACTOR = { 1, -1 };
+	public static final int[] COLOR_FACTOR_8 = { 8, -8 };
 
 	public static final long[][] KING_SAFETY_BEHIND = new long[2][64];
 	public static final long[] KING_SAFETY_NEXT = new long[64]; // not color specific

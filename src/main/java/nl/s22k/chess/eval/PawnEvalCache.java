@@ -13,13 +13,14 @@ public class PawnEvalCache {
 
 	private static final int[] keys = new int[MAX_TABLE_ENTRIES];
 	private static final long[] passedPawns = new long[MAX_TABLE_ENTRIES];
-	private static final short[] scores = new short[MAX_TABLE_ENTRIES];
+	private static final long[] backwardPawns = new long[MAX_TABLE_ENTRIES];
+	private static final int[] scores = new int[MAX_TABLE_ENTRIES];
 	public static int usageCounter;
 
 	public static void clearValues() {
 		Arrays.fill(keys, 0);
 		Arrays.fill(passedPawns, 0);
-		Arrays.fill(scores, (short) 0);
+		Arrays.fill(scores, 0);
 		usageCounter = 0;
 	}
 
@@ -37,15 +38,19 @@ public class PawnEvalCache {
 		return false;
 	}
 
-	public static short getScore(final long zkKey) {
+	public static int getScore(final long zkKey) {
 		return scores[getZobristIndex(zkKey)];
 	}
 
-	public static long getPassedPawns(final long zkKey) {
-		return passedPawns[getZobristIndex(zkKey)];
+	public static long getPassedPawns(final long key) {
+		return passedPawns[getZobristIndex(key)];
 	}
 
-	public static void addValue(final long zobristKey, final int score, final long passedPawnsValue) {
+	public static long getBackwardPawns(final long key) {
+		return backwardPawns[getZobristIndex(key)];
+	}
+
+	public static void addValue(final long zobristKey, final int score, final long passedPawnsValue, final long backwardPawnsValue) {
 
 		if (!EngineConstants.ENABLE_PAWN_EVAL_CACHE) {
 			return;
@@ -58,8 +63,9 @@ public class PawnEvalCache {
 		final int ttIndex = getZobristIndex(zobristKey);
 
 		keys[ttIndex] = (int) zobristKey;
-		scores[ttIndex] = (short) score;
+		scores[ttIndex] = score;
 		passedPawns[ttIndex] = passedPawnsValue;
+		backwardPawns[ttIndex] = backwardPawnsValue;
 
 		if (Statistics.ENABLED) {
 			if (keys[ttIndex] == 0) {

@@ -38,15 +38,19 @@ public class SEEUtil {
 		}
 
 		// bishop attacks
-		attackMove = cb.pieces[colorToMove][BISHOP] & MagicUtil.getBishopMoves(toIndex, allPieces) & movablePieces;
-		if (attackMove != 0) {
-			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), BISHOP);
+		if ((cb.pieces[colorToMove][BISHOP] & MagicUtil.bishopMovesEmptyBoard[toIndex]) != 0) {
+			attackMove = cb.pieces[colorToMove][BISHOP] & MagicUtil.getBishopMoves(toIndex, allPieces) & movablePieces;
+			if (attackMove != 0) {
+				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), BISHOP);
+			}
 		}
 
 		// rook attacks
-		attackMove = cb.pieces[colorToMove][ROOK] & MagicUtil.getRookMoves(toIndex, allPieces) & movablePieces;
-		if (attackMove != 0) {
-			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), ROOK);
+		if ((cb.pieces[colorToMove][ROOK] & MagicUtil.rookMovesEmptyBoard[toIndex]) != 0) {
+			attackMove = cb.pieces[colorToMove][ROOK] & MagicUtil.getRookMoves(toIndex, allPieces) & movablePieces;
+			if (attackMove != 0) {
+				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), ROOK);
+			}
 		}
 
 		// pawn promotion attacks
@@ -65,6 +69,11 @@ public class SEEUtil {
 		}
 
 		// king attacks
+		// split-up because of inlining (max 320 lines)
+		return kingAttacks(toIndex, colorToMove, cb);
+	}
+
+	private static int kingAttacks(final int toIndex, final int colorToMove, final ChessBoard cb) {
 		if ((StaticMoves.KING_MOVES[toIndex] & cb.pieces[colorToMove][KING]) != 0) {
 			return MoveUtil.createSeeAttackMove(cb.kingIndex[colorToMove], KING);
 		}

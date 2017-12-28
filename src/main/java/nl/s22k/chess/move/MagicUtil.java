@@ -11,7 +11,7 @@ public final class MagicUtil {
 
 	private static final long[] rookMovementMasks = new long[64];
 	private static final long[] bishopMovementMasks = new long[64];
-	private static final long[] rookMagicNumbers = new long[] { 0xa180022080400230L, 0x40100040022000L, 0x80088020001002L, 0x80080280841000L,
+	private static final long[] rookMagicNumbers = { 0xa180022080400230L, 0x40100040022000L, 0x80088020001002L, 0x80080280841000L,
 			0x4200042010460008L, 0x4800a0003040080L, 0x400110082041008L, 0x8000a041000880L, 0x10138001a080c010L, 0x804008200480L, 0x10011012000c0L,
 			0x22004128102200L, 0x200081201200cL, 0x202a001048460004L, 0x81000100420004L, 0x4000800380004500L, 0x208002904001L, 0x90004040026008L,
 			0x208808010002001L, 0x2002020020704940L, 0x8048010008110005L, 0x6820808004002200L, 0xa80040008023011L, 0xb1460000811044L, 0x4204400080008ea0L,
@@ -21,7 +21,7 @@ public final class MagicUtil {
 			0x282020001008080L, 0x50000181204a0004L, 0x102042111804200L, 0x40002010004001c0L, 0x19220045508200L, 0x20030010060a900L, 0x8018028040080L,
 			0x88240002008080L, 0x10301802830400L, 0x332a4081140200L, 0x8080010a601241L, 0x1008010400021L, 0x4082001007241L, 0x211009001200509L,
 			0x8015001002441801L, 0x801000804000603L, 0xc0900220024a401L, 0x1000200608243L };
-	private static final long[] bishopMagicNumbers = new long[] { 0x2910054208004104L, 0x2100630a7020180L, 0x5822022042000000L, 0x2ca804a100200020L,
+	private static final long[] bishopMagicNumbers = { 0x2910054208004104L, 0x2100630a7020180L, 0x5822022042000000L, 0x2ca804a100200020L,
 			0x204042200000900L, 0x2002121024000002L, 0x80404104202000e8L, 0x812a020205010840L, 0x8005181184080048L, 0x1001c20208010101L, 0x1001080204002100L,
 			0x1810080489021800L, 0x62040420010a00L, 0x5028043004300020L, 0xc0080a4402605002L, 0x8a00a0104220200L, 0x940000410821212L, 0x1808024a280210L,
 			0x40c0422080a0598L, 0x4228020082004050L, 0x200800400e00100L, 0x20b001230021040L, 0x90a0201900c00L, 0x4940120a0a0108L, 0x20208050a42180L,
@@ -154,16 +154,16 @@ public final class MagicUtil {
 	private static void calculateRookVariations() {
 
 		// calculate all variations
-		int j = 0;
 		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			byte[] setBitsInMask = Util.getSetBitsSlow(rookMovementMasks[bitIndex]);
-			int variationCount = (int) Util.POWER_LOOKUP[setBitsInMask.length];
+			int[] setBitsInMask = Util.getSetBitsSlow(rookMovementMasks[bitIndex]);
+			int variationCount = (int) Util.POWER_LOOKUP[Long.bitCount(rookMovementMasks[bitIndex])];
 			rookOccupancyVariations[bitIndex] = new long[variationCount];
-
+			
 			for (int variationIndex = 0; variationIndex < variationCount; variationIndex++) {
-				byte[] setBitsInCounter = Util.getSetBitsSlow(variationIndex);
-				for (j = 0; j < setBitsInCounter.length; j++) {
-					rookOccupancyVariations[bitIndex][variationIndex] |= Util.POWER_LOOKUP[setBitsInMask[setBitsInCounter[j]]];
+				int currentVariationIndex = variationIndex;
+				while (currentVariationIndex != 0) {
+					rookOccupancyVariations[bitIndex][variationIndex] |= Util.POWER_LOOKUP[setBitsInMask[Long.numberOfTrailingZeros(currentVariationIndex)]];
+					currentVariationIndex &= currentVariationIndex - 1;
 				}
 			}
 		}
@@ -172,18 +172,17 @@ public final class MagicUtil {
 	private static void calculateBishopVariations() {
 
 		// calculate all variations
-		int j = 0;
 		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			byte[] setBitsInMask = Util.getSetBitsSlow(bishopMovementMasks[bitIndex]);
-			int variationCount = (int) Util.POWER_LOOKUP[setBitsInMask.length];
+			int[] setBitsInMask = Util.getSetBitsSlow(bishopMovementMasks[bitIndex]);
+			int variationCount = (int) Util.POWER_LOOKUP[Long.bitCount(bishopMovementMasks[bitIndex])];
 			bishopOccupancyVariations[bitIndex] = new long[variationCount];
 
 			for (int variationIndex = 0; variationIndex < variationCount; variationIndex++) {
-				byte[] setBitsInCounter = Util.getSetBitsSlow(variationIndex);
-				for (j = 0; j < setBitsInCounter.length; j++) {
-					bishopOccupancyVariations[bitIndex][variationIndex] |= Util.POWER_LOOKUP[setBitsInMask[setBitsInCounter[j]]];
+				int currentVariationIndex = variationIndex;
+				while (currentVariationIndex != 0) {
+					bishopOccupancyVariations[bitIndex][variationIndex] |= Util.POWER_LOOKUP[setBitsInMask[Long.numberOfTrailingZeros(currentVariationIndex)]];
+					currentVariationIndex &= currentVariationIndex - 1;
 				}
-
 			}
 		}
 	}

@@ -12,12 +12,12 @@ public class EvalCache {
 	public static final int MAX_TABLE_ENTRIES = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_EVAL_ENTRIES];
 
 	private static final int[] keys = new int[MAX_TABLE_ENTRIES];
-	private static final short[] scores = new short[MAX_TABLE_ENTRIES];
+	private static final int[] scores = new int[MAX_TABLE_ENTRIES];
 	public static int usageCounter;
 
 	public static void clearValues() {
 		Arrays.fill(keys, 0);
-		Arrays.fill(scores, (short) 0);
+		Arrays.fill(scores, 0);
 		usageCounter = 0;
 	}
 
@@ -35,7 +35,7 @@ public class EvalCache {
 		return false;
 	}
 
-	public static short getScore(final long zkKey) {
+	public static int getScore(final long zkKey) {
 		return scores[getZobristIndex(zkKey)];
 	}
 
@@ -56,7 +56,7 @@ public class EvalCache {
 			}
 		}
 		keys[ttIndex] = (int) zobristKey;
-		scores[ttIndex] = (short) score;
+		scores[ttIndex] = score;
 	}
 
 	private static int getZobristIndex(final long zobristKey) {

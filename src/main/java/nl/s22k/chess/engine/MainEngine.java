@@ -9,6 +9,8 @@ import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.eval.EvalCache;
 import nl.s22k.chess.eval.EvalUtil;
+import nl.s22k.chess.eval.KingSafetyEval;
+import nl.s22k.chess.eval.PassedPawnEval;
 import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveWrapper;
@@ -22,8 +24,12 @@ import nl.s22k.chess.search.TimeUtil;
 public class MainEngine {
 
 	private static ChessBoard cb;
-	public static boolean quiet = false;
+	public static boolean lessOutput = false;
+	public static boolean noOutput = false;
 	public static String startFen = "";
+
+	private static boolean previousPlyTookLong;
+	private static long previousPlyStartTime = System.currentTimeMillis();
 
 	private static Thread searchThread;
 	static {
@@ -104,6 +110,7 @@ public class MainEngine {
 		};
 		infoThread.setName("chess22k-info");
 		infoThread.setDaemon(true);
+		infoThread.setPriority(Thread.MIN_PRIORITY);
 	}
 
 	private static Object synchronizedObject = new Object();
@@ -139,33 +146,7 @@ public class MainEngine {
 					PawnEvalCache.clearValues();
 					EvalCache.clearValues();
 				} else if (tokens[0].equals("position")) {
-					if (tokens[1].equals("startpos")) {
-						cb = ChessBoardUtil.getNewCB();
-						if (tokens.length == 2) {
-							// position startpos
-							position(new String[] {});
-						} else {
-							// position startpos moves f2f3 g1a3 ...
-							position(Arrays.copyOfRange(tokens, 3, tokens.length));
-						}
-					} else {
-						// position fen 4k3/8/8/8/8/3K4 b kq - 0 1 moves f2f3 g1a3 ...
-						String fen = tokens[2] + " " + tokens[3] + " " + tokens[4] + " " + tokens[5];
-						if (tokens.length > 6) {
-							fen += " " + tokens[6];
-						}
-						if (tokens.length > 6) {
-							fen += " " + tokens[7];
-						}
-						cb = ChessBoardUtil.getNewCB(fen);
-						if (tokens.length == 8) {
-							// position fen 4k3/8/8/8/8/3K4 b kq - 0 1
-							position(new String[] {});
-						} else {
-							// position fen 4k3/8/8/8/8/3K4 b kq - 0 1 moves f2f3 g1a3 ...
-							position(Arrays.copyOfRange(tokens, 9, tokens.length));
-						}
-					}
+					position(tokens);
 				} else if (tokens[0].equals("go")) {
 					go(tokens, cb.moveCounter, cb.colorToMove);
 				} else if (tokens[0].equals("eval")) {
@@ -185,6 +166,37 @@ public class MainEngine {
 			ErrorLogger.log(cb, t);
 		}
 
+	}
+
+	private static void position(String[] tokens) {
+		if (tokens[1].equals("startpos")) {
+			cb = ChessBoardUtil.getNewCB();
+			if (tokens.length == 2) {
+				// position startpos
+				doMoves(new String[] {});
+			} else {
+				// position startpos moves f2f3 g1a3 ...
+				doMoves(Arrays.copyOfRange(tokens, 3, tokens.length));
+			}
+		} else {
+			// position fen 4k3/8/8/8/8/3K4 b kq - 0 1 moves f2f3 g1a3 ...
+			String fen = tokens[2] + " " + tokens[3] + " " + tokens[4] + " " + tokens[5];
+			if (tokens.length > 6) {
+				fen += " " + tokens[6];
+				fen += " " + tokens[7];
+			}
+			cb = ChessBoardUtil.getNewCB(fen);
+
+			if (tokens.length == 6 || tokens.length == 7 || tokens.length == 8) {
+				// position fen 4k3/8/8/8/8/3K4 b kq - 0 1
+				doMoves(new String[] {});
+			} else {
+				// position fen 4k3/8/8/8/8/3K4 b kq - 0 1 moves f2f3 g1a3 ...
+				doMoves(Arrays.copyOfRange(tokens, 9, tokens.length));
+			}
+		}
+		TTUtil.halfMoveCounter = cb.moveCounter;
+		startFen = cb.toString();
 	}
 
 	private static void setOption(String optionName, String optionValue) {
@@ -227,37 +239,54 @@ public class MainEngine {
 		// go movestogo 30 wtime 3600000 btime 3600000
 		// go wtime 40847 btime 48019 winc 0 binc 0 movestogo 20
 		Statistics.reset();
-		int movesToGo = 0;
+		TimeUtil.reset();
+		TimeUtil.setMoveCount(moveCount);
 		NegamaxUtil.maxDepth = EngineConstants.MAX_PLIES;
+		TimeUtil.setInfiniteWindow();
+		previousPlyTookLong = false;
+		previousPlyStartTime = System.currentTimeMillis();
+
+		TTUtil.init(false);
+		final long ttValue = TTUtil.getTTValue(cb.zobristKey);
+		TimeUtil.setTTHit(ttValue != 0 && TTUtil.getFlag(ttValue) == TTUtil.FLAG_EXACT);
+		TreeMove bestMove = Statistics.bestMove;
+		if (bestMove != null && bestMove.score < -50) {
+			TimeUtil.setLosing(true);
+		}
 
 		// go
 		// go infinite
-		if (goCommandTokens.length == 1 || goCommandTokens[1].equals("infinite")) {
-			HeuristicUtil.clearTables();
-			TTUtil.clearValues();
-			PawnEvalCache.clearValues();
-			EvalCache.clearValues();
-			TimeUtil.setInfiniteWindow();
-		} else {
-			long totalTimeLeft = Long.MAX_VALUE;
+		if (goCommandTokens.length != 1) {
 			for (int i = 1; i < goCommandTokens.length; i++) {
-				if (goCommandTokens[i].equals("movestogo")) {
-					movesToGo = Integer.parseInt(goCommandTokens[i + 1]);
+				if (goCommandTokens[i].equals("infinite")) {
+					// TODO are we clearing the values again?
+					HeuristicUtil.clearTables();
+					TTUtil.clearValues();
+					PawnEvalCache.clearValues();
+					EvalCache.clearValues();
+					TimeUtil.setInfiniteWindow();
+				} else if (goCommandTokens[i].equals("movetime")) {
+					TimeUtil.setExactMoveTime(Integer.parseInt(goCommandTokens[i + 1]));
+				} else if (goCommandTokens[i].equals("movestogo")) {
+					TimeUtil.setMovesToGo(Integer.parseInt(goCommandTokens[i + 1]));
 				} else if (goCommandTokens[i].equals("depth")) {
 					NegamaxUtil.maxDepth = Integer.parseInt(goCommandTokens[i + 1]);
 				} else if (goCommandTokens[i].equals("wtime")) {
 					if (colorToMove == ChessConstants.WHITE) {
-						totalTimeLeft = Integer.parseInt(goCommandTokens[i + 1]);
+						TimeUtil.setTotalTimeLeft(Integer.parseInt(goCommandTokens[i + 1]));
 					}
 				} else if (goCommandTokens[i].equals("btime")) {
 					if (colorToMove == ChessConstants.BLACK) {
-						totalTimeLeft = Integer.parseInt(goCommandTokens[i + 1]);
+						TimeUtil.setTotalTimeLeft(Integer.parseInt(goCommandTokens[i + 1]));
 					}
 				}
 			}
-
-			TimeUtil.setTimeWindow(totalTimeLeft, moveCount, movesToGo);
 		}
+
+		TimeUtil.start();
+
+		// less output if we use a short timecontrol
+		lessOutput = TimeUtil.getMaxTimeMs() < 1000;
 
 		calculating = true;
 		synchronized (synchronizedObject) {
@@ -265,52 +294,62 @@ public class MainEngine {
 		}
 	}
 
-	private static void position(String[] moveTokens) {
+	private static void doMoves(String[] moveTokens) {
 		// apply moves
 		for (String moveToken : moveTokens) {
 			MoveWrapper move = new MoveWrapper(moveToken, cb);
 			cb.doMove(move.move);
 			RepetitionTable.addValue(cb.zobristKey);
 		}
-		TTUtil.halfMoveCounter = cb.moveCounter;
-		startFen = cb.toString();
 	}
 
 	private static void eval() {
 		EvalUtil.calculateMobilityScoresAndSetAttackBoards(cb);
 		System.out.println("      Material : " + EvalUtil.calculateMaterialIncludingPawnScores(cb));
-		System.out.println("      Position : " + EvalUtil.calculatePositionScores(cb));
-		System.out.println("      Mobility : " + (cb.mobilityScore[EvalUtil.MG] + cb.mobilityScore[EvalUtil.MG]) / 2);
-		System.out.println("   King-safety : " + EvalUtil.calculateKingSafetyScores(cb));
+		System.out.println("      Position : " + cb.psqtScore + "/" + cb.psqtScoreEg);
+		System.out.println("      Mobility : " + cb.mobilityScore[EvalUtil.MG] + "/" + cb.mobilityScore[EvalUtil.EG]);
+		System.out.println("   King-safety : " + KingSafetyEval.calculateKingSafetyScores(cb));
 		System.out.println("          Pawn : " + EvalUtil.calculatePawnWithoutMaterialScores(cb));
-		System.out.println("   Pawn-passed : " + EvalUtil.calculatePassedPawnScores(cb));
+		System.out.println("Pawn-passed-eg : " + PassedPawnEval.calculatePassedPawnScores(cb));
 		System.out.println("         Bonus : " + EvalUtil.calculateBonusses(cb));
 		System.out.println("     Penalties : " + EvalUtil.calculatePenalties(cb));
 		System.out.println("-------------------------");
-		System.out.println("         Total : " + EvalUtil.calculateScore(cb));
+		System.out.println("         Total : " + EvalUtil.getScore(cb));
 	}
 
 	private static void sendBestMove() {
-		if (quiet) {
+		if (noOutput) {
 			return;
 		}
-		Statistics.print();
+		if (!lessOutput) {
+			Statistics.print();
+		}
 		TreeMove bestMove = Statistics.bestMove;
 		System.out.println("bestmove " + new MoveWrapper(bestMove.move));
 	}
 
 	public static void sendInfo() {
-		if (quiet) {
+		if (lessOutput || noOutput) {
 			return;
 		}
 		System.out.println("info nodes " + Statistics.moveCount + " nps " + Statistics.calculateNps() + " hashfull "
 				+ TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2));
 	}
 
-	public static void sendPlyInfo() {
-		if (quiet) {
+	public static void sendMoveInfo(final int move, final int movesPerformed) {
+		if (lessOutput || noOutput) {
 			return;
 		}
+		if (previousPlyTookLong) {
+			System.out.println("info currmove " + new MoveWrapper(move) + " currmovenumber " + movesPerformed);
+		}
+	}
+
+	public static void sendPlyInfo() {
+		if (noOutput) {
+			return;
+		}
+		previousPlyTookLong = System.currentTimeMillis() - previousPlyStartTime > 750;
 
 		// restart info thread
 		infoThread.interrupt();
@@ -321,6 +360,7 @@ public class MainEngine {
 		System.out.println("info depth " + Statistics.depth + " seldepth " + Statistics.maxDepth + " time " + Statistics.getPassedTimeMs() + " score cp "
 				+ bestMove.score + bestMove.scoreType + "nps " + Statistics.calculateNps() + " nodes " + Statistics.moveCount + " hashfull "
 				+ TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2) + " pv " + bestMove);
+		previousPlyStartTime = System.currentTimeMillis();
 	}
 
 	private static String getVersion() {

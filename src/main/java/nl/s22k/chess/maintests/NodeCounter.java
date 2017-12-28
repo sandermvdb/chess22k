@@ -18,7 +18,7 @@ public class NodeCounter {
 		MagicUtil.init();
 		NegamaxUtil.maxDepth=MAX_PLY;
 		TimeUtil.setInfiniteWindow();
-		MainEngine.quiet = true;
+		MainEngine.noOutput = true;
 		
 		long totalNodesSearched = 0;
 		

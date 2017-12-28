@@ -12,6 +12,7 @@ import static nl.s22k.chess.ChessConstants.WHITE;
 import java.util.Arrays;
 
 import nl.s22k.chess.engine.EngineConstants;
+import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.search.HeuristicUtil;
 import nl.s22k.chess.search.RepetitionTable;
@@ -28,7 +29,7 @@ public class ChessBoardUtil {
 		if (!EngineConstants.isTuningSession) {
 			RepetitionTable.clearValues();
 			HeuristicUtil.clearTables();
-			clearHistoryValues(cb);
+			cb.clearHistoryValues();
 		}
 
 		setFenValues(fen, cb);
@@ -98,17 +99,6 @@ public class ChessBoardUtil {
 					- Long.bitCount(cb.pieces[BLACK][PAWN] & Bitboard.RANK_7);
 			cb.moveCounter = pawnsNotAtStartingPosition * 2;
 		}
-	}
-
-	public static void clearHistoryValues(ChessBoard cb) {
-		// history
-		Arrays.fill(cb.psqtScoreHistory, 0);
-		Arrays.fill(cb.castlingHistory, 0);
-		Arrays.fill(cb.epIndexHistory, 0);
-		Arrays.fill(cb.zobristKeyHistory, 0);
-		Arrays.fill(cb.pawnZobristKeyHistory, 0);
-		Arrays.fill(cb.checkingPiecesHistory, 0);
-		Arrays.fill(cb.pinnedPiecesHistory, 0);
 	}
 
 	public static void calculateZobristKeys(ChessBoard cb) {
@@ -241,9 +231,22 @@ public class ChessBoardUtil {
 		}
 
 		cb.checkingPieces = CheckUtil.getCheckingPieces(cb);
-		cb.pinnedPieces = cb.getPinnedPieces();
+		cb.setPinnedAndDiscoPieces();
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);
 		cb.psqtScoreEg = EvalUtil.calculatePositionEgScores(cb);
+
+		cb.majorPieces[WHITE] = Long.bitCount(cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][ROOK] | cb.pieces[WHITE][QUEEN]);
+		cb.majorPieces[BLACK] = Long.bitCount(cb.pieces[BLACK][NIGHT] | cb.pieces[BLACK][BISHOP] | cb.pieces[BLACK][ROOK] | cb.pieces[BLACK][QUEEN]);
+
+		cb.phase = EvalUtil.PHASE_TOTAL - (Long.bitCount(cb.pieces[WHITE][NIGHT] | cb.pieces[BLACK][NIGHT]) * EvalConstants.PHASE[NIGHT]
+				+ Long.bitCount(cb.pieces[WHITE][BISHOP] | cb.pieces[BLACK][BISHOP]) * EvalConstants.PHASE[BISHOP]
+				+ Long.bitCount(cb.pieces[WHITE][ROOK] | cb.pieces[BLACK][ROOK]) * EvalConstants.PHASE[ROOK]
+				+ Long.bitCount(cb.pieces[WHITE][QUEEN] | cb.pieces[BLACK][QUEEN]) * EvalConstants.PHASE[QUEEN]);
+
+		cb.materialWithoutPawnScore = (Long.bitCount(cb.pieces[WHITE][NIGHT]) - Long.bitCount(cb.pieces[BLACK][NIGHT])) * EvalConstants.MATERIAL_SCORES[NIGHT]
+				+ (Long.bitCount(cb.pieces[WHITE][BISHOP]) - Long.bitCount(cb.pieces[BLACK][BISHOP])) * EvalConstants.MATERIAL_SCORES[BISHOP]
+				+ (Long.bitCount(cb.pieces[WHITE][ROOK]) - Long.bitCount(cb.pieces[BLACK][ROOK])) * EvalConstants.MATERIAL_SCORES[ROOK]
+				+ (Long.bitCount(cb.pieces[WHITE][QUEEN]) - Long.bitCount(cb.pieces[BLACK][QUEEN])) * EvalConstants.MATERIAL_SCORES[QUEEN];
 
 		if (!EngineConstants.isTuningSession) {
 			// cached scores are not used

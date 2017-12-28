@@ -22,7 +22,7 @@ public class BestMoveTest {
 	@BeforeClass
 	public static void init() {
 		MagicUtil.init();
-		MainEngine.quiet = true;
+		MainEngine.noOutput = true;
 	}
 
 	private void doTest(String[] epdStrings) {
@@ -33,7 +33,7 @@ public class BestMoveTest {
 
 			ChessBoard cb = ChessBoardUtil.getNewCB(epd.getFen());
 			// 200000 is approximately 3 secs per move
-			TimeUtil.setTimeWindow(100000L, cb.moveCounter, 0);
+			TimeUtil.setSimpleTimeWindow(5000);
 			NegamaxUtil.start(cb);
 
 			MoveWrapper bestMove = new MoveWrapper(Statistics.bestMove.move);

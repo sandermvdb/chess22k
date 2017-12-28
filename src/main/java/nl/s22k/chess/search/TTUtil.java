@@ -119,7 +119,7 @@ public class TTUtil {
 		TreeMove bestMove = new TreeMove(move, getScore(value, 0), scoreType);
 		chessBoard.doMove(move);
 
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 11; i++) {
 			value = getTTValue(chessBoard.zobristKey);
 			if (value == 0) {
 				break;

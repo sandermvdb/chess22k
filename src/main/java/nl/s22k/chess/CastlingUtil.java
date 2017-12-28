@@ -191,8 +191,7 @@ public final class CastlingUtil {
 		long kingIndexes = ChessConstants.IN_BETWEEN[fromIndex][toIndex] | Util.POWER_LOOKUP[toIndex];
 		while (kingIndexes != 0) {
 			// king does not move through a checked position?
-			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingIndexes), cb.colorToMove, cb.friendlyPieces[cb.colorToMove],
-					cb.pieces[cb.colorToMoveInverse], cb.allPieces)) {
+			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingIndexes), cb.colorToMove, cb.pieces[cb.colorToMoveInverse], cb.allPieces)) {
 				return false;
 			}
 			kingIndexes &= kingIndexes - 1;

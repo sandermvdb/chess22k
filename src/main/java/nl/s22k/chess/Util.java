@@ -15,18 +15,15 @@ public class Util {
 		}
 	}
 
-	public static byte[] getSetBitsSlow(long value) {
-		if (Long.bitCount(value) == 0) {
-			return new byte[0];
-		}
-		byte[] setBits = new byte[Long.bitCount(value)];
+	public static int[] getSetBitsSlow(long value) {
+		int[] setBits = new int[Long.bitCount(value)];
 
-		byte counter = 0;
-		for (byte i = 0; i < 64; i++) {
-			if ((value >> i & 1) == 1) {
-				setBits[counter++] = i;
-			}
+		int counter = 0;
+		while(value != 0) {
+			setBits[counter++] = Long.numberOfTrailingZeros(value);
+			value &= value - 1;
 		}
+		
 		return setBits;
 	}
 
@@ -54,6 +51,18 @@ public class Util {
 		bitboard = ((bitboard >> 2) & k2) | ((bitboard & k2) << 2);
 		bitboard = ((bitboard >> 4) & k4) | ((bitboard & k4) << 4);
 		return bitboard;
+	}
+	
+	public static int flipHorizontalIndex(int index) {
+		return (index & 0xF8) | (7 - (index & 7));
+	}
+	
+	public static int getFileOfIndex(int index) {
+		return 7 - index & 7;
+	}
+
+	public static int getRankOfIndex(int index) {
+		return index >> 3;
 	}
 
 	public static long mirrorVertical(long bitboard) {

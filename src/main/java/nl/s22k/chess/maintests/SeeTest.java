@@ -34,6 +34,7 @@ public class SeeTest {
 
 		double sameScore = 0;
 		double totalAttacks = 0;
+		final long start = System.currentTimeMillis();
 		for (Entry<String, Double> entry : fens.entrySet()) {
 			ChessBoard cb = ChessBoardUtil.getNewCB(entry.getKey());
 			MoveList.startPly();
@@ -57,7 +58,7 @@ public class SeeTest {
 			MoveList.endPly();
 		}
 		System.out.println(String.format("%.0f %.0f = %.4f", sameScore, totalAttacks, sameScore / totalAttacks));
-
+		System.out.println("msec: " + (System.currentTimeMillis() - start));
 	}
 
 	private static int calculateQScore(ChessBoard cb, int move, boolean isFirstMove) {

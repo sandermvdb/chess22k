@@ -3,7 +3,7 @@
 A chessengine build in Java that uses the UCI protocol to communicate with graphical interfaces.
 Should be used with a 64 bit JRE for optimal performance.
 The binaries are build using Java 9 and are not compatible with older Java versions.
-Score is about 2800 elo.
+Score is about 2900 elo.
 
 ## Features
 - (magic) bitboards
@@ -17,10 +17,14 @@ Score is about 2800 elo.
 - futility pruning
 - static exchange evaluation for move ordering and pruning
 - aspiration window
-- evaluation scores tuned using the Texel's tuning method
+- evaluation parameters tuned using the Texel's tuning method
 - tapered eval
 - no openingbook or endgame tablebases
 - no pondering
+
+## Future
+- evaluate space
+- multi-threading
 
 
 _"Simplicity is the soul of efficiency"_       - Austin Freeman -

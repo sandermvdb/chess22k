@@ -14,11 +14,12 @@ public class RepetitionTable {
 
 	private static final int POWER_2_TABLE_SHIFTS = 64 - EngineConstants.REPETITION_TABLE_ENTRIES;
 	public static int MAX_TABLE_ENTRIES = (int) Util.POWER_LOOKUP[EngineConstants.REPETITION_TABLE_ENTRIES];
+	private static final byte ZERO_BYTE = 0;
 
 	private static final byte[] repetitionValues = new byte[MAX_TABLE_ENTRIES];
 
 	public static void clearValues() {
-		Arrays.fill(repetitionValues, (byte) 0);
+		Arrays.fill(repetitionValues, ZERO_BYTE);
 	}
 
 	private static int getZobristIndex(final long zobristKey) {
@@ -43,15 +44,24 @@ public class RepetitionTable {
 	}
 
 	public static boolean isRepetition(final ChessBoard cb) {
+
+		if (!EngineConstants.ENABLE_REPETITION_TABLE) {
+			return false;
+		}
+
 		// TODO 1 repetition is not a draw
 		if (repetitionValues[getZobristIndex(cb.zobristKey)] > 0) {
 			if (Statistics.ENABLED) {
 				Statistics.repetitionTests++;
 			}
 
-			for (int i = cb.moveCounter - 2; i >= 0; i -= 2) {
+			// TODO same position but other side to move is also a draw?
+			for (int i = cb.moveCounter - 2; i >= 0 && i > cb.moveCounter - 50; i -= 2) {
 				// TODO if move was an attacking-move or pawn move, no repetition!
 				if (cb.zobristKey == cb.zobristKeyHistory[i]) {
+					if (Statistics.ENABLED) {
+						Statistics.repetitions++;
+					}
 					return true;
 				}
 			}

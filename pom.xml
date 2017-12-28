@@ -7,8 +7,8 @@
 	<!-- so we can simply build other (experimental) artifacts -->
 	<!-- artifactId>${engineName}</artifactId -->
 	<artifactId>chess22k</artifactId>
-	
-	<version>1.6</version>
+
+	<version>1.7</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -46,6 +46,11 @@
 					<target>1.9</target>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.openclover</groupId>
+				<artifactId>clover-maven-plugin</artifactId>
+				<version>4.2.1</version>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -55,6 +60,24 @@
 			<artifactId>junit</artifactId>
 			<version>4.9</version>
 		</dependency>
+		<dependency>
+			<groupId>org.openclover</groupId>
+			<artifactId>clover-maven-plugin</artifactId>
+			<version>4.2.1</version>
+		</dependency>
 	</dependencies>
+
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>3.4</version>
+				<configuration>
+					<skipEmptyReport>false</skipEmptyReport>
+				</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
 
 </project>

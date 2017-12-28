@@ -17,7 +17,6 @@ public class LargestErrorCalculator {
 	public static void main(String[] args) {
 
 		// setup
-		EngineConstants.ENABLE_EVAL_CACHE = false;
 		EngineConstants.ENABLE_PAWN_EVAL_CACHE = false;
 		EngineConstants.isTuningSession = true;
 		MagicUtil.init();

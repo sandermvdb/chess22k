@@ -136,7 +136,7 @@ public class Bitboard {
 	public static final long RANK_78 = RANK_7 | RANK_8;
 	public static final long RANK_2345 = RANK_2 | RANK_3 | RANK_4 | RANK_5;
 	public static final long RANK_4567 = RANK_4 | RANK_5 | RANK_6 | RANK_7;
-	public static final long RANK_PROMOTION[] = new long[] { RANK_7, RANK_2 };
+	public static final long RANK_PROMOTION[] = { RANK_7, RANK_2 };
 
 	// files
 	public static final long FILE_A = A1 | A2 | A3 | A4 | A5 | A6 | A7 | A8;
@@ -151,10 +151,10 @@ public class Bitboard {
 	public static final long NOT_FILE_A = ~FILE_A;
 	public static final long NOT_FILE_H = ~FILE_H;
 
-	public static final long RANKS[] = new long[] { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8 };
-	public static final long FILES[] = new long[] { FILE_H, FILE_G, FILE_F, FILE_E, FILE_D, FILE_C, FILE_B, FILE_A };
-	public static final long FILES_ADJACENT[] = new long[] { FILE_G, FILE_H | FILE_F, FILE_G | FILE_E, FILE_F | FILE_D, FILE_E | FILE_C, FILE_D | FILE_B,
-			FILE_C | FILE_A, FILE_B };
+	public static final long RANKS[] = { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8 };
+	public static final long FILES[] = { FILE_H, FILE_G, FILE_F, FILE_E, FILE_D, FILE_C, FILE_B, FILE_A };
+	public static final long FILES_ADJACENT[] = { FILE_G, FILE_H | FILE_F, FILE_G | FILE_E, FILE_F | FILE_D, FILE_E | FILE_C, FILE_D | FILE_B, FILE_C | FILE_A,
+			FILE_B };
 
 	public static final long KING_SIDE = FILE_F | FILE_G | FILE_H;
 	public static final long QUEEN_SIDE = FILE_A | FILE_B | FILE_C;
@@ -162,12 +162,30 @@ public class Bitboard {
 	public static final long WHITE_SIDE = RANK_1 | RANK_2 | RANK_3 | RANK_4;
 	public static final long BLACK_SIDE = RANK_5 | RANK_6 | RANK_7 | RANK_8;
 
+	public static final long WHITE_SPACE_ZONE = (RANK_2 | RANK_3 | RANK_4) & (FILE_C | FILE_D | FILE_E | FILE_F);
+	public static final long BLACK_SPACE_ZONE = (RANK_7 | RANK_6 | RANK_5) & (FILE_C | FILE_D | FILE_E | FILE_F);
+
 	public static long getWhitePawnAttacks(final long pawns) {
 		return pawns << 9 & Bitboard.NOT_FILE_H | pawns << 7 & Bitboard.NOT_FILE_A;
 	}
 
 	public static long getBlackPawnAttacks(final long pawns) {
 		return pawns >>> 9 & Bitboard.NOT_FILE_A | pawns >>> 7 & Bitboard.NOT_FILE_H;
+	}
+
+	public static long getPawnNeighbours(final long pawns) {
+		return pawns << 1 & Bitboard.NOT_FILE_H | pawns >>> 1 & Bitboard.NOT_FILE_A;
+	}
+
+	/**
+	 * @author Gerd Isenberg
+	 */
+	public static int manhattanCenterDistance(int sq) {
+		int file = sq & 7;
+		int rank = sq >> 3;
+		file ^= (file - 4) >> 8;
+		rank ^= (rank - 4) >> 8;
+		return (file + rank) & 7;
 	}
 
 }

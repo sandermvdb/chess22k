@@ -16,10 +16,15 @@ public class ChessBoardTestUtil {
 		long iterativeBlackPieces = cb.friendlyPieces[BLACK];
 		long iterativeAllPieces = cb.allPieces;
 		long pinnedPieces = cb.pinnedPieces;
+		long discoveredPieces = cb.discoveredPieces;
 		int iterativePsqt = cb.psqtScore;
 		int iterativePsqtEg = cb.psqtScoreEg;
 		long whiteKingArea = cb.kingArea[WHITE];
 		long blackKingArea = cb.kingArea[BLACK];
+		int whiteMajorPieces = cb.majorPieces[WHITE];
+		int blackMajorPieces = cb.majorPieces[BLACK];
+		int phase = cb.phase;
+		int materialWithoutPawnScore = cb.materialWithoutPawnScore;
 		System.arraycopy(cb.pieceIndexes, 0, testPieceIndexes, 0, cb.pieceIndexes.length);
 
 		assert Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]) == cb.kingIndex[WHITE] : "Incorrect white king-index";
@@ -35,8 +40,9 @@ public class ChessBoardTestUtil {
 		assert whiteKingArea == cb.kingArea[WHITE] : "Incorrect white king area";
 		assert blackKingArea == cb.kingArea[BLACK] : "Incorrect black king area";
 
-		// pinned-pieces
+		// pinned and discovered pieces
 		assert pinnedPieces == cb.pinnedPieces : "Incorrect pinned-pieces";
+		assert discoveredPieces == cb.discoveredPieces : "Incorrect discovered-pieces";
 
 		// combined pieces
 		assert iterativeWhitePieces == cb.friendlyPieces[WHITE] : "Incorrect whitePieces";
@@ -52,6 +58,13 @@ public class ChessBoardTestUtil {
 		for (int i = 0; i < testPieceIndexes.length; i++) {
 			assert testPieceIndexes[i] == cb.pieceIndexes[i] : "Incorrect piece indexes";
 		}
+
+		// major pieces
+		assert whiteMajorPieces == cb.majorPieces[WHITE] : "Incorrect white major pieces";
+		assert blackMajorPieces == cb.majorPieces[BLACK] : "Incorrect black major pieces";
+
+		assert phase == cb.phase : "Incorrect phase";
+		assert materialWithoutPawnScore == cb.materialWithoutPawnScore : "Incorrect materialWithoutPawnScore";
 	}
 
 	public static ChessBoard getHorizontalMirroredCb(ChessBoard cb) {

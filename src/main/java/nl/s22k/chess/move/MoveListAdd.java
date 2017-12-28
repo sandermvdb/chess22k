@@ -60,23 +60,13 @@ public class MoveListAdd {
 		if (move == 0) {
 			return;
 		}
+		final int toIndex = Long.numberOfTrailingZeros(move);
 		if ((cb.pinnedPieces & Util.POWER_LOOKUP[fromIndex]) == 0) {
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, Long.numberOfTrailingZeros(move)));
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, Long.numberOfTrailingZeros(move)));
-			if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, Long.numberOfTrailingZeros(move)));
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, Long.numberOfTrailingZeros(move)));
-			}
+			addPromotionMoves(fromIndex, toIndex);
 		} else {
 			// piece is pinned
-			final int toIndex = Long.numberOfTrailingZeros(move);
 			if (cb.isLegalMove(fromIndex, toIndex)) {
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex));
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex));
-				if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex));
-					MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex));
-				}
+				addPromotionMoves(fromIndex, toIndex);
 			}
 		}
 	}
@@ -87,12 +77,16 @@ public class MoveListAdd {
 		}
 		final int toIndex = Long.numberOfTrailingZeros(move);
 		if (cb.isLegalMove(fromIndex, toIndex)) {
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex));
-			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex));
-			if (EngineConstants.GENERATE_BR_PROMOTIONS) {
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex));
-				MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex));
-			}
+			addPromotionMoves(fromIndex, toIndex);
+		}
+	}
+
+	private static void addPromotionMoves(final int fromIndex, final int toIndex) {
+		MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex));
+		MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex));
+		if (EngineConstants.GENERATE_BR_PROMOTIONS) {
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_B, fromIndex, toIndex));
+			MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_R, fromIndex, toIndex));
 		}
 	}
 

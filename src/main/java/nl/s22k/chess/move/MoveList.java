@@ -1,7 +1,5 @@
 package nl.s22k.chess.move;
 
-import java.util.Arrays;
-
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.SEEUtil;
@@ -33,6 +31,10 @@ public final class MoveList {
 
 	public static int next() {
 		return moves[nextToMove[currentPly]++];
+	}
+
+	public static int getNextScore() {
+		return MoveUtil.getScore(moves[nextToMove[currentPly]]);
 	}
 
 	public static int previous() {
@@ -75,6 +77,12 @@ public final class MoveList {
 		}
 	}
 
+	public static void setMVVLVAScores(final ChessBoard cb) {
+		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
+			moves[j] = MoveUtil.setScoredMove(moves[j], MoveUtil.getAttackedPieceIndex(moves[j]) * 6 - MoveUtil.getSourcePieceIndex(moves[j]));
+		}
+	}
+
 	public static void setHHScores(final ChessBoard cb) {
 		if (EngineConstants.ENABLE_HISTORY_HEURISTIC) {
 			for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
@@ -84,18 +92,16 @@ public final class MoveList {
 	}
 
 	public static void sort() {
-		Arrays.sort(moves, nextToMove[currentPly], nextToGenerate[currentPly]);
-		reverse();
-	}
-
-	public static void reverse() {
-		int i = nextToMove[currentPly];
-		int j = nextToGenerate[currentPly] - 1;
-		int tmp;
-		while (j > i) {
-			tmp = moves[j];
-			moves[j--] = moves[i];
-			moves[i++] = tmp;
+		final int left = nextToMove[currentPly];
+		for (int i = left, j = i; i < nextToGenerate[currentPly] - 1; j = ++i) {
+			final int ai = moves[i + 1];
+			while (ai > moves[j]) {
+				moves[j + 1] = moves[j];
+				if (j-- == left) {
+					break;
+				}
+			}
+			moves[j + 1] = ai;
 		}
 	}
 

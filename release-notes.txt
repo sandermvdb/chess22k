@@ -1,3 +1,21 @@
+1.7 - 28-12-2017 - 2900 elo
+- fixed a futility pruning bug
+- no quiescence search when in check
+- use move history score for LMR and futility pruning
+- implemented a pawn endgame extension
+- implemented currmove UCI command
+- improved time management
+- improved evaluation
+  - hanging pieces
+  - discovered checks
+  - knight forks
+  - rook prison
+  - skewed pieces
+  - certain endgames
+- fixed some crashes
+- split-up methods into smaller ones for better inlining (suggested by JITWatch)
+
+
 1.6 - 03-11-2017 - 2800 elo
 - more accurate SEE (pinned pieces)
 - improved king safety

@@ -98,6 +98,14 @@ public class MoveUtil {
 		return getSourcePieceIndex(move) == ChessConstants.PAWN && (getToIndex(move) > 47 || getToIndex(move) < 16);
 	}
 
+	public static boolean isPawnPush678(final int move, final int color) {
+		if (color == ChessConstants.WHITE) {
+			return getSourcePieceIndex(move) == ChessConstants.PAWN && getToIndex(move) > 39;
+		} else {
+			return getSourcePieceIndex(move) == ChessConstants.PAWN && getToIndex(move) < 24;
+		}
+	}
+
 	public static int setHHMove(final int move, final int colorToMove) {
 		if (EngineConstants.ASSERT) {
 			assert getCleanMove(move) == move : "Setting non-clean move as hh-move";
@@ -118,6 +126,10 @@ public class MoveUtil {
 			assert seeCaptureScore <= MoveUtil.SCORE_MAX && seeCaptureScore >= -1 * MoveUtil.SCORE_MAX : "See-score out of range: " + seeCaptureScore;
 		}
 		return move | seeCaptureScore << MASK_SCORE;
+	}
+
+	public static int setScoredMove(final int move, int score) {
+		return move | score << MASK_SCORE;
 	}
 
 }

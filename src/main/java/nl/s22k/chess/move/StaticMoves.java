@@ -21,12 +21,12 @@ public class StaticMoves {
 	private static final long[] WHITE_PAWN_PROMOTION_ATTACKS = new long[64];
 	private static final long[] BLACK_PAWN_PROMOTION_ATTACKS = new long[64];
 
-	public static final long[][] PAWN_MOVES_1 = new long[][] { WHITE_PAWN_MOVES_1, BLACK_PAWN_MOVES_1 };
-	public static final long[][] PAWN_MOVES_2 = new long[][] { WHITE_PAWN_MOVES_2, BLACK_PAWN_MOVES_2 };
-	public static final long[][] PAWN_PROMOTION_MOVES = new long[][] { WHITE_PAWN_PROMOTION_MOVES, BLACK_PAWN_PROMOTION_MOVES };
-	public static final long[][] PAWN_PROMOTION_ATTACKS = new long[][] { WHITE_PAWN_PROMOTION_ATTACKS, BLACK_PAWN_PROMOTION_ATTACKS };
-	public static final long[][] PAWN_NON_PROMOTION_ATTACKS = new long[][] { WHITE_PAWN_NON_PROMOTION_ATTACKS, BLACK_PAWN_NON_PROMOTION_ATTACKS };
-	public static final long[][] PAWN_ALL_ATTACKS = new long[][] { WHITE_PAWN_ALL_ATTACKS, BLACK_PAWN_ALL_ATTACKS };
+	public static final long[][] PAWN_MOVES_1 = { WHITE_PAWN_MOVES_1, BLACK_PAWN_MOVES_1 };
+	public static final long[][] PAWN_MOVES_2 = { WHITE_PAWN_MOVES_2, BLACK_PAWN_MOVES_2 };
+	public static final long[][] PAWN_PROMOTION_MOVES = { WHITE_PAWN_PROMOTION_MOVES, BLACK_PAWN_PROMOTION_MOVES };
+	public static final long[][] PAWN_PROMOTION_ATTACKS = { WHITE_PAWN_PROMOTION_ATTACKS, BLACK_PAWN_PROMOTION_ATTACKS };
+	public static final long[][] PAWN_NON_PROMOTION_ATTACKS = { WHITE_PAWN_NON_PROMOTION_ATTACKS, BLACK_PAWN_NON_PROMOTION_ATTACKS };
+	public static final long[][] PAWN_ALL_ATTACKS = { WHITE_PAWN_ALL_ATTACKS, BLACK_PAWN_ALL_ATTACKS };
 
 	// PAWN
 	static {
