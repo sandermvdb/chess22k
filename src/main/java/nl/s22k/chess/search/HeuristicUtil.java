@@ -1,5 +1,8 @@
 package nl.s22k.chess.search;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 
 import nl.s22k.chess.ChessConstants;
@@ -28,23 +31,27 @@ public class HeuristicUtil {
 		Arrays.fill(BF_MOVES[ChessConstants.BLACK], 1);
 	}
 
-	public static void addHHValue(final int colorToMove, final int fromToIndex, final int depth) {
-		HH_MOVES[colorToMove][fromToIndex] += depth * depth;
+	public static void addHHValue(final int color, final int fromToIndex, final int depth) {
+		HH_MOVES[color][fromToIndex] += depth * depth;
 		if (EngineConstants.ASSERT) {
-			assert HH_MOVES[colorToMove][fromToIndex] >= 0 : "HH-value < 0";
+			assertTrue(HH_MOVES[color][fromToIndex] >= 0);
 		}
 	}
 
-	public static void addBFValue(final int colorToMove, final int fromToIndex, final int depth) {
-		BF_MOVES[colorToMove][fromToIndex] += depth * depth;
+	public static void addBFValue(final int color, final int fromToIndex, final int depth) {
+		BF_MOVES[color][fromToIndex] += depth * depth;
 		if (EngineConstants.ASSERT) {
-			assert BF_MOVES[colorToMove][fromToIndex] >= 0 : "BF-value < 0";
+			assertTrue(BF_MOVES[color][fromToIndex] >= 0);
 		}
+	}
+
+	public static int getHHScore(final int color, final int fromToIndex) {
+		return Math.min(MoveUtil.SCORE_MAX, 100 * HeuristicUtil.HH_MOVES[color][fromToIndex] / HeuristicUtil.BF_MOVES[color][fromToIndex]);
 	}
 
 	public static void addKillerMove(final int move, final int ply) {
 		if (EngineConstants.ASSERT) {
-			assert MoveUtil.getCleanMove(move) == move : "Adding non clean-move to killer-moves";
+			assertEquals(move, MoveUtil.getCleanMove(move));
 		}
 		if (EngineConstants.ENABLE_KILLER_MOVES) {
 			if (KILLER_MOVE_1[ply] != move) {

@@ -13,6 +13,9 @@ import java.util.logging.SimpleFormatter;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.Statistics;
+import nl.s22k.chess.move.MoveList;
+import nl.s22k.chess.move.MoveWrapper;
+import nl.s22k.chess.search.TTUtil;
 
 public class ErrorLogger {
 
@@ -37,14 +40,28 @@ public class ErrorLogger {
 			System.setOut(ps);
 
 			// print info
-			System.out.println("");
-			System.out.println("");
+			System.out.println();
+			System.out.println();
+			System.out.println("chess22k " + MainEngine.getVersion());
+			System.out.println();
 			System.out.println("start fen");
 			System.out.println(MainEngine.startFen);
-			System.out.println("");
+			System.out.println();
 			System.out.println("crashed fen");
 			System.out.println(cb);
-			System.out.println("");
+			System.out.println();
+
+			// print last move
+			System.out.println("last move");
+			System.out.println(new MoveWrapper(MoveList.previous()));
+			System.out.println("tt move");
+			MoveWrapper move = new MoveWrapper(TTUtil.getMove(TTUtil.getTTValue(cb.zobristKeyHistory[cb.moveCounter - 1])));
+			System.out.println(move);
+			System.out.println("source: " + move.pieceIndex + " target:" + move.pieceIndexAttacked);
+			cb.undoMove(move.move);
+			System.out.println("valid move: " + cb.isValidMove(move.move));
+			System.out.println();
+
 			Statistics.print();
 			System.out.flush();
 

@@ -45,7 +45,7 @@ public final class CheckUtil {
 	}
 
 	public static boolean isInCheck(final int kingIndex, final int colorToMove, final long[] enemyPieces, final long allPieces) {
-
+	
 		// put 'super-piece' in kings position
 		return (enemyPieces[NIGHT] & StaticMoves.KNIGHT_MOVES[kingIndex]
 				| (enemyPieces[ROOK] | enemyPieces[QUEEN]) & MagicUtil.getRookMoves(kingIndex, allPieces)
@@ -54,8 +54,23 @@ public final class CheckUtil {
 			)!= 0;
 	}
 	
-	public static boolean isInCheckIncludingKing(final int kingIndex, final int colorToMove, final long[] enemyPieces, final long allPieces) {
+	public static boolean isInSlidingCheck(final int kingIndex, final long horVerPieces, final long diagPieces, final long allPieces) {
+		
+		// put 'super-piece' in kings position
+		return (horVerPieces & MagicUtil.getRookMoves(kingIndex, allPieces)
+				| diagPieces & MagicUtil.getBishopMoves(kingIndex, allPieces) 
+			)!= 0;
+	}
 
+	public static boolean isInCheckIncludingKing(final int kingIndex, final int colorToMove, final long[] enemyPieces, final long allPieces, final int enemyMajorPieces) {
+
+		//TODO
+		if(enemyMajorPieces==0) {
+			return (enemyPieces[PAWN] & StaticMoves.PAWN_ALL_ATTACKS[colorToMove][kingIndex]
+					| enemyPieces[KING] & StaticMoves.KING_MOVES[kingIndex]
+				)!= 0;
+		}
+		
 		// put 'super-piece' in kings position
 		return (enemyPieces[NIGHT] & StaticMoves.KNIGHT_MOVES[kingIndex]
 				| (enemyPieces[ROOK] | enemyPieces[QUEEN]) & MagicUtil.getRookMoves(kingIndex, allPieces)

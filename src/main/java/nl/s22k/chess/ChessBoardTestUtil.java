@@ -3,6 +3,7 @@ package nl.s22k.chess;
 import static nl.s22k.chess.ChessConstants.BLACK;
 import static nl.s22k.chess.ChessConstants.KING;
 import static nl.s22k.chess.ChessConstants.WHITE;
+import static org.junit.Assert.assertEquals;
 
 public class ChessBoardTestUtil {
 
@@ -21,50 +22,44 @@ public class ChessBoardTestUtil {
 		int iterativePsqtEg = cb.psqtScoreEg;
 		long whiteKingArea = cb.kingArea[WHITE];
 		long blackKingArea = cb.kingArea[BLACK];
-		int whiteMajorPieces = cb.majorPieces[WHITE];
-		int blackMajorPieces = cb.majorPieces[BLACK];
 		int phase = cb.phase;
-		int materialWithoutPawnScore = cb.materialWithoutPawnScore;
+		long materialKey = cb.materialKey;
 		System.arraycopy(cb.pieceIndexes, 0, testPieceIndexes, 0, cb.pieceIndexes.length);
 
-		assert Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]) == cb.kingIndex[WHITE] : "Incorrect white king-index";
-		assert Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]) == cb.kingIndex[BLACK] : "Incorrect black king-index";
+		assertEquals(Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]), cb.kingIndex[WHITE]);
+		assertEquals(Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]), cb.kingIndex[BLACK]);
 
 		ChessBoardUtil.init(cb);
 
 		// zobrist keys
-		assert iterativeZK == cb.zobristKey : "Incorrect zobrist-key";
-		assert iterativeZKPawn == cb.pawnZobristKey : "Incorrect pawn-zobrist-key";
+		assertEquals(iterativeZK, cb.zobristKey);
+		assertEquals(iterativeZKPawn, cb.pawnZobristKey);
 
 		// king area
-		assert whiteKingArea == cb.kingArea[WHITE] : "Incorrect white king area";
-		assert blackKingArea == cb.kingArea[BLACK] : "Incorrect black king area";
+		assertEquals(whiteKingArea, cb.kingArea[WHITE]);
+		assertEquals(blackKingArea, cb.kingArea[BLACK]);
 
 		// pinned and discovered pieces
-		assert pinnedPieces == cb.pinnedPieces : "Incorrect pinned-pieces";
-		assert discoveredPieces == cb.discoveredPieces : "Incorrect discovered-pieces";
+		assertEquals(pinnedPieces, cb.pinnedPieces);
+		assertEquals(discoveredPieces, cb.discoveredPieces);
 
 		// combined pieces
-		assert iterativeWhitePieces == cb.friendlyPieces[WHITE] : "Incorrect whitePieces";
-		assert iterativeBlackPieces == cb.friendlyPieces[BLACK] : "Incorrect blackPieces";
-		assert iterativeAllPieces == cb.allPieces : "Incorrect allPieces";
-		assert (iterativeBlackPieces & iterativeWhitePieces) == 0 : "Overlapping pieces";
+		assertEquals(iterativeWhitePieces, cb.friendlyPieces[WHITE]);
+		assertEquals(iterativeBlackPieces, cb.friendlyPieces[BLACK]);
+		assertEquals(iterativeAllPieces, cb.allPieces);
+		assertEquals((iterativeBlackPieces & iterativeWhitePieces), 0);
 
 		// psqt
-		assert iterativePsqt == cb.psqtScore : "Incorrect psqt: " + iterativePsqt + " " + cb.psqtScore;
-		assert iterativePsqtEg == cb.psqtScoreEg : "Incorrect psqt eg: " + iterativePsqtEg + " " + cb.psqtScoreEg;
+		assertEquals(iterativePsqt, cb.psqtScore);
+		assertEquals(iterativePsqtEg, cb.psqtScoreEg);
 
 		// piece-indexes
 		for (int i = 0; i < testPieceIndexes.length; i++) {
-			assert testPieceIndexes[i] == cb.pieceIndexes[i] : "Incorrect piece indexes";
+			assertEquals(testPieceIndexes[i], cb.pieceIndexes[i]);
 		}
 
-		// major pieces
-		assert whiteMajorPieces == cb.majorPieces[WHITE] : "Incorrect white major pieces";
-		assert blackMajorPieces == cb.majorPieces[BLACK] : "Incorrect black major pieces";
-
-		assert phase == cb.phase : "Incorrect phase";
-		assert materialWithoutPawnScore == cb.materialWithoutPawnScore : "Incorrect materialWithoutPawnScore";
+		assertEquals(phase, cb.phase);
+		assertEquals(materialKey, cb.materialKey);
 	}
 
 	public static ChessBoard getHorizontalMirroredCb(ChessBoard cb) {

@@ -1,8 +1,9 @@
 package nl.s22k.chess.move;
 
+import static org.junit.Assert.assertEquals;
+
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.engine.EngineConstants;
-import nl.s22k.chess.search.HeuristicUtil;
 
 public class MoveUtil {
 
@@ -15,29 +16,42 @@ public class MoveUtil {
 	public static final int TYPE_CASTLING = 6;
 
 	// ///////////////////// FROM //6 bits
-	private static final int MASK_TO = 6; // 6
-	private static final int MASK_SOURCE = 12; // 3
-	private static final int MASK_ATTACK = 15; // 3
-	private static final int MASK_MOVE_TYPE = 18; // 3
-	private static final int MASK_PROMOTION = 21; // 1
-	private static final int MASK_SCORE = 22; // 10 or 11
+	private static final int SHIFT_TO = 6; // 6
+	private static final int SHIFT_SOURCE = 12; // 3
+	private static final int SHIFT_ATTACK = 15; // 3
+	private static final int SHIFT_MOVE_TYPE = 18; // 3
+	private static final int SHIFT_PROMOTION = 21; // 1
+	private static final int SHIFT_SCORE = 22; // 10 or 11
 
+	private static final int MASK_3_BITS = 7; // 6
+	private static final int MASK_6_BITS = 0x3f; // 6
+	private static final int MASK_12_BITS = 0xfff;
+
+	private static final int MASK_FROM = 0x3f; // 6
+	private static final int MASK_TO = 0x3f << 6; // 6
+	private static final int MASK_SOURCE = 7 << 12; // 3
+	private static final int MASK_ATTACK = 7 << 15; // 3
+	private static final int MASK_TYPE = 7 << 18; // 3
+	private static final int MASK_PROMOTION = 1 << 21; // 1
+	private static final int MASK_SCORE = 1 << 22; // 10 or 11
+
+	public static final int MASK_QUIET = MASK_PROMOTION | MASK_ATTACK;
 	public static final int SEE_CAPTURE_DIVIDER = 6;
 
 	public static final int SCORE_MAX = 511;
 
-	private static final int CLEAN_MOVE_MASK = (1 << MASK_SCORE) - 1;
+	private static final int CLEAN_MOVE_MASK = (1 << SHIFT_SCORE) - 1;
 
 	public static int getFromIndex(final int move) {
-		return move & 0x3f;
+		return move & MASK_6_BITS;
 	}
 
 	public static int getToIndex(final int move) {
-		return move >>> MASK_TO & 0x3f;
+		return move >>> SHIFT_TO & MASK_6_BITS;
 	}
 
 	public static int getFromToIndex(final int move) {
-		return move & 0xfff;
+		return move & MASK_12_BITS;
 	}
 
 	public static int getCleanMove(final int move) {
@@ -45,53 +59,53 @@ public class MoveUtil {
 	}
 
 	public static int getAttackedPieceIndex(final int move) {
-		return move >>> MASK_ATTACK & 7;
+		return move >>> SHIFT_ATTACK & MASK_3_BITS;
 	}
 
 	public static int getSourcePieceIndex(final int move) {
-		return move >>> MASK_SOURCE & 7;
+		return move >>> SHIFT_SOURCE & MASK_3_BITS;
 	}
 
 	public static int getScore(final int move) {
 		// TODO can score be negative (last bit)?
-		return move >> MASK_SCORE;
-	}
-
-	public static int createMove(final int fromIndex, final int toIndex, final int sourcePieceIndex) {
-		return sourcePieceIndex << MASK_SOURCE | toIndex << MASK_TO | fromIndex;
-	}
-
-	public static int createPromotionMove(final int promotionPiece, final int fromIndex, final int toIndex) {
-		return 1 << MASK_PROMOTION | promotionPiece << MASK_MOVE_TYPE | ChessConstants.PAWN << MASK_SOURCE | toIndex << MASK_TO | fromIndex;
-	}
-
-	public static int createAttackMove(final int fromIndex, final int toIndex, final int sourcePieceIndex, final int attackedPieceIndex) {
-		return attackedPieceIndex << MASK_ATTACK | sourcePieceIndex << MASK_SOURCE | toIndex << MASK_TO | fromIndex;
-	}
-
-	public static int createSeeAttackMove(final int fromIndex, final int sourcePieceIndex) {
-		return sourcePieceIndex << MASK_SOURCE | fromIndex;
-	}
-
-	public static int createPromotionAttack(final int promotionPiece, final int fromIndex, final int toIndex, final int attackedPieceIndex) {
-		return 1 << MASK_PROMOTION | promotionPiece << MASK_MOVE_TYPE | attackedPieceIndex << MASK_ATTACK | ChessConstants.PAWN << MASK_SOURCE
-				| toIndex << MASK_TO | fromIndex;
-	}
-
-	public static int createEPMove(final int fromIndex, final int toIndex) {
-		return TYPE_EP << MASK_MOVE_TYPE | ChessConstants.PAWN << MASK_ATTACK | ChessConstants.PAWN << MASK_SOURCE | toIndex << MASK_TO | fromIndex;
-	}
-
-	public static int createCastlingMove(final int fromIndex, final int toIndex) {
-		return TYPE_CASTLING << MASK_MOVE_TYPE | ChessConstants.KING << MASK_SOURCE | toIndex << MASK_TO | fromIndex;
+		return move >> SHIFT_SCORE;
 	}
 
 	public static int getMoveType(final int move) {
-		return move >> MASK_MOVE_TYPE & 7;
+		return move >> SHIFT_MOVE_TYPE & MASK_3_BITS;
+	}
+
+	public static int createMove(final int fromIndex, final int toIndex, final int sourcePieceIndex) {
+		return sourcePieceIndex << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
+	}
+
+	public static int createPromotionMove(final int promotionPiece, final int fromIndex, final int toIndex) {
+		return 1 << SHIFT_PROMOTION | promotionPiece << SHIFT_MOVE_TYPE | ChessConstants.PAWN << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
+	}
+
+	public static int createAttackMove(final int fromIndex, final int toIndex, final int sourcePieceIndex, final int attackedPieceIndex) {
+		return attackedPieceIndex << SHIFT_ATTACK | sourcePieceIndex << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
+	}
+
+	public static int createSeeAttackMove(final int fromIndex, final int sourcePieceIndex) {
+		return sourcePieceIndex << SHIFT_SOURCE | fromIndex;
+	}
+
+	public static int createPromotionAttack(final int promotionPiece, final int fromIndex, final int toIndex, final int attackedPieceIndex) {
+		return 1 << SHIFT_PROMOTION | promotionPiece << SHIFT_MOVE_TYPE | attackedPieceIndex << SHIFT_ATTACK | ChessConstants.PAWN << SHIFT_SOURCE
+				| toIndex << SHIFT_TO | fromIndex;
+	}
+
+	public static int createEPMove(final int fromIndex, final int toIndex) {
+		return TYPE_EP << SHIFT_MOVE_TYPE | ChessConstants.PAWN << SHIFT_ATTACK | ChessConstants.PAWN << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
+	}
+
+	public static int createCastlingMove(final int fromIndex, final int toIndex) {
+		return TYPE_CASTLING << SHIFT_MOVE_TYPE | ChessConstants.KING << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
 	}
 
 	public static boolean isPromotion(final int move) {
-		return (move & 1 << MASK_PROMOTION) != 0;
+		return (move & MASK_PROMOTION) != 0;
 	}
 
 	public static boolean isPawnPush78(final int move) {
@@ -106,30 +120,18 @@ public class MoveUtil {
 		}
 	}
 
-	public static int setHHMove(final int move, final int colorToMove) {
-		if (EngineConstants.ASSERT) {
-			assert getCleanMove(move) == move : "Setting non-clean move as hh-move";
-		}
-
-		// TODO use constant
-		return move | (Math.min(SCORE_MAX,
-				100 * HeuristicUtil.HH_MOVES[colorToMove][getFromToIndex(move)] / HeuristicUtil.BF_MOVES[colorToMove][getFromToIndex(move)])) << MASK_SCORE;
+	/**
+	 * no promotion and no attack
+	 */
+	public static boolean isQuiet(final int move) {
+		return (move & MASK_QUIET) == 0;
 	}
 
-	public static int setSeeMove(final int move, int seeCaptureScore) {
+	public static int setScoredMove(final int move, final int score) {
 		if (EngineConstants.ASSERT) {
-			assert MoveUtil.getCleanMove(move) == move : "Setting see-score to non-clean move";
+			assertEquals(move, getCleanMove(move));
 		}
-
-		seeCaptureScore /= SEE_CAPTURE_DIVIDER;
-		if (EngineConstants.ASSERT) {
-			assert seeCaptureScore <= MoveUtil.SCORE_MAX && seeCaptureScore >= -1 * MoveUtil.SCORE_MAX : "See-score out of range: " + seeCaptureScore;
-		}
-		return move | seeCaptureScore << MASK_SCORE;
-	}
-
-	public static int setScoredMove(final int move, int score) {
-		return move | score << MASK_SCORE;
+		return move | score << SHIFT_SCORE;
 	}
 
 }

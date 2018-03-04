@@ -1,5 +1,7 @@
 package nl.s22k.chess.search;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 
 import nl.s22k.chess.ChessBoard;
@@ -38,7 +40,7 @@ public class RepetitionTable {
 
 	public static void removeValue(final long zobristKey) {
 		if (EngineConstants.ASSERT) {
-			assert repetitionValues[getZobristIndex(zobristKey)] > 0 : "Removing move from repetitiontable that has not been added";
+			assertTrue(repetitionValues[getZobristIndex(zobristKey)] > 0);
 		}
 		repetitionValues[getZobristIndex(zobristKey)]--;
 	}

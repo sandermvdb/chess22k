@@ -1,12 +1,15 @@
 package nl.s22k.chess.move;
 
+import static org.junit.Assert.assertEquals;
+
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.SEEUtil;
+import nl.s22k.chess.search.HeuristicUtil;
 
 public final class MoveList {
 
-	private static final int[] moves = new int[1024];
+	private static final int[] moves = new int[1500];
 	private static final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
 	private static final int[] nextToMove = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
 	private static int currentPly;
@@ -52,7 +55,7 @@ public final class MoveList {
 	public static void addMove(final int move) {
 
 		if (EngineConstants.ASSERT) {
-			assert MoveUtil.getCleanMove(move) == move : "Adding move with score to move-list!";
+			assertEquals(MoveUtil.getCleanMove(move), move);
 		}
 
 		moves[nextToGenerate[currentPly]++] = move;
@@ -73,7 +76,7 @@ public final class MoveList {
 		 */
 
 		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
-			moves[j] = MoveUtil.setSeeMove(moves[j], SEEUtil.getSeeCaptureScore(cb, moves[j]));
+			moves[j] = MoveUtil.setScoredMove(moves[j], SEEUtil.getSeeCaptureScore(cb, moves[j]) / MoveUtil.SEE_CAPTURE_DIVIDER);
 		}
 	}
 
@@ -86,7 +89,7 @@ public final class MoveList {
 	public static void setHHScores(final ChessBoard cb) {
 		if (EngineConstants.ENABLE_HISTORY_HEURISTIC) {
 			for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
-				moves[j] = MoveUtil.setHHMove(moves[j], cb.colorToMove);
+				moves[j] = MoveUtil.setScoredMove(moves[j], HeuristicUtil.getHHScore(cb.colorToMove, MoveUtil.getFromToIndex(moves[j])));
 			}
 		}
 	}

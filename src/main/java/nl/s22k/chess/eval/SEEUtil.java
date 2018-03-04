@@ -6,6 +6,7 @@ import static nl.s22k.chess.ChessConstants.NIGHT;
 import static nl.s22k.chess.ChessConstants.PAWN;
 import static nl.s22k.chess.ChessConstants.QUEEN;
 import static nl.s22k.chess.ChessConstants.ROOK;
+import static org.junit.Assert.assertTrue;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
@@ -53,19 +54,19 @@ public class SEEUtil {
 			}
 		}
 
+		// queen attacks
+		if ((cb.pieces[colorToMove][QUEEN] & movablePieces) != 0) {
+			attackMove = (MagicUtil.getRookMoves(toIndex, allPieces) | MagicUtil.getBishopMoves(toIndex, allPieces)) & cb.pieces[colorToMove][QUEEN]
+					& movablePieces;
+			if (attackMove != 0) {
+				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), QUEEN);
+			}
+		}
+
 		// pawn promotion attacks
 		attackMove = StaticMoves.PAWN_PROMOTION_ATTACKS[1 - colorToMove][toIndex] & cb.pieces[colorToMove][PAWN] & movablePieces;
 		if (attackMove != 0) {
 			return MoveUtil.createPromotionAttack(MoveUtil.TYPE_PROMOTION_Q, Long.numberOfTrailingZeros(attackMove), toIndex, 0);
-		}
-
-		// queen attacks
-		if (cb.pieces[colorToMove][QUEEN] != 0) {
-			attackMove = (cb.pieces[colorToMove][QUEEN] & MagicUtil.getRookMoves(toIndex, allPieces)
-					| cb.pieces[colorToMove][QUEEN] & MagicUtil.getBishopMoves(toIndex, allPieces)) & movablePieces;
-			if (attackMove != 0) {
-				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), QUEEN);
-			}
 		}
 
 		// king attacks
@@ -120,7 +121,7 @@ public class SEEUtil {
 
 		if (EngineConstants.ASSERT) {
 			if (MoveUtil.getAttackedPieceIndex(move) == 0) {
-				assert MoveUtil.getMoveType(move) != 0 : "Calculating seeScore for quiet move";
+				assertTrue(MoveUtil.getMoveType(move) != 0);
 			}
 		}
 

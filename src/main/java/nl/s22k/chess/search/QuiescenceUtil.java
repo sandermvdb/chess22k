@@ -1,5 +1,7 @@
 package nl.s22k.chess.search;
 
+import static org.junit.Assert.assertEquals;
+
 import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
@@ -13,9 +15,11 @@ import nl.s22k.chess.move.MoveUtil;
 
 public class QuiescenceUtil {
 
-	public static int calculateBestMove(final ChessBoard cb, final int ply, int alpha, int beta) {
+	public static int calculateBestMove(final ChessBoard cb, int alpha, int beta) {
 
-		Statistics.maxDepth = Math.max(Statistics.maxDepth, ply);
+		if (Statistics.ENABLED) {
+			Statistics.qNodes++;
+		}
 
 		/* stand-pat check */
 		int score = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.getScore(cb);
@@ -27,19 +31,22 @@ public class QuiescenceUtil {
 
 		MoveList.startPly();
 		MoveGenerator.generateAttacks(cb);
-		if (EngineConstants.ENABLE_Q_SEE) {
-			MoveList.setMVVLVAScores(cb);
-		}
+		MoveList.setMVVLVAScores(cb);
 		MoveList.sort();
 
 		while (MoveList.hasNext()) {
 			final int move = MoveList.next();
+
+			if (!cb.isLegal(move)) {
+				continue;
+			}
+
 			if (MoveUtil.isPromotion(move) && MoveUtil.getMoveType(move) != MoveUtil.TYPE_PROMOTION_Q) {
 				continue;
 			}
 
 			/* prune bad-captures */
-			if (EngineConstants.ENABLE_Q_PRUNE_BAD_CAPTURES && SEEUtil.getSeeCaptureScore(cb, move) < 0) {
+			if (EngineConstants.ENABLE_Q_PRUNE_BAD_CAPTURES && SEEUtil.getSeeCaptureScore(cb, move) <= 0) {
 				continue;
 			}
 
@@ -47,11 +54,11 @@ public class QuiescenceUtil {
 
 			if (EngineConstants.ASSERT) {
 				cb.changeSideToMove();
-				assert CheckUtil.getCheckingPieces(cb) == 0 : "Q: Just did an illegal move...";
+				assertEquals(0, CheckUtil.getCheckingPieces(cb));
 				cb.changeSideToMove();
 			}
 
-			score = -calculateBestMove(cb, ply + 1, -beta, -alpha);
+			score = -calculateBestMove(cb, -beta, -alpha);
 
 			cb.undoMove(move);
 

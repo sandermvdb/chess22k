@@ -1,5 +1,8 @@
 package nl.s22k.chess.move;
 
+import static nl.s22k.chess.ChessConstants.BLACK;
+import static nl.s22k.chess.ChessConstants.WHITE;
+
 import nl.s22k.chess.Util;
 
 public class StaticMoves {
@@ -7,26 +10,11 @@ public class StaticMoves {
 	public static final long[] KNIGHT_MOVES = new long[64];
 	public static final long[] KING_MOVES = new long[64];
 
-	private static final long[] WHITE_PAWN_MOVES_1 = new long[64];
-	private static final long[] BLACK_PAWN_MOVES_1 = new long[64];
-	private static final long[] WHITE_PAWN_MOVES_2 = new long[64];
-	private static final long[] BLACK_PAWN_MOVES_2 = new long[64];
-	private static final long[] WHITE_PAWN_NON_PROMOTION_ATTACKS = new long[64];
-	private static final long[] BLACK_PAWN_NON_PROMOTION_ATTACKS = new long[64];
-	private static final long[] WHITE_PAWN_ALL_ATTACKS = new long[64];
-	private static final long[] BLACK_PAWN_ALL_ATTACKS = new long[64];
-
-	private static final long[] WHITE_PAWN_PROMOTION_MOVES = new long[64];
-	private static final long[] BLACK_PAWN_PROMOTION_MOVES = new long[64];
-	private static final long[] WHITE_PAWN_PROMOTION_ATTACKS = new long[64];
-	private static final long[] BLACK_PAWN_PROMOTION_ATTACKS = new long[64];
-
-	public static final long[][] PAWN_MOVES_1 = { WHITE_PAWN_MOVES_1, BLACK_PAWN_MOVES_1 };
-	public static final long[][] PAWN_MOVES_2 = { WHITE_PAWN_MOVES_2, BLACK_PAWN_MOVES_2 };
-	public static final long[][] PAWN_PROMOTION_MOVES = { WHITE_PAWN_PROMOTION_MOVES, BLACK_PAWN_PROMOTION_MOVES };
-	public static final long[][] PAWN_PROMOTION_ATTACKS = { WHITE_PAWN_PROMOTION_ATTACKS, BLACK_PAWN_PROMOTION_ATTACKS };
-	public static final long[][] PAWN_NON_PROMOTION_ATTACKS = { WHITE_PAWN_NON_PROMOTION_ATTACKS, BLACK_PAWN_NON_PROMOTION_ATTACKS };
-	public static final long[][] PAWN_ALL_ATTACKS = { WHITE_PAWN_ALL_ATTACKS, BLACK_PAWN_ALL_ATTACKS };
+	public static final long[][] PAWN_MOVES_1 = new long[2][64];
+	public static final long[][] PAWN_PROMOTION_MOVES = new long[2][64];
+	public static final long[][] PAWN_PROMOTION_ATTACKS = new long[2][64];
+	public static final long[][] PAWN_NON_PROMOTION_ATTACKS = new long[2][64];
+	public static final long[][] PAWN_ALL_ATTACKS = new long[2][64];
 
 	// PAWN
 	static {
@@ -34,55 +22,48 @@ public class StaticMoves {
 			for (int newPosition = 0; newPosition < 64; newPosition++) {
 				// 1-moves
 				if (newPosition == currentPosition + 8 && currentPosition > 7 && currentPosition < 48) {
-					WHITE_PAWN_MOVES_1[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_MOVES_1[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition - 8 && currentPosition < 56 && currentPosition > 15) {
-					BLACK_PAWN_MOVES_1[currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-				// 2-moves
-				if (newPosition == currentPosition + 16 && currentPosition < 16) {
-					WHITE_PAWN_MOVES_2[currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-				if (newPosition == currentPosition - 16 && currentPosition > 47) {
-					BLACK_PAWN_MOVES_2[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_MOVES_1[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 
 				// promotion-moves
 				if (newPosition == currentPosition + 8 && currentPosition >= 48) {
-					WHITE_PAWN_PROMOTION_MOVES[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_PROMOTION_MOVES[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition - 8 && currentPosition <= 15) {
-					BLACK_PAWN_PROMOTION_MOVES[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_PROMOTION_MOVES[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 
 				// attacks
 				if (newPosition == currentPosition + 7 && newPosition % 8 != 7 && currentPosition > 7 && currentPosition < 48) {
-					WHITE_PAWN_NON_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_NON_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition + 9 && newPosition % 8 != 0 && currentPosition > 7 && currentPosition < 48) {
-					WHITE_PAWN_NON_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_NON_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition - 7 && newPosition % 8 != 0 && currentPosition < 56 && currentPosition > 15) {
-					BLACK_PAWN_NON_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_NON_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition - 9 && newPosition % 8 != 7 && currentPosition < 56 && currentPosition > 15) {
-					BLACK_PAWN_NON_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_NON_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 
 				// promotion attacks
 				// added white pawns at first rank because these could be mirrored black pieces (super-piece used in
 				// SEE). Same for black
 				if (newPosition == currentPosition + 7 && newPosition % 8 != 7 && (currentPosition >= 48 || currentPosition < 8)) {
-					WHITE_PAWN_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition + 9 && newPosition % 8 != 0 && (currentPosition >= 48 || currentPosition < 8)) {
-					WHITE_PAWN_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition - 7 && newPosition % 8 != 0 && (currentPosition <= 15 || currentPosition > 55)) {
-					BLACK_PAWN_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 				if (newPosition == currentPosition - 9 && newPosition % 8 != 7 && (currentPosition <= 15 || currentPosition > 55)) {
-					BLACK_PAWN_PROMOTION_ATTACKS[currentPosition] |= Util.POWER_LOOKUP[newPosition];
+					PAWN_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 			}
 		}
@@ -91,8 +72,8 @@ public class StaticMoves {
 	// pawn-all-attacks
 	static {
 		for (int i = 0; i < 64; i++) {
-			WHITE_PAWN_ALL_ATTACKS[i] = WHITE_PAWN_PROMOTION_ATTACKS[i] | WHITE_PAWN_NON_PROMOTION_ATTACKS[i];
-			BLACK_PAWN_ALL_ATTACKS[i] = BLACK_PAWN_PROMOTION_ATTACKS[i] | BLACK_PAWN_NON_PROMOTION_ATTACKS[i];
+			PAWN_ALL_ATTACKS[WHITE][i] = PAWN_PROMOTION_ATTACKS[WHITE][i] | PAWN_NON_PROMOTION_ATTACKS[WHITE][i];
+			PAWN_ALL_ATTACKS[BLACK][i] = PAWN_PROMOTION_ATTACKS[BLACK][i] | PAWN_NON_PROMOTION_ATTACKS[BLACK][i];
 		}
 	}
 

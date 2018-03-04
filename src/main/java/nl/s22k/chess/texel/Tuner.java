@@ -25,7 +25,7 @@ import nl.s22k.chess.move.MoveList;
 
 public class Tuner {
 
-	private static int numberOfThreads = 6;
+	private static int numberOfThreads = 7;
 	private static ErrorCalculator[] workers = new ErrorCalculator[numberOfThreads];
 	private static ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
 
@@ -38,6 +38,8 @@ public class Tuner {
 		// tuningObjects.add(new TuningObject(EvalConstants.PHASE, 1, "Phase", false, false, 0, 1));
 
 		tuningObjects.add(new TuningObject(EvalConstants.INDIVIDUAL_SCORES, 2, "Individual score", false, false));
+		tuningObjects.add(new TuningObject(EvalConstants.THREAT_SCORES, 2, "Threat score", false, false));
+		//
 		// tuningObjects.add(new TuningObject(EvalConstants.MATERIAL_SCORES, 5, "Material", false, false, 0, 1, 6));
 		// tuningObjects.add(new TuningObject(EvalConstants.PINNED_PIECE_SCORES, 4, "Pinned pieces", false, false, 0));
 		// tuningObjects.add(new TuningObject(EvalConstants.DISCOVERED_PIECE_SCORES, 4, "Disco pieces", false, false,
@@ -48,6 +50,7 @@ public class Tuner {
 		// tuningObjects.add(new TuningObject(EvalConstants.HANGING_PIECES, 4, "Hanging pieces", false, false, 0));
 		// tuningObjects.add(new TuningObject(EvalConstants.HANGING_PIECES_2, 4, "Hanging pieces 2", false, false, 0));
 		// tuningObjects.add(new TuningObject(EvalConstants.ROOK_TRAPPED, 4, "Rook trapped", false, false));
+		// tuningObjects.add(new TuningObject(EvalConstants.IMBALANCE, 5, 100, "Imbalance ", false, false, 0, 1, 2));
 		//
 		// /* pawns */
 		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_SCORE_EG, 5, "Passed-p eg", false, false, 0,
@@ -62,21 +65,17 @@ public class Tuner {
 		// 7));
 		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[2], 4, "Pawn shield 2", false, false, 0,
 		// 7));
-		// tuningObjects.add(new TuningObject(EvalConstants.BACKWARD_PAWN_ATTACKED, 4, "B-pawn attacked", false,
-		// false));
 		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_BLOCKAGE, 4, "Pawn blockage", false, false, 0, 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_CONNECTED, 4, "Pawn connected", false, false, 0, 1));
+		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_NEIGHBOUR, 4, "Pawn neighbour", false, false, 0, 1));
 		//
 		// /* king-safety */
-		// // tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_SCORES, 10, 1500, "KS", false, false));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_SCORES, 10, 1500, "KS", false, false));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_QUEEN_TROPISM, 1, "KS queen", false, true, 0,
 		// 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_COUNTER_RANKS, 1, "KS counter ranks", false,
 		// true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_CHECK_NIGHT, 1, "KS check night", false, true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_CHECK_BISHOP, 1, "KS check bishop", false,
-		// true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_CHECK_ROOK, 1, "KS check rook", false, true));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_CHECK, 1, "KS check", false, true, 0, 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_CHECK_QUEEN, 1, "KS check queen", false, true,
 		// 0, 1, 2, 3));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_NO_FRIENDS, 1, "KS no friends nearby", false,
@@ -84,14 +83,7 @@ public class Tuner {
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_ATTACKS, 1, "KS attacks", false, false));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_ATTACK_PATTERN_COUNTER, 1, 9, "KS pattern",
 		// false, true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_COUNTERS, 1, 20, "KS counters", false, true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_DOUBLE_PAWN, 1, "KS double pawn", false, true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_DOUBLE_NIGHT, 1, "KS double night", false,
-		// true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_DOUBLE_BISHOP, 1, "KS double bishop", false,
-		// true));
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_DOUBLE_ROOK, 1, 9, "KS double rook", false,
-		// true));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_COUNTERS, 1, "KS counters", false, true));
 		//
 		// /* mobility */
 		// tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_KNIGHT, 4, "Mobility knight", true, false));
@@ -139,6 +131,7 @@ public class Tuner {
 	public static void main(String[] args) {
 		// setup
 		EngineConstants.ENABLE_PAWN_EVAL_CACHE = false;
+		EngineConstants.ENABLE_MATERIAL_CACHE = false;
 		EngineConstants.isTuningSession = true;
 		MagicUtil.init();
 
@@ -202,7 +195,7 @@ public class Tuner {
 				}
 
 				ChessBoard cb = ChessBoardUtil.getNewCB(values[0]);
-				if (cb.checkingPieces == 0) {
+				if (includingCheck || cb.checkingPieces == 0) {
 					MoveList.startPly();
 					MoveGenerator.generateAttacks(cb);
 					MoveGenerator.generateMoves(cb);

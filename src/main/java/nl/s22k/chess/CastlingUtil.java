@@ -5,7 +5,8 @@ import static nl.s22k.chess.ChessConstants.EMPTY;
 import static nl.s22k.chess.ChessConstants.ROOK;
 import static nl.s22k.chess.ChessConstants.WHITE;
 
-import nl.s22k.chess.eval.EvalConstants;;
+import nl.s22k.chess.eval.EvalConstants;
+import nl.s22k.chess.eval.MaterialUtil;;
 
 public final class CastlingUtil {
 
@@ -188,10 +189,11 @@ public final class CastlingUtil {
 			return false;
 		}
 
-		long kingIndexes = ChessConstants.IN_BETWEEN[fromIndex][toIndex] | Util.POWER_LOOKUP[toIndex];
+		long kingIndexes = ChessConstants.ROOK_IN_BETWEEN[fromIndex][toIndex] | Util.POWER_LOOKUP[toIndex];
 		while (kingIndexes != 0) {
 			// king does not move through a checked position?
-			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingIndexes), cb.colorToMove, cb.pieces[cb.colorToMoveInverse], cb.allPieces)) {
+			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingIndexes), cb.colorToMove, cb.pieces[cb.colorToMoveInverse], cb.allPieces,
+					MaterialUtil.getMajorPieces(cb.materialKey, cb.colorToMoveInverse))) {
 				return false;
 			}
 			kingIndexes &= kingIndexes - 1;

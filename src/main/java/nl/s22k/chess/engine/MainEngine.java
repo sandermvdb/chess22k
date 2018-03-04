@@ -305,16 +305,17 @@ public class MainEngine {
 
 	private static void eval() {
 		EvalUtil.calculateMobilityScoresAndSetAttackBoards(cb);
-		System.out.println("      Material : " + EvalUtil.calculateMaterialIncludingPawnScores(cb));
-		System.out.println("      Position : " + cb.psqtScore + "/" + cb.psqtScoreEg);
-		System.out.println("      Mobility : " + cb.mobilityScore[EvalUtil.MG] + "/" + cb.mobilityScore[EvalUtil.EG]);
-		System.out.println("   King-safety : " + KingSafetyEval.calculateKingSafetyScores(cb));
-		System.out.println("          Pawn : " + EvalUtil.calculatePawnWithoutMaterialScores(cb));
-		System.out.println("Pawn-passed-eg : " + PassedPawnEval.calculatePassedPawnScores(cb));
-		System.out.println("         Bonus : " + EvalUtil.calculateBonusses(cb));
-		System.out.println("     Penalties : " + EvalUtil.calculatePenalties(cb));
-		System.out.println("-------------------------");
-		System.out.println("         Total : " + EvalUtil.getScore(cb));
+		System.out.println(" Material imbalance: " + EvalUtil.getImbalances(cb));
+		System.out.println("          Position : " + cb.psqtScore + "/" + cb.psqtScoreEg);
+		System.out.println("          Mobility : " + cb.mobilityScore[EvalUtil.MG] + "/" + cb.mobilityScore[EvalUtil.EG]);
+		System.out.println("              Pawn : " + EvalUtil.getPawnScores(cb));
+		System.out.println("    Pawn-passed-eg : " + PassedPawnEval.calculatePassedPawnScores(cb));
+		System.out.println("       King-safety : " + KingSafetyEval.calculateKingSafetyScores(cb));
+		System.out.println("           Threats : " + EvalUtil.calculateThreats(cb));
+		System.out.println("             Other : " + EvalUtil.calculateOthers(cb));
+		System.out.println("             Space : " + EvalUtil.calculateSpace(cb));
+		System.out.println("-----------------------------");
+		System.out.println("             Total : " + EvalUtil.getScore(cb));
 	}
 
 	private static void sendBestMove() {
@@ -363,7 +364,7 @@ public class MainEngine {
 		previousPlyStartTime = System.currentTimeMillis();
 	}
 
-	private static String getVersion() {
+	public static String getVersion() {
 		String version = null;
 		Package pkg = new MainEngine().getClass().getPackage();
 		if (pkg != null) {

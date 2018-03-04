@@ -14,11 +14,6 @@ public class EngineConstants {
 	public static final boolean TEST_EVAL_VALUES 		= false;
 	public static final boolean TEST_PAWN_EVAL_CACHE 	= false;
 	public static final boolean TEST_TT_VALUES 			= false;
-	public static final boolean TEST_FUTILITY_PRUNING 	= false;
-	public static final boolean TEST_RAZORING 			= false;
-	public static final boolean TEST_NULL_MOVE 			= false;
-	public static final boolean TEST_STATIC_NULLMOVE 	= false;
-	public static final boolean TEST_LMR 				= false;
 
 	public static boolean isTuningSession 				= false;
 
@@ -37,9 +32,6 @@ public class EngineConstants {
 	public static final int ASPIRATION_WINDOW_DELTA 	= 20; // 20
 	public static final boolean ENABLE_IID 				= true;
 	public static final int IID_REDUCTION 				= 1;
-	public static final boolean ENABLE_SEE 				= true;
-	public static final boolean ENABLE_SORT_BAD_CAPTURES = true;
-	public static final boolean ENABLE_Q_SEE 			= true;
 
 	// Search extensions
 	public static final boolean ENABLE_CHECK_EXTENSION 	= true;
@@ -49,6 +41,7 @@ public class EngineConstants {
 	// Search reductions
 	public static final boolean ENABLE_NULL_MOVE 		= true;
 	public static final boolean ENABLE_LMR 				= true;
+	public static final boolean ENABLE_LMP 				= true;
 	public static final int LMR_MOVE_COUNTER 			= 2;
 	public static final int LMR_HISTORY 				= 40;
 	public static final boolean ENABLE_Q_PRUNE_BAD_CAPTURES = true;
@@ -60,9 +53,11 @@ public class EngineConstants {
 
 	// Evaluation-function
 	public static final boolean ENABLE_EVAL_CACHE		= true;
-	public static final int POWER_2_EVAL_ENTRIES 		= 14; // 14
+	public static final int POWER_2_EVAL_ENTRIES 		= 14;
+	public static boolean ENABLE_MATERIAL_CACHE			= true; //TODO make this variable final
+	public static final int POWER_2_MATERIAL_ENTRIES 	= 10;
 	public static boolean ENABLE_PAWN_EVAL_CACHE 		= true;	//TODO make this variable final
-	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 14; // 14
+	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 12;
 	public static final boolean ENABLE_EVAL_MOBILITY 	= true;
 	public static final boolean ENABLE_EVAL_MOBILITY_KING_DEFENSE = true;
 	public static final boolean ENABLE_INCREMENTAL_PSQT = true;

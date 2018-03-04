@@ -1,8 +1,5 @@
 package nl.s22k.chess;
 
-import static nl.s22k.chess.ChessConstants.BLACK;
-import static nl.s22k.chess.ChessConstants.WHITE;
-
 public class Util {
 
 	public static final short SHORT_MIN = Short.MIN_VALUE + 1;
@@ -19,11 +16,11 @@ public class Util {
 		int[] setBits = new int[Long.bitCount(value)];
 
 		int counter = 0;
-		while(value != 0) {
+		while (value != 0) {
 			setBits[counter++] = Long.numberOfTrailingZeros(value);
 			value &= value - 1;
 		}
-		
+
 		return setBits;
 	}
 
@@ -34,7 +31,7 @@ public class Util {
 			array[array.length - 1 - i] = temp;
 		}
 	}
-	
+
 	public static void reverse(long[] array) {
 		for (int i = 0; i < array.length / 2; i++) {
 			long temp = array[i];
@@ -52,25 +49,17 @@ public class Util {
 		bitboard = ((bitboard >> 4) & k4) | ((bitboard & k4) << 4);
 		return bitboard;
 	}
-	
+
 	public static int flipHorizontalIndex(int index) {
 		return (index & 0xF8) | (7 - (index & 7));
-	}
-	
-	public static int getFileOfIndex(int index) {
-		return 7 - index & 7;
-	}
-
-	public static int getRankOfIndex(int index) {
-		return index >> 3;
 	}
 
 	public static long mirrorVertical(long bitboard) {
 		return Long.reverseBytes(bitboard);
 	}
-	
-	public static int getDistance(int index1, int index2){
-		return Math.max(Math.abs(index1 / 8 - index2 / 8),	Math.abs((index1 & 7) - (index2 & 7)));
+
+	public static int getDistance(final int index1, final int index2) {
+		return Math.max(Math.abs(index1 / 8 - index2 / 8), Math.abs((index1 & 7) - (index2 & 7)));
 	}
 
 }

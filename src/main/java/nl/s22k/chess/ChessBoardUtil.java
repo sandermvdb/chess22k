@@ -14,6 +14,7 @@ import java.util.Arrays;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
+import nl.s22k.chess.eval.MaterialUtil;
 import nl.s22k.chess.search.HeuristicUtil;
 import nl.s22k.chess.search.RepetitionTable;
 
@@ -204,12 +205,11 @@ public class ChessBoardUtil {
 	}
 
 	public static void init(ChessBoard cb) {
-		cb.kingIndex[WHITE] = Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]);
-		cb.kingIndex[BLACK] = Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]);
-		cb.kingArea[WHITE] = ChessConstants.KING_SAFETY_FRONT_FURTHER[WHITE][cb.kingIndex[WHITE]] | ChessConstants.KING_SAFETY_FRONT[WHITE][cb.kingIndex[WHITE]]
-				| ChessConstants.KING_SAFETY_NEXT[cb.kingIndex[WHITE]] | ChessConstants.KING_SAFETY_BEHIND[WHITE][cb.kingIndex[WHITE]];
-		cb.kingArea[BLACK] = ChessConstants.KING_SAFETY_FRONT_FURTHER[BLACK][cb.kingIndex[BLACK]] | ChessConstants.KING_SAFETY_FRONT[BLACK][cb.kingIndex[BLACK]]
-				| ChessConstants.KING_SAFETY_NEXT[cb.kingIndex[BLACK]] | ChessConstants.KING_SAFETY_BEHIND[BLACK][cb.kingIndex[BLACK]];
+
+		calculateMaterialZobrist(cb);
+
+		cb.updateKingValues(WHITE, Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]));
+		cb.updateKingValues(BLACK, Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]));
 
 		cb.colorToMoveInverse = 1 - cb.colorToMove;
 		cb.friendlyPieces[WHITE] = cb.pieces[WHITE][PAWN] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][KING] | cb.pieces[WHITE][ROOK]
@@ -235,23 +235,24 @@ public class ChessBoardUtil {
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);
 		cb.psqtScoreEg = EvalUtil.calculatePositionEgScores(cb);
 
-		cb.majorPieces[WHITE] = Long.bitCount(cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][ROOK] | cb.pieces[WHITE][QUEEN]);
-		cb.majorPieces[BLACK] = Long.bitCount(cb.pieces[BLACK][NIGHT] | cb.pieces[BLACK][BISHOP] | cb.pieces[BLACK][ROOK] | cb.pieces[BLACK][QUEEN]);
-
 		cb.phase = EvalUtil.PHASE_TOTAL - (Long.bitCount(cb.pieces[WHITE][NIGHT] | cb.pieces[BLACK][NIGHT]) * EvalConstants.PHASE[NIGHT]
 				+ Long.bitCount(cb.pieces[WHITE][BISHOP] | cb.pieces[BLACK][BISHOP]) * EvalConstants.PHASE[BISHOP]
 				+ Long.bitCount(cb.pieces[WHITE][ROOK] | cb.pieces[BLACK][ROOK]) * EvalConstants.PHASE[ROOK]
 				+ Long.bitCount(cb.pieces[WHITE][QUEEN] | cb.pieces[BLACK][QUEEN]) * EvalConstants.PHASE[QUEEN]);
 
-		cb.materialWithoutPawnScore = (Long.bitCount(cb.pieces[WHITE][NIGHT]) - Long.bitCount(cb.pieces[BLACK][NIGHT])) * EvalConstants.MATERIAL_SCORES[NIGHT]
-				+ (Long.bitCount(cb.pieces[WHITE][BISHOP]) - Long.bitCount(cb.pieces[BLACK][BISHOP])) * EvalConstants.MATERIAL_SCORES[BISHOP]
-				+ (Long.bitCount(cb.pieces[WHITE][ROOK]) - Long.bitCount(cb.pieces[BLACK][ROOK])) * EvalConstants.MATERIAL_SCORES[ROOK]
-				+ (Long.bitCount(cb.pieces[WHITE][QUEEN]) - Long.bitCount(cb.pieces[BLACK][QUEEN])) * EvalConstants.MATERIAL_SCORES[QUEEN];
-
 		if (!EngineConstants.isTuningSession) {
 			// cached scores are not used
 			calculatePawnZobristKeys(cb);
 			calculateZobristKeys(cb);
+		}
+	}
+
+	private static void calculateMaterialZobrist(final ChessBoard cb) {
+		cb.materialKey = 0;
+		for (int color = WHITE; color <= BLACK; color++) {
+			for (int piece = PAWN; piece <= QUEEN; piece++) {
+				cb.materialKey += Long.bitCount(cb.pieces[color][piece]) * MaterialUtil.VALUES[color][piece];
+			}
 		}
 	}
 

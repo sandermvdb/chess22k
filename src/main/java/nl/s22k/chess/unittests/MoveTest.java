@@ -28,23 +28,6 @@ public class MoveTest {
 	}
 
 	@Test
-	public void attackMove() {
-		System.out.println("Attack-move");
-		int move = MoveUtil.createAttackMove(10, 46, 4, 5);
-		System.out.println(MoveUtil.getFromIndex(move) + " 10");
-		System.out.println(MoveUtil.getToIndex(move) + " 46");
-		System.out.println(MoveUtil.getSourcePieceIndex(move) + " 4");
-		System.out.println(MoveUtil.getAttackedPieceIndex(move) + " 5");
-		System.out.println(MoveUtil.isPromotion(move) + " false");
-		move = MoveUtil.setSeeMove(move, 400);
-		System.out.println(MoveUtil.getScore(move) + " 100");
-		move = MoveUtil.setSeeMove(move, -400);
-		System.out.println(MoveUtil.getScore(move) + " -100");
-
-		System.out.println("");
-	}
-
-	@Test
 	public void promotionMove() {
 		int move = MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, 10, 61);
 		System.out.println(MoveUtil.getFromIndex(move) + " 10");

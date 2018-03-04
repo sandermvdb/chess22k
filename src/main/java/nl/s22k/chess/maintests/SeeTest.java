@@ -40,10 +40,13 @@ public class SeeTest {
 			MoveList.startPly();
 			MoveGenerator.generateAttacks(cb);
 			while (MoveList.hasNext()) {
+				final int move = MoveList.next();
+				if (!cb.isLegal(move)) {
+					continue;
+				}
 				totalAttacks++;
-				int move = MoveList.next();
 				int seeScore = SEEUtil.getSeeCaptureScore(cb, move);
-				final int materialScore = EvalUtil.calculateMaterialIncludingPawnScores(cb);
+				final int materialScore = EvalUtil.calculateMaterialScore(cb);
 				int qScore = ChessConstants.COLOR_FACTOR[cb.colorToMoveInverse] * materialScore - calculateQScore(cb, move, true);
 				if (seeScore == qScore) {
 					sameScore++;
@@ -73,12 +76,15 @@ public class SeeTest {
 		while (MoveList.hasNext()) {
 			// only attacks on the same square
 			int currentMove = MoveList.next();
+			if (!cb.isLegal(currentMove)) {
+				continue;
+			}
 			if (MoveUtil.getToIndex(currentMove) != MoveUtil.getToIndex(move)) {
 				continue;
 			}
 
 			int score = -calculateQScore(cb, currentMove, false);
-			score = Math.max(score, ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateMaterialIncludingPawnScores(cb));
+			score = Math.max(score, ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateMaterialScore(cb));
 
 			movePerformed = true;
 			if (score > bestScore) {
@@ -88,7 +94,7 @@ public class SeeTest {
 		MoveList.endPly();
 
 		if (!movePerformed) {
-			bestScore = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateMaterialIncludingPawnScores(cb);
+			bestScore = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateMaterialScore(cb);
 		}
 
 		cb.undoMove(move);

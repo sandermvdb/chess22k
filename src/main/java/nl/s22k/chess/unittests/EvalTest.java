@@ -246,18 +246,6 @@ public class EvalTest {
 	}
 
 	@Test
-	public void pinnedPieceTest() {
-		ChessBoard cb = ChessBoardUtil.getNewCB("2kr4/ppp1qppp/8/8/3B4/3K4/PPPP1PPP/8 w - - 1 1 ");
-		System.out.println(EvalUtil.calculatePenalties(cb));
-	}
-
-	@Test
-	public void pawnStormTest() {
-		ChessBoard cb = ChessBoardUtil.getNewCB("2r4k/1b2npp1/2n1p2p/ppPpPP1P/q1p3P1/P1P3Q1/1BP5/R2B1RK1 b - - 0 28 ");
-		System.out.println(EvalUtil.calculateBonusses(cb));
-	}
-
-	@Test
 	public void passedPawnWithNightTest() {
 		ChessBoard cb = ChessBoardUtil.getNewCB("8/8/6p1/4Np1n/N1K2n1k/6p1/8/8 b");
 		System.out.println(EvalUtil.calculateScore(cb));

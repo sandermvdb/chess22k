@@ -469,8 +469,6 @@ public class KPKBitbase {
 			0xfefeee00, 0xc6fe, 0xfefeee00, 0xc0c8efe, 0xfefeee1e, 0x1e1e1efe, 0xffffef7f, 0x3f3f3fff, 0xffffefff, 0xfcfcffff, 0xffffefff, 0xf8f8ffff,
 			0xffffefff, 0xf0f1ffff, 0xffffefff, 0x60e3ffff, 0xffffefff, 0xc7ffff, 0xffffefff, 0xc8fffff, 0xffffefff, 0x1e1fffff, 0xffffefff, 0x3f3fffff, };
 
-	static final int RANK_7 = 6;
-
 	// A KPK bitbase index is an integer in [0, IndexMax] range
 	//
 	// Information is mapped in a way that minimizes the number of iterations:
@@ -483,7 +481,7 @@ public class KPKBitbase {
 	private static int getIndex(final boolean whitetoMove, final int blackKingIndex, final int whiteKingIndex, final int pawnIndex) {
 		return whiteKingIndex + (blackKingIndex << 6) + //
 				((whitetoMove ? 1 : 0) << 12) + //
-				(Util.getFileOfIndex(pawnIndex) << 13) + ((RANK_7 - Util.getRankOfIndex(pawnIndex)) << 15);
+				((7 - pawnIndex & 7) << 13) + ((6 - pawnIndex / 8) << 15);
 	}
 
 	public static boolean isDraw(final ChessBoard cb) {
@@ -502,7 +500,7 @@ public class KPKBitbase {
 			pawnIndex = 63 - pawnIndex;
 			whiteToMove = !whiteToMove;
 		}
-		if (Util.getFileOfIndex(pawnIndex) > 3) {
+		if ((pawnIndex & 7) < 4) {
 			// flip horizontal
 			whiteKingIndex = Util.flipHorizontalIndex(whiteKingIndex);
 			blackKingIndex = Util.flipHorizontalIndex(blackKingIndex);

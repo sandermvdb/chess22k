@@ -3,8 +3,8 @@ package nl.s22k.chess;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalCache;
+import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.move.TreeMove;
 import nl.s22k.chess.search.TTUtil;
@@ -15,32 +15,30 @@ public class Statistics {
 
 	public static boolean panic = false;
 	public static long startTime = System.nanoTime();
-	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes;
+	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes, qNodes;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
 	public static int depth, maxDepth;
 	public static TreeMove bestMove;
 	public static int epCount, castleCount, promotionCount;
 	public static long pawnEvalCacheHits, pawnEvalCacheMisses;
+	public static int materialCacheMisses, materialCacheHits;
 	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveKiller1, bestMoveKiller2, bestMoveOther, bestMovePromotion, bestMoveWinningCapture,
 			bestMoveLosingCapture;
 	public static int repetitions, repetitionTests;
 	public static int checkExtensions, endGameExtensions;
-	public static int nullMoveHit, nullMoveMiss, nullMoveFailed;
-	public static long lmrMoveHit, lmrMoveMiss, lmrFailed;
+	public static int nullMoveHit, nullMoveMiss;
+	public static long lmrMoveHit, lmrMoveMiss;
 	public static long pvsMoveHit, pvsMoveMiss;
 	public static long evalCacheHits, evalCacheMisses;
 	public static int iidCount;
 	public static long moveCount;
 	public static long movesGenerated;
 	public static int drawByMaterialCount;
-	public static int mateThreat;
-	public static final int[] razoringHit = new int[10];
-	public static final int[] razorFailed = new int[10];
-	public static final int[] futilityPruningHit = new int[10];
-	public static final int[] futileFailed = new int[10];
-	public static final int[] staticNullMoveFailed = new int[10];
-	public static final int[] staticNullMovePruningHit = new int[10];
+	public static final int[] razored = new int[10];
+	public static final int[] futile = new int[10];
+	public static final int[] staticNullMoved = new int[10];
+	public static final int[] lmped = new int[10];
 	public static int drawishByMaterialCount;
 
 	public static long calculateNps() {
@@ -48,19 +46,16 @@ public class Statistics {
 	}
 
 	public static void reset() {
-		Arrays.fill(razorFailed, 0);
-		Arrays.fill(razoringHit, 0);
-		Arrays.fill(futileFailed, 0);
-		Arrays.fill(futilityPruningHit, 0);
-		Arrays.fill(staticNullMoveFailed, 0);
-		Arrays.fill(staticNullMovePruningHit, 0);
-		lmrFailed = 0;
-		nullMoveFailed = 0;
+		Arrays.fill(razored, 0);
+		Arrays.fill(futile, 0);
+		Arrays.fill(staticNullMoved, 0);
+		Arrays.fill(lmped, 0);
+
+		qNodes = 0;
 		pvNodes = 1; // so we never divide by zero
 		cutNodes = 0;
 		allNodes = 0;
 		drawishByMaterialCount = 0;
-		mateThreat = 0;
 		drawByMaterialCount = 0;
 		pawnEvalCacheMisses = 0;
 		pawnEvalCacheHits = 0;
@@ -115,81 +110,74 @@ public class Statistics {
 			System.out.println("Score         " + bestMove.score);
 		}
 		System.out.println("NPS           " + calculateNps() / 1000 + "k");
+		System.out.println("Depth         " + depth + "/" + maxDepth);
 		System.out.println("AB-nodes      " + abNodes);
 		System.out.println("PV-nodes      " + pvNodes + " = 1/" + (pvNodes + cutNodes + allNodes) / pvNodes);
 		System.out.println("Cut-nodes     " + cutNodes);
 		System.out.println("All-nodes     " + allNodes);
+		System.out.println("Q-nodes       " + qNodes);
 		System.out.println("See-nodes     " + seeNodes);
 		System.out.println("Evaluated     " + evalNodes);
 		System.out.println("Moves         " + moveCount + "/" + movesGenerated);
+		System.out.println("IID           " + iidCount);
+		System.out.println("Panic         " + panic);
 
-		printPercentage(ttHits, ttMisses, "TT            ");
+		System.out.println("### Caches #######");
+		printPercentage("TT            ", ttHits, ttMisses);
 		if (TTUtil.maxEntries != 0) {
-			System.out.println("TT-usage      " + TTUtil.usageCounter * 100 / (TTUtil.maxEntries * 2) + "%");
+			System.out.println("usage         " + TTUtil.usageCounter * 100 / (TTUtil.maxEntries * 2) + "%");
 		}
+		printPercentage("Eval          ", evalCacheHits, evalCacheMisses);
+		System.out.println("usage         " + EvalCache.usageCounter * 100 / EvalCache.MAX_TABLE_ENTRIES + "%");
+		printPercentage("Pawn eval     ", pawnEvalCacheHits, pawnEvalCacheMisses);
+		System.out.println("usage         " + PawnEvalCache.usageCounter * 100 / PawnEvalCache.MAX_TABLE_ENTRIES + "%");
+		printPercentage("Material      ", materialCacheHits, materialCacheMisses);
+		System.out.println("usage         " + PawnEvalCache.usageCounter * 100 / MaterialCache.MAX_TABLE_ENTRIES + "%");
 
-		printPercentage(evalCacheHits, evalCacheMisses, "Evalcache     ");
-		System.out.println("Usage         " + EvalCache.usageCounter * 100 / EvalCache.MAX_TABLE_ENTRIES + "%");
+		System.out.println("## Best moves #####");
+		System.out.println("TT            " + bestMoveTT);
+		System.out.println("TT-upper      " + bestMoveTTUpper);
+		System.out.println("TT-lower      " + bestMoveTTLower);
+		System.out.println("Promo         " + bestMovePromotion);
+		System.out.println("Win-cap       " + bestMoveWinningCapture);
+		System.out.println("Killer1       " + bestMoveKiller1);
+		System.out.println("Killer2       " + bestMoveKiller2);
+		System.out.println("Other         " + bestMoveOther);
+		System.out.println("Los-cap       " + bestMoveLosingCapture);
 
-		printPercentage(pawnEvalCacheHits, pawnEvalCacheMisses, "PEvalcache    ");
-		System.out.println("Usage         " + PawnEvalCache.usageCounter * 100 / PawnEvalCache.MAX_TABLE_ENTRIES + "%");
-
-		System.out.println("Depth         " + depth + "/" + maxDepth);
-		System.out.println("TT-best       " + bestMoveTT);
-		System.out.println("TT-upper-best " + bestMoveTTUpper);
-		System.out.println("TT-lower-best " + bestMoveTTLower);
-		System.out.println("Promo-best    " + bestMovePromotion);
-		System.out.println("Win-cap-best  " + bestMoveWinningCapture);
-		System.out.println("Killer1-best  " + bestMoveKiller1);
-		System.out.println("Killer2-best  " + bestMoveKiller2);
-		System.out.println("Other-best    " + bestMoveOther);
-		System.out.println("Los-cap-best  " + bestMoveLosingCapture);
+		System.out.println("### Outcome #####");
 		System.out.println("Checkmate     " + mateCount);
 		System.out.println("Stalemate     " + staleMateCount);
 		System.out.println("Repetitions   " + repetitions + "(" + repetitionTests + ")");
 		System.out.println("Draw-by-mtrl  " + drawByMaterialCount);
 		System.out.println("Drawish-mtrl  " + drawishByMaterialCount);
-		System.out.println("Check ext.    " + checkExtensions);
-		System.out.println("Endgame ext.  " + endGameExtensions);
-		System.out.println("Mate-threat   " + mateThreat);
-		System.out.println("IID           " + iidCount);
-		System.out.println("Panic         " + panic);
 
-		printPercentage(nullMoveHit, nullMoveMiss, "Null-move     ");
-		if (EngineConstants.TEST_NULL_MOVE) {
-			printPercentage(nullMoveFailed, nullMoveHit - nullMoveFailed, "Null failed   ");
-		}
-		printPercentage(lmrMoveHit, lmrMoveMiss, "LMR-move      ");
-		if (EngineConstants.TEST_LMR) {
-			printPercentage(lmrFailed, lmrMoveHit - lmrFailed, "LMR failed    ");
-		}
-		printPercentage(pvsMoveHit, pvsMoveMiss, "PVS-move      ");
+		System.out.println("### Extensions #####");
+		System.out.println("Check         " + checkExtensions);
+		System.out.println("Endgame       " + endGameExtensions);
 
-		if (EngineConstants.TEST_RAZORING) {
-			printDepthPromiles(razorFailed, razoringHit, "Razor failed  ");
-		}
-		if (EngineConstants.TEST_FUTILITY_PRUNING) {
-			printDepthPromiles(futileFailed, futilityPruningHit, "Futile failed ");
-		}
-		if (EngineConstants.TEST_STATIC_NULLMOVE) {
-			printDepthPromiles(staticNullMoveFailed, staticNullMovePruningHit, "S-null failed ");
+		System.out.println("### Pruning #####");
+		printPercentage("Null-move     ", nullMoveHit, nullMoveMiss);
+		printPercentage("LMR           ", lmrMoveHit, lmrMoveMiss);
+		printPercentage("PVS           ", pvsMoveHit, pvsMoveMiss);
+		printDepthTotals("Static nmp    ", staticNullMoved, false);
+		printDepthTotals("Razored       ", razored, false);
+		printDepthTotals("Futile        ", futile, false);
+		printDepthTotals("LMP           ", lmped, false);
+	}
+
+	private static void printDepthTotals(String message, int[] values, boolean printDetails) {
+		System.out.println(message + IntStream.of(values).sum());
+		if (printDetails) {
+			for (int i = 0; i < values.length; i++) {
+				if (values[i] != 0) {
+					System.out.println(i + " " + values[i]);
+				}
+			}
 		}
 	}
 
-	private static void printDepthPromiles(int[] failed, int[] total, String message) {
-		printPromile(IntStream.of(failed).sum(), IntStream.of(total).sum() - IntStream.of(failed).sum(), message);
-		for (int i = 0; i < failed.length; i++) {
-			printPromile(failed[i], total[i] - failed[i], i + " ");
-		}
-	}
-
-	private static void printPromile(long hitCount, long failCount, String message) {
-		if (hitCount != 0 && failCount != 0) {
-			System.out.println(message + hitCount + "/" + (failCount + hitCount) + " (" + hitCount * 1000 / (hitCount + failCount) + "‰)");
-		}
-	}
-
-	private static void printPercentage(long hitCount, long failCount, String message) {
+	private static void printPercentage(String message, long hitCount, long failCount) {
 		if (hitCount != 0 && failCount != 0) {
 			System.out.println(message + hitCount + "/" + (failCount + hitCount) + " (" + hitCount * 100 / (hitCount + failCount) + "%)");
 		}

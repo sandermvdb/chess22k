@@ -1,5 +1,7 @@
 package nl.s22k.chess.maintests;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -24,15 +26,22 @@ public class QPerft {
 		MoveGenerator.generateMoves(chessBoard);
 		MoveGenerator.generateAttacks(chessBoard);
 
+		long counter = 0;
 		if (depth == 1) {
-			final int movesFound = MoveList.movesLeft();
+			while (MoveList.hasNext()) {
+				if (chessBoard.isLegal(MoveList.next())) {
+					counter++;
+				}
+			}
 			MoveList.endPly();
-			return movesFound;
+			return counter;
 		}
 
-		long counter = 0;
 		while (MoveList.hasNext()) {
 			final int move = MoveList.next();
+			if (!chessBoard.isLegal(move)) {
+				continue;
+			}
 			chessBoard.doMove(move);
 			counter += qperft(chessBoard, depth - 1);
 			chessBoard.undoMove(move);
@@ -69,49 +78,49 @@ public class QPerft {
 	@Test
 	public void testPerft1() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		assert qperft(chessBoard, 1) == 20;
+		assertEquals(20, qperft(chessBoard, 1));
 	}
 
 	@Test
 	public void testPerft2() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		assert qperft(chessBoard, 2) == 400;
+		assertEquals(400, qperft(chessBoard, 2));
 	}
 
 	@Test
 	public void testPerft3() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		assert qperft(chessBoard, 3) == 8902;
+		assertEquals(8902, qperft(chessBoard, 3));
 	}
 
 	@Test
 	public void testPerft4() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		assert qperft(chessBoard, 4) == 197281;
+		assertEquals(197281, qperft(chessBoard, 4));
 	}
 
 	@Test
 	public void testPerft5() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		assert qperft(chessBoard, 5) == 4865609;
+		assertEquals(4865609, qperft(chessBoard, 5));
 	}
 
 	@Test
 	public void testPerft6() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		assert qperft(chessBoard, 6) == 119060324;
+		assertEquals(119060324, qperft(chessBoard, 6));
 	}
 
 	@Test
 	public void testPerft7() {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		assert qperft(chessBoard, 7) == 3195901860L;
+		assertEquals(3195901860L, qperft(chessBoard, 7));
 	}
 
 	// @Test
 	// public void testPerft8() {
 	// ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-	// assert qperft(chessBoard, 8) == 84998978956L;
+	// assertEquals(84998978956L, qperft(chessBoard, 8));
 	// }
 
 }

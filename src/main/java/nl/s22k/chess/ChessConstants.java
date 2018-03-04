@@ -22,13 +22,18 @@ public class ChessConstants {
 
 	public static final int[] COLOR_FACTOR = { 1, -1 };
 	public static final int[] COLOR_FACTOR_8 = { 8, -8 };
+	public static final int[] COLOR_FACTOR_16 = { 16, -16 };
 
-	public static final long[][] KING_SAFETY_BEHIND = new long[2][64];
-	public static final long[] KING_SAFETY_NEXT = new long[64]; // not color specific
-	public static final long[][] KING_SAFETY_FRONT = new long[2][64];
-	public static final long[][] KING_SAFETY_FRONT_FURTHER = new long[2][64];
+	public static final long[][] KING_SAFETY_MASK = new long[2][64];
 	public static final long[][] KING_PAWN_SHIELD_KINGSIDE_MASK = new long[2][8];
 	public static final long[][] KING_PAWN_SHIELD_QUEENSIDE_MASK = new long[2][8];
+
+	public static final long[][] PASSED_PAWN_MASKS = new long[2][64];
+
+	public static final long[][] ROOK_IN_BETWEEN = new long[64][64];
+	public static final long[][] BISHOP_IN_BETWEEN = new long[64][64];
+	/** pinned-piece index, king index */
+	public static final long[][] PINNED_MOVEMENT = new long[64][64];
 
 	public static final long[] MASK_ADJACENT_FILE_UP = new long[64];
 	public static final long[] MASK_ADJACENT_FILE_DOWN = new long[64];
@@ -46,7 +51,6 @@ public class ChessConstants {
 		}
 	}
 
-	public static final long[][] ROOK_IN_BETWEEN = new long[64][64];
 	static {
 		int i;
 
@@ -82,7 +86,6 @@ public class ChessConstants {
 		}
 	}
 
-	public static final long[][] BISHOP_IN_BETWEEN = new long[64][64];
 	static {
 		int i;
 
@@ -118,16 +121,57 @@ public class ChessConstants {
 		}
 	}
 
-	public static final long[][] IN_BETWEEN = new long[64][64];
 	static {
-		for (int i = 0; i < 64; i++) {
-			for (int j = 0; j < 64; j++) {
-				IN_BETWEEN[i][j] = BISHOP_IN_BETWEEN[i][j] | ROOK_IN_BETWEEN[i][j];
+		int[] DIRECTION = { -1, -7, -8, -9, 1, 7, 8, 9 };
+		// PINNED MOVEMENT, x-ray from the king to the pinned-piece and beyond
+		for (int pinnedPieceIndex = 0; pinnedPieceIndex < 64; pinnedPieceIndex++) {
+			for (int kingIndex = 0; kingIndex < 64; kingIndex++) {
+				int correctDirection = 0;
+				for (int direction : DIRECTION) {
+					if (correctDirection != 0) {
+						break;
+					}
+					int xray = kingIndex + direction;
+					while (xray >= 0 && xray < 64) {
+						if (direction == -1 || direction == -9 || direction == 7) {
+							if ((xray & 7) == 7) {
+								break;
+							}
+						}
+						if (direction == 1 || direction == 9 || direction == -7) {
+							if ((xray & 7) == 0) {
+								break;
+							}
+						}
+						if (xray == pinnedPieceIndex) {
+							correctDirection = direction;
+							break;
+						}
+						xray += direction;
+					}
+				}
+
+				if (correctDirection != 0) {
+					int xray = kingIndex + correctDirection;
+					while (xray >= 0 && xray < 64) {
+						if (correctDirection == -1 || correctDirection == -9 || correctDirection == 7) {
+							if ((xray & 7) == 7) {
+								break;
+							}
+						}
+						if (correctDirection == 1 || correctDirection == 9 || correctDirection == -7) {
+							if ((xray & 7) == 0) {
+								break;
+							}
+						}
+						PINNED_MOVEMENT[pinnedPieceIndex][kingIndex] |= Util.POWER_LOOKUP[xray];
+						xray += correctDirection;
+					}
+				}
 			}
 		}
 	}
 
-	public static final long[][] PASSED_PAWN_MASKS = new long[2][64];
 	static {
 		// fill passed-pawn-masks
 		for (int i = 0; i < 64; i++) {
@@ -145,20 +189,22 @@ public class ChessConstants {
 		// BBB behind
 		//
 		for (int i = 0; i < 64; i++) {
-			KING_SAFETY_NEXT[i] = (StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8]) | Util.POWER_LOOKUP[i];
+			// NEXT
+			KING_SAFETY_MASK[WHITE][i] |= (StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8]) | Util.POWER_LOOKUP[i];
+			KING_SAFETY_MASK[BLACK][i] |= (StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8]) | Util.POWER_LOOKUP[i];
 
 			if (i > 7) {
-				KING_SAFETY_BEHIND[WHITE][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
-				KING_SAFETY_FRONT[BLACK][i] = StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
+				KING_SAFETY_MASK[WHITE][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
+				KING_SAFETY_MASK[BLACK][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
 				if (i > 15) {
-					KING_SAFETY_FRONT_FURTHER[BLACK][i] = StaticMoves.KING_MOVES[i] >>> 8 & Bitboard.RANKS[i / 8 - 2];
+					KING_SAFETY_MASK[BLACK][i] |= StaticMoves.KING_MOVES[i] >>> 8 & Bitboard.RANKS[i / 8 - 2];
 				}
 			}
 			if (i < 56) {
-				KING_SAFETY_BEHIND[BLACK][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
-				KING_SAFETY_FRONT[WHITE][i] = StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
+				KING_SAFETY_MASK[BLACK][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
+				KING_SAFETY_MASK[WHITE][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
 				if (i < 48) {
-					KING_SAFETY_FRONT_FURTHER[WHITE][i] = StaticMoves.KING_MOVES[i] << 8 & Bitboard.RANKS[i / 8 + 2];
+					KING_SAFETY_MASK[WHITE][i] |= StaticMoves.KING_MOVES[i] << 8 & Bitboard.RANKS[i / 8 + 2];
 				}
 			}
 		}
@@ -167,15 +213,9 @@ public class ChessConstants {
 		for (int i = 0; i < 64; i++) {
 			for (int color = 0; color < 2; color++) {
 				if (i % 8 == 0) {
-					KING_SAFETY_NEXT[i] |= KING_SAFETY_NEXT[i + 1];
-					KING_SAFETY_BEHIND[color][i] |= KING_SAFETY_BEHIND[color][i + 1];
-					KING_SAFETY_FRONT[color][i] |= KING_SAFETY_FRONT[color][i + 1];
-					KING_SAFETY_FRONT_FURTHER[color][i] |= KING_SAFETY_FRONT_FURTHER[color][i + 1];
+					KING_SAFETY_MASK[color][i] |= KING_SAFETY_MASK[color][i + 1];
 				} else if (i % 8 == 7) {
-					KING_SAFETY_NEXT[i] |= KING_SAFETY_NEXT[i - 1];
-					KING_SAFETY_BEHIND[color][i] |= KING_SAFETY_BEHIND[color][i - 1];
-					KING_SAFETY_FRONT[color][i] |= KING_SAFETY_FRONT[color][i - 1];
-					KING_SAFETY_FRONT_FURTHER[color][i] |= KING_SAFETY_FRONT_FURTHER[color][i - 1];
+					KING_SAFETY_MASK[color][i] |= KING_SAFETY_MASK[color][i - 1];
 				}
 			}
 		}
@@ -185,24 +225,14 @@ public class ChessConstants {
 		// king-pawn-shield masks
 		for (int i = 1; i < 64; i += 8) {
 			// king-side
-			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_NEXT[i];
-			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT[WHITE][i];
-			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT_FURTHER[WHITE][i];
-
-			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_NEXT[i];
-			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT[BLACK][i];
-			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT_FURTHER[BLACK][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_MASK[WHITE][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_MASK[BLACK][i];
 		}
 
 		for (int i = 6; i < 64; i += 8) {
 			// queen-side
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_NEXT[i];
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT[WHITE][i];
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_FRONT_FURTHER[WHITE][i];
-
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_NEXT[i];
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT[BLACK][i];
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_FRONT_FURTHER[BLACK][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_MASK[WHITE][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_MASK[BLACK][i];
 		}
 	}
 

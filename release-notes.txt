@@ -1,3 +1,18 @@
+1.8 - 04-03-2018 - 2950 elo
+- generation of pseudo-legal moves (no elo gain but cleaner code)
+- refactored move generation class
+- search
+  - implemented late move pruning
+  - updated pruning margins (same as Laser)
+  - removed matethreat
+- evaluation
+  - removed non significant terms
+  - added space evaluation
+  - use a material hash
+  - imbalances using # of pieces
+  - use full key when validating eval, pawn, material hash hit
+
+
 1.7 - 28-12-2017 - 2900 elo
 - fixed a futility pruning bug
 - no quiescence search when in check
