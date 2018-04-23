@@ -67,16 +67,32 @@ public class MoveUtil {
 	}
 
 	public static int getScore(final int move) {
-		// TODO can score be negative (last bit)?
+		// arithmetic shift!
 		return move >> SHIFT_SCORE;
 	}
 
 	public static int getMoveType(final int move) {
-		return move >> SHIFT_MOVE_TYPE & MASK_3_BITS;
+		return move >>> SHIFT_MOVE_TYPE & MASK_3_BITS;
 	}
 
 	public static int createMove(final int fromIndex, final int toIndex, final int sourcePieceIndex) {
 		return sourcePieceIndex << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
+	}
+
+	public static int createWhitePawnMove(final int fromIndex) {
+		return ChessConstants.PAWN << SHIFT_SOURCE | (fromIndex + 8) << SHIFT_TO | fromIndex;
+	}
+
+	public static int createBlackPawnMove(final int fromIndex) {
+		return ChessConstants.PAWN << SHIFT_SOURCE | (fromIndex - 8) << SHIFT_TO | fromIndex;
+	}
+
+	public static int createWhitePawn2Move(final int fromIndex) {
+		return ChessConstants.PAWN << SHIFT_SOURCE | (fromIndex + 16) << SHIFT_TO | fromIndex;
+	}
+
+	public static int createBlackPawn2Move(final int fromIndex) {
+		return ChessConstants.PAWN << SHIFT_SOURCE | (fromIndex - 16) << SHIFT_TO | fromIndex;
 	}
 
 	public static int createPromotionMove(final int promotionPiece, final int fromIndex, final int toIndex) {
@@ -130,6 +146,7 @@ public class MoveUtil {
 	public static int setScoredMove(final int move, final int score) {
 		if (EngineConstants.ASSERT) {
 			assertEquals(move, getCleanMove(move));
+			assertEquals(score, getScore(move | score << SHIFT_SCORE));
 		}
 		return move | score << SHIFT_SCORE;
 	}

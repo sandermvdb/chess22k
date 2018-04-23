@@ -11,7 +11,6 @@ import nl.s22k.chess.CastlingUtil;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
 
 public final class MoveGenerator {
@@ -69,12 +68,12 @@ public final class MoveGenerator {
 	private static void generateNotInCheckMoves(final ChessBoard cb) {
 
 		// non pinned pieces
-		addPawnMoves(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.emptySpaces);
-		addNightMoves(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb.emptySpaces);
-		addBishopMoves(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, cb.emptySpaces);
-		addRookMoves(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, cb.emptySpaces);
-		addQueenMoves(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb, cb.emptySpaces);
 		addKingMoves(cb);
+		addQueenMoves(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb, cb.emptySpaces);
+		addRookMoves(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, cb.emptySpaces);
+		addBishopMoves(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, cb.emptySpaces);
+		addNightMoves(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb.emptySpaces);
+		addPawnMoves(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.emptySpaces);
 
 		// pinned pieces
 		long piece = cb.friendlyPieces[cb.colorToMove] & cb.pinnedPieces;
@@ -123,7 +122,7 @@ public final class MoveGenerator {
 
 		// non pinned pieces
 		addEpAttacks(cb);
-		addPawnAttacks(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, enemies | cb.emptySpaces);
+		addPawnAttacks(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, enemies, cb.emptySpaces);
 		addNightAttacks(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb, enemies);
 		addRookAttacks(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, enemies);
 		addBishopAttacks(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, enemies);
@@ -135,7 +134,9 @@ public final class MoveGenerator {
 		while (piece != 0) {
 			switch (cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]) {
 			case PAWN:
-				addPawnAttacks(Long.lowestOneBit(piece), cb, ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(piece)][cb.kingIndex[cb.colorToMove]]);
+				addPawnAttacks(Long.lowestOneBit(piece), cb,
+						enemies & ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(piece)][cb.kingIndex[cb.colorToMove]],
+						cb.emptySpaces & ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(piece)][cb.kingIndex[cb.colorToMove]]);
 				break;
 			case BISHOP:
 				addBishopAttacks(Long.lowestOneBit(piece), cb,
@@ -157,7 +158,7 @@ public final class MoveGenerator {
 	private static void generateOutOfCheckAttacks(final ChessBoard cb) {
 		// attack attacker
 		addEpAttacks(cb);
-		addPawnAttacks(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.emptySpaces | cb.checkingPieces);
+		addPawnAttacks(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.checkingPieces, cb.emptySpaces);
 		addNightAttacks(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb, cb.checkingPieces);
 		addBishopAttacks(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, cb.checkingPieces);
 		addRookAttacks(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, cb.checkingPieces);
@@ -165,12 +166,12 @@ public final class MoveGenerator {
 		addKingAttacks(cb, cb.friendlyPieces[cb.colorToMoveInverse]);
 	}
 
-	private static void addPawnAttacks(final long pawns, final ChessBoard cb, final long possiblePositions) {
+	private static void addPawnAttacks(final long pawns, final ChessBoard cb, final long enemies, final long emptySpaces) {
 		// pawns (non-promoting)
-		long piece = pawns;
+		long piece = pawns & Bitboard.RANK_NON_PROMOTION[cb.colorToMove];
 		while (piece != 0) {
 			final int fromIndex = Long.numberOfTrailingZeros(piece);
-			long moves = StaticMoves.PAWN_NON_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse] & possiblePositions;
+			long moves = StaticMoves.PAWN_ATTACKS[cb.colorToMove][fromIndex] & enemies;
 			while (moves != 0) {
 				final int toIndex = Long.numberOfTrailingZeros(moves);
 				MoveList.addMove(MoveUtil.createAttackMove(fromIndex, toIndex, PAWN, cb.pieceIndexes[toIndex]));
@@ -180,18 +181,36 @@ public final class MoveGenerator {
 		}
 
 		// pawns (promoting)
-		piece = pawns & Bitboard.RANK_PROMOTION[cb.colorToMove];
-		while (piece != 0) {
-			final int fromIndex = Long.numberOfTrailingZeros(piece);
+		if (cb.colorToMove == ChessConstants.WHITE) {
+			piece = pawns & Bitboard.RANK_7;
+			while (piece != 0) {
+				final int fromIndex = Long.numberOfTrailingZeros(piece);
 
-			// promotion move
-			addPromotionMove(StaticMoves.PAWN_PROMOTION_MOVES[cb.colorToMove][fromIndex] & cb.emptySpaces & possiblePositions, fromIndex);
+				// promotion move
+				if ((Long.lowestOneBit(piece) << 8 & emptySpaces) != 0) {
+					addPromotionMove(fromIndex, fromIndex + 8);
+				}
 
-			// promotion attacks
-			addPromotionAttacks(StaticMoves.PAWN_PROMOTION_ATTACKS[cb.colorToMove][fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse] & possiblePositions,
-					fromIndex, cb);
+				// promotion attacks
+				addPromotionAttacks(StaticMoves.PAWN_ATTACKS[ChessConstants.WHITE][fromIndex] & enemies, fromIndex, cb);
 
-			piece &= piece - 1;
+				piece &= piece - 1;
+			}
+		} else {
+			piece = pawns & Bitboard.RANK_2;
+			while (piece != 0) {
+				final int fromIndex = Long.numberOfTrailingZeros(piece);
+
+				// promotion move
+				if ((Long.lowestOneBit(piece) >>> 8 & emptySpaces) != 0) {
+					addPromotionMove(fromIndex, fromIndex - 8);
+				}
+
+				// promotion attacks
+				addPromotionAttacks(StaticMoves.PAWN_ATTACKS[ChessConstants.BLACK][fromIndex] & enemies, fromIndex, cb);
+
+				piece &= piece - 1;
+			}
 		}
 	}
 
@@ -286,29 +305,36 @@ public final class MoveGenerator {
 	}
 
 	private static void addPawnMoves(final long pawns, final ChessBoard cb, final long possiblePositions) {
-		// pawn 1-move
-		long piece = pawns;
-		while (piece != 0) {
-			final int fromIndex = Long.numberOfTrailingZeros(piece);
-			long move = StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex] & possiblePositions;
-			if (move != 0) {
-				MoveList.addMove(MoveUtil.createMove(fromIndex, Long.numberOfTrailingZeros(move), PAWN));
+		if (cb.colorToMove == ChessConstants.WHITE) {
+			// 1-move
+			long piece = pawns & (possiblePositions >>> 8) & Bitboard.RANK_23456;
+			while (piece != 0) {
+				MoveList.addMove(MoveUtil.createWhitePawnMove(Long.numberOfTrailingZeros(piece)));
+				piece &= piece - 1;
 			}
-			piece &= piece - 1;
-		}
-
-		// pawn 2-move
-		piece = pawns & Bitboard.PAWN_2_MOVE_RANK[cb.colorToMove];
-		while (piece != 0) {
-			final int fromIndex = Long.numberOfTrailingZeros(piece);
-			if ((cb.allPieces & StaticMoves.PAWN_MOVES_1[cb.colorToMove][fromIndex]) == 0) {
-				long move = Util.POWER_LOOKUP[fromIndex + ChessConstants.COLOR_FACTOR_16[cb.colorToMove]] & possiblePositions;
-				if (move != 0) {
-					MoveList.addMove(MoveUtil.createMove(fromIndex, Long.numberOfTrailingZeros(move), PAWN));
+			// 2-move
+			piece = pawns & (possiblePositions >>> 16) & Bitboard.RANK_2;
+			while (piece != 0) {
+				if ((cb.emptySpaces & (Long.lowestOneBit(piece) << 8)) != 0) {
+					MoveList.addMove(MoveUtil.createWhitePawn2Move(Long.numberOfTrailingZeros(piece)));
 				}
+				piece &= piece - 1;
 			}
-
-			piece &= piece - 1;
+		} else {
+			// 1-move
+			long piece = pawns & (possiblePositions << 8) & Bitboard.RANK_34567;
+			while (piece != 0) {
+				MoveList.addMove(MoveUtil.createBlackPawnMove(Long.numberOfTrailingZeros(piece)));
+				piece &= piece - 1;
+			}
+			// 2-move
+			piece = pawns & (possiblePositions << 16) & Bitboard.RANK_7;
+			while (piece != 0) {
+				if ((cb.emptySpaces & (Long.lowestOneBit(piece) >>> 8)) != 0) {
+					MoveList.addMove(MoveUtil.createBlackPawn2Move(Long.numberOfTrailingZeros(piece)));
+				}
+				piece &= piece - 1;
+			}
 		}
 	}
 
@@ -361,18 +387,14 @@ public final class MoveGenerator {
 		if (cb.epIndex == 0) {
 			return;
 		}
-		long piece = cb.pieces[cb.colorToMove][PAWN] & StaticMoves.PAWN_NON_PROMOTION_ATTACKS[cb.colorToMoveInverse][cb.epIndex];
+		long piece = cb.pieces[cb.colorToMove][PAWN] & StaticMoves.PAWN_ATTACKS[cb.colorToMoveInverse][cb.epIndex];
 		while (piece != 0) {
 			MoveList.addMove(MoveUtil.createEPMove(Long.numberOfTrailingZeros(piece), cb.epIndex));
 			piece &= piece - 1;
 		}
 	}
 
-	private static void addPromotionMove(long move, final int fromIndex) {
-		if (move == 0) {
-			return;
-		}
-		final int toIndex = Long.numberOfTrailingZeros(move);
+	private static void addPromotionMove(final int fromIndex, final int toIndex) {
 		MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_Q, fromIndex, toIndex));
 		MoveList.addMove(MoveUtil.createPromotionMove(MoveUtil.TYPE_PROMOTION_N, fromIndex, toIndex));
 		if (EngineConstants.GENERATE_BR_PROMOTIONS) {

@@ -4,14 +4,13 @@ import static org.junit.Assert.assertEquals;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.engine.EngineConstants;
-import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.search.HeuristicUtil;
 
 public final class MoveList {
 
 	private static final int[] moves = new int[1500];
-	private static final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
-	private static final int[] nextToMove = new int[EngineConstants.MAX_PLIES + EngineConstants.PLIES_EXTENDED];
+	private static final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES * 2];
+	private static final int[] nextToMove = new int[EngineConstants.MAX_PLIES * 2];
 	private static int currentPly;
 
 	public static void startPly() {
@@ -66,18 +65,6 @@ public final class MoveList {
 	 */
 	public static int movesLeft() {
 		return nextToGenerate[currentPly] - nextToMove[currentPly];
-	}
-
-	public static void setSeeScores(final ChessBoard cb) {
-		// TODO
-		/*
-		 * Regarding move-ordering: for all captures of type M x N, if M is equal to or less valuable than N, just use
-		 * val(N) - val(M) for the value (assume your piece will be recaptured)
-		 */
-
-		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
-			moves[j] = MoveUtil.setScoredMove(moves[j], SEEUtil.getSeeCaptureScore(cb, moves[j]) / MoveUtil.SEE_CAPTURE_DIVIDER);
-		}
 	}
 
 	public static void setMVVLVAScores(final ChessBoard cb) {

@@ -22,9 +22,9 @@ public class TTUtil {
 	private static int keyShifts;
 	public static int maxEntries;
 
-	private static int[] alwaysReplaceKeys;
+	private static long[] alwaysReplaceKeys;
 	private static long[] alwaysReplaceValues;
-	private static int[] depthReplaceKeys;
+	private static long[] depthReplaceKeys;
 	private static long[] depthReplaceValues;
 
 	public static long usageCounter;
@@ -48,9 +48,9 @@ public class TTUtil {
 			keyShifts = 64 - EngineConstants.POWER_2_TT_ENTRIES + 1;
 			maxEntries = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_TT_ENTRIES - 1];
 
-			alwaysReplaceKeys = new int[maxEntries];
+			alwaysReplaceKeys = new long[maxEntries];
 			alwaysReplaceValues = new long[maxEntries];
-			depthReplaceKeys = new int[maxEntries];
+			depthReplaceKeys = new long[maxEntries];
 			depthReplaceValues = new long[maxEntries];
 			usageCounter = 0;
 
@@ -73,19 +73,19 @@ public class TTUtil {
 
 		final int index = getZobristIndex(key);
 
-		if (alwaysReplaceKeys[index] == (int) key) {
+		if (alwaysReplaceKeys[index] == key) {
 			if (Statistics.ENABLED) {
 				Statistics.ttHits++;
 			}
 
-			if (depthReplaceKeys[index] == (int) key && getDepth(depthReplaceValues[index]) > getDepth(alwaysReplaceValues[index])) {
+			if (depthReplaceKeys[index] == key && getDepth(depthReplaceValues[index]) > getDepth(alwaysReplaceValues[index])) {
 				return depthReplaceValues[index];
 			}
 
 			return alwaysReplaceValues[index];
 		}
 
-		if (depthReplaceKeys[index] == (int) key) {
+		if (depthReplaceKeys[index] == key) {
 			if (Statistics.ENABLED) {
 				Statistics.ttHits++;
 			}
@@ -100,9 +100,6 @@ public class TTUtil {
 	}
 
 	private static int getZobristIndex(final long key) {
-		if (keyShifts == 64) {
-			return 0;
-		}
 		return (int) (key >>> keyShifts);
 	}
 
@@ -173,7 +170,7 @@ public class TTUtil {
 		}
 
 		// TODO do not store if already stored in depth-TT?
-		alwaysReplaceKeys[index] = (int) key;
+		alwaysReplaceKeys[index] = key;
 		alwaysReplaceValues[index] = value;
 
 		if (depth > getDepth(depthReplaceValues[index]) || halfMoveCounter != getHalfMoveCounter(depthReplaceValues[index])) {
@@ -182,7 +179,7 @@ public class TTUtil {
 					usageCounter++;
 				}
 			}
-			depthReplaceKeys[index] = (int) key;
+			depthReplaceKeys[index] = key;
 			depthReplaceValues[index] = value;
 		}
 	}

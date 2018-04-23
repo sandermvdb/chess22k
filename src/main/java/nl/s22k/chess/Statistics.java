@@ -15,7 +15,7 @@ public class Statistics {
 
 	public static boolean panic = false;
 	public static long startTime = System.nanoTime();
-	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes, qNodes;
+	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes, qNodes, evaluatedInCheck;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
 	public static int depth, maxDepth;
@@ -23,8 +23,8 @@ public class Statistics {
 	public static int epCount, castleCount, promotionCount;
 	public static long pawnEvalCacheHits, pawnEvalCacheMisses;
 	public static int materialCacheMisses, materialCacheHits;
-	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveKiller1, bestMoveKiller2, bestMoveOther, bestMovePromotion, bestMoveWinningCapture,
-			bestMoveLosingCapture;
+	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveKiller1, bestMoveKiller2, bestMoveKillerEvasive1, bestMoveKillerEvasive2,
+			bestMoveOther, bestMovePromotion, bestMoveWinningCapture, bestMoveLosingCapture;
 	public static int repetitions, repetitionTests;
 	public static int checkExtensions, endGameExtensions;
 	public static int nullMoveHit, nullMoveMiss;
@@ -39,6 +39,7 @@ public class Statistics {
 	public static final int[] futile = new int[10];
 	public static final int[] staticNullMoved = new int[10];
 	public static final int[] lmped = new int[10];
+	public static final int[] failHigh = new int[64];
 	public static int drawishByMaterialCount;
 
 	public static long calculateNps() {
@@ -50,7 +51,9 @@ public class Statistics {
 		Arrays.fill(futile, 0);
 		Arrays.fill(staticNullMoved, 0);
 		Arrays.fill(lmped, 0);
+		Arrays.fill(failHigh, 0);
 
+		evaluatedInCheck = 0;
 		qNodes = 0;
 		pvNodes = 1; // so we never divide by zero
 		cutNodes = 0;
@@ -87,6 +90,8 @@ public class Statistics {
 		bestMoveTTUpper = 0;
 		bestMoveKiller1 = 0;
 		bestMoveKiller2 = 0;
+		bestMoveKillerEvasive1 = 0;
+		bestMoveKillerEvasive2 = 0;
 		bestMoveOther = 0;
 		bestMovePromotion = 0;
 		bestMoveWinningCapture = 0;
@@ -114,10 +119,14 @@ public class Statistics {
 		System.out.println("AB-nodes      " + abNodes);
 		System.out.println("PV-nodes      " + pvNodes + " = 1/" + (pvNodes + cutNodes + allNodes) / pvNodes);
 		System.out.println("Cut-nodes     " + cutNodes);
+		printPercentage("Cut 1         ", failHigh[0], cutNodes - failHigh[0]);
+		printPercentage("Cut 2         ", failHigh[1], cutNodes - failHigh[1]);
+		printPercentage("Cut 3         ", failHigh[2], cutNodes - failHigh[2]);
 		System.out.println("All-nodes     " + allNodes);
 		System.out.println("Q-nodes       " + qNodes);
 		System.out.println("See-nodes     " + seeNodes);
 		System.out.println("Evaluated     " + evalNodes);
+		System.out.println("Eval in check " + evaluatedInCheck);
 		System.out.println("Moves         " + moveCount + "/" + movesGenerated);
 		System.out.println("IID           " + iidCount);
 		System.out.println("Panic         " + panic);
@@ -138,12 +147,14 @@ public class Statistics {
 		System.out.println("TT            " + bestMoveTT);
 		System.out.println("TT-upper      " + bestMoveTTUpper);
 		System.out.println("TT-lower      " + bestMoveTTLower);
-		System.out.println("Promo         " + bestMovePromotion);
 		System.out.println("Win-cap       " + bestMoveWinningCapture);
+		System.out.println("Los-cap       " + bestMoveLosingCapture);
+		System.out.println("Promo         " + bestMovePromotion);
 		System.out.println("Killer1       " + bestMoveKiller1);
 		System.out.println("Killer2       " + bestMoveKiller2);
+		System.out.println("Killer1 evasi " + bestMoveKillerEvasive1);
+		System.out.println("Killer2 evasi " + bestMoveKillerEvasive2);
 		System.out.println("Other         " + bestMoveOther);
-		System.out.println("Los-cap       " + bestMoveLosingCapture);
 
 		System.out.println("### Outcome #####");
 		System.out.println("Checkmate     " + mateCount);

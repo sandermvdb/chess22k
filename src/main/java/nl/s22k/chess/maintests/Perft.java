@@ -83,7 +83,7 @@ public class Perft {
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB(fen);
 		assertEquals(4085603, perft(chessBoard, 4));
 
-		// chessBoard = ChessBoardUtil.getNewCB(fen);
+		// ChessBoard chessBoard = ChessBoardUtil.getNewCB(fen);
 		// System.out.println(perft(chessBoard, 5) + " 193690690");
 
 	}
@@ -95,15 +95,15 @@ public class Perft {
 
 		// Illegal ep move #1
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1");
-		assertEquals(1134888, perft(chessBoard, 6));
+		assertEquals(20757544, perft(chessBoard, 7));
 
 		// Illegal ep move #2
 		chessBoard = ChessBoardUtil.getNewCB("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1");
-		assertEquals(1015133, perft(chessBoard, 6));
+		assertEquals(14047573, perft(chessBoard, 7));
 
 		// EP Capture Checks Opponent
 		chessBoard = ChessBoardUtil.getNewCB("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1");
-		assertEquals(206379, perft(chessBoard, 5));
+		assertEquals(21190412, perft(chessBoard, 7));
 	}
 
 	@Test
@@ -135,15 +135,15 @@ public class Perft {
 
 		// Promote out of Check
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1");
-		assertEquals(3821001, perft(chessBoard, 6));
+		assertEquals(60651209, perft(chessBoard, 7));
 
 		// Promote to give check
 		chessBoard = ChessBoardUtil.getNewCB("4k3/1P6/8/8/8/8/K7/8 w - - 0 1");
-		assertEquals(217342, perft(chessBoard, 6));
+		assertEquals(3742283, perft(chessBoard, 7));
 
 		// Under Promote to give check
 		chessBoard = ChessBoardUtil.getNewCB("8/P1k5/K7/8/8/8/8/8 w - - 0 1");
-		assertEquals(92683, perft(chessBoard, 6));
+		assertEquals(1555980, perft(chessBoard, 7));
 	}
 
 	@Test
@@ -153,19 +153,19 @@ public class Perft {
 
 		// Discovered Check
 		ChessBoard chessBoard = ChessBoardUtil.getNewCB("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1");
-		assertEquals(1004658, perft(chessBoard, 5));
+		assertEquals(6334638, perft(chessBoard, 6));
 
 		// Self Stalemate
 		chessBoard = ChessBoardUtil.getNewCB("K1k5/8/P7/8/8/8/8/8 w - - 0 1");
-		assertEquals(382, perft(chessBoard, 5));
+		assertEquals(15453, perft(chessBoard, 7));
 
 		// Stalemate & Checkmate
 		chessBoard = ChessBoardUtil.getNewCB("8/k1P5/8/1K6/8/8/8/8 w - - 0 1");
-		assertEquals(567584, perft(chessBoard, 7));
+		assertEquals(2518905, perft(chessBoard, 8));
 
 		// Stalemate & Checkmate
 		chessBoard = ChessBoardUtil.getNewCB("8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1");
-		assertEquals(23527, perft(chessBoard, 4));
+		assertEquals(3114998, perft(chessBoard, 6));
 	}
 
 }

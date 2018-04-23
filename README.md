@@ -3,7 +3,7 @@
 A chessengine build in Java that uses the UCI protocol to communicate with graphical interfaces.
 Should be used with a 64 bit JRE for optimal performance.
 The binaries are build using Java 9 and are not compatible with older Java versions.
-Score is about 2950 elo.
+Score is about 3000 elo.
 
 ## Features
 - (magic) bitboards
@@ -25,7 +25,7 @@ Score is about 2950 elo.
 ## Future
 - multi-threading
 - singular extensions
-- 3000 elo!
+- improved king safety
 
 
 _"Simplicity is the soul of efficiency"_       - Austin Freeman -

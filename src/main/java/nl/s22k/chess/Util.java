@@ -44,9 +44,9 @@ public class Util {
 		long k1 = 0x5555555555555555L;
 		long k2 = 0x3333333333333333L;
 		long k4 = 0x0f0f0f0f0f0f0f0fL;
-		bitboard = ((bitboard >> 1) & k1) | ((bitboard & k1) << 1);
-		bitboard = ((bitboard >> 2) & k2) | ((bitboard & k2) << 2);
-		bitboard = ((bitboard >> 4) & k4) | ((bitboard & k4) << 4);
+		bitboard = ((bitboard >>> 1) & k1) | ((bitboard & k1) << 1);
+		bitboard = ((bitboard >>> 2) & k2) | ((bitboard & k2) << 2);
+		bitboard = ((bitboard >>> 4) & k4) | ((bitboard & k4) << 4);
 		return bitboard;
 	}
 
@@ -59,7 +59,7 @@ public class Util {
 	}
 
 	public static int getDistance(final int index1, final int index2) {
-		return Math.max(Math.abs(index1 / 8 - index2 / 8), Math.abs((index1 & 7) - (index2 & 7)));
+		return Math.max(Math.abs((index1 >>> 3) - (index2 >>> 3)), Math.abs((index1 & 7) - (index2 & 7)));
 	}
 
 }

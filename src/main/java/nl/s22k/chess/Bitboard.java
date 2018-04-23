@@ -95,6 +95,8 @@ public class Bitboard {
 	public static final long G1_H1 = G1 | H1;
 	public static final long B3_C2 = B3 | C2;
 	public static final long G3_F2 = G3 | F2;
+	public static final long D4_E5 = D4 | E5;
+	public static final long E4_D5 = E4 | D5;
 	public static final long B6_C7 = B6 | C7;
 	public static final long G6_F7 = G6 | F7;
 	public static final long A8_B8 = A8 | B8;
@@ -136,7 +138,10 @@ public class Bitboard {
 	public static final long RANK_78 = RANK_7 | RANK_8;
 	public static final long RANK_234 = RANK_2 | RANK_3 | RANK_4;
 	public static final long RANK_567 = RANK_5 | RANK_6 | RANK_7;
+	public static final long RANK_23456 = RANK_2 | RANK_3 | RANK_4 | RANK_5 | RANK_6;
+	public static final long RANK_34567 = RANK_3 | RANK_4 | RANK_5 | RANK_6 | RANK_7;
 	public static final long RANK_PROMOTION[] = { RANK_7, RANK_2 };
+	public static final long RANK_NON_PROMOTION[] = { ~RANK_PROMOTION[0], ~RANK_PROMOTION[1] };
 
 	// files
 	public static final long FILE_A = A1 | A2 | A3 | A4 | A5 | A6 | A7 | A8;
@@ -164,7 +169,6 @@ public class Bitboard {
 
 	public static final long WHITE_SPACE_ZONE = (RANK_2 | RANK_3 | RANK_4) & (FILE_C | FILE_D | FILE_E | FILE_F);
 	public static final long BLACK_SPACE_ZONE = (RANK_7 | RANK_6 | RANK_5) & (FILE_C | FILE_D | FILE_E | FILE_F);
-	public static final long[] PAWN_2_MOVE_RANK = { RANK_2, RANK_7 };
 
 	public static long getWhitePawnAttacks(final long pawns) {
 		return pawns << 9 & Bitboard.NOT_FILE_H | pawns << 7 & Bitboard.NOT_FILE_A;
@@ -183,9 +187,9 @@ public class Bitboard {
 	 */
 	public static int manhattanCenterDistance(int sq) {
 		int file = sq & 7;
-		int rank = sq >> 3;
-		file ^= (file - 4) >> 8;
-		rank ^= (rank - 4) >> 8;
+		int rank = sq >>> 3;
+		file ^= (file - 4) >>> 8;
+		rank ^= (rank - 4) >>> 8;
 		return (file + rank) & 7;
 	}
 

@@ -135,7 +135,7 @@ public class MainEngine {
 				if (tokens[0].equals("uci")) {
 					System.out.println("id name chess22k " + getVersion());
 					System.out.println("id author Sander MvdB");
-					System.out.println("option name Hash type spin default 128 min 1 max 1024");
+					System.out.println("option name Hash type spin default 128 min 1 max 4096");
 					System.out.println("uciok");
 				} else if (tokens[0].equals("isready")) {
 					TTUtil.init(false);
@@ -215,6 +215,8 @@ public class MainEngine {
 			case 256:
 			case 512:
 			case 1024:
+			case 2048:
+			case 4096:
 				int power2Entries = (int) (Math.log(value) / Math.log(2) + 16);
 				if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
 					EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
@@ -222,7 +224,7 @@ public class MainEngine {
 				}
 				break;
 			default:
-				System.out.println("Hash-size must be between 1-1024 and a multiple of 2. Setting default size of 128mb");
+				System.out.println("Hash-size must be between 1-4096 and a multiple of 2. Setting default size of 128mb");
 				power2Entries = (int) (Math.log(128) / Math.log(2) + 16);
 				if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
 					EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
@@ -311,6 +313,7 @@ public class MainEngine {
 		System.out.println("              Pawn : " + EvalUtil.getPawnScores(cb));
 		System.out.println("    Pawn-passed-eg : " + PassedPawnEval.calculatePassedPawnScores(cb));
 		System.out.println("       King-safety : " + KingSafetyEval.calculateKingSafetyScores(cb));
+		System.out.println("       Pawn shield : " + EvalUtil.calculatePawnShieldBonus(cb));
 		System.out.println("           Threats : " + EvalUtil.calculateThreats(cb));
 		System.out.println("             Other : " + EvalUtil.calculateOthers(cb));
 		System.out.println("             Space : " + EvalUtil.calculateSpace(cb));

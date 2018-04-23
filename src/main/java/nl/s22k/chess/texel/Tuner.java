@@ -39,7 +39,7 @@ public class Tuner {
 
 		tuningObjects.add(new TuningObject(EvalConstants.INDIVIDUAL_SCORES, 2, "Individual score", false, false));
 		tuningObjects.add(new TuningObject(EvalConstants.THREAT_SCORES, 2, "Threat score", false, false));
-		//
+
 		// tuningObjects.add(new TuningObject(EvalConstants.MATERIAL_SCORES, 5, "Material", false, false, 0, 1, 6));
 		// tuningObjects.add(new TuningObject(EvalConstants.PINNED_PIECE_SCORES, 4, "Pinned pieces", false, false, 0));
 		// tuningObjects.add(new TuningObject(EvalConstants.DISCOVERED_PIECE_SCORES, 4, "Disco pieces", false, false,
@@ -51,26 +51,27 @@ public class Tuner {
 		// tuningObjects.add(new TuningObject(EvalConstants.HANGING_PIECES_2, 4, "Hanging pieces 2", false, false, 0));
 		// tuningObjects.add(new TuningObject(EvalConstants.ROOK_TRAPPED, 4, "Rook trapped", false, false));
 		// tuningObjects.add(new TuningObject(EvalConstants.IMBALANCE, 5, 100, "Imbalance ", false, false, 0, 1, 2));
+		// tuningObjects.add(new TuningObject(EvalConstants.NO_MINOR_DEFENDERS, 5, "No minor defenders", false, false,
+		// 0));
+		// tuningObjects.add(new TuningObject(EvalConstants.SAME_COLORED_BISHOP_PAWN, 4, "Bishop pawn", false, false));
 		//
 		// /* pawns */
-		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_SCORE_EG, 5, "Passed-p eg", false, false, 0,
-		// 7));
+		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_SCORE, 5, "Passed-p", false, false, 0));
+		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_KING, 1, "Passed-p king", false, false));
 		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_MULTIPLIERS, 1, "Passed-p multiplier", false,
 		// false));
 		// tuningObjects.add(new TuningObject(EvalConstants.PASSED_PAWN_CANDIDATE, 5, "Passed-p candidates", false,
-		// false, 0, 6, 7));
-		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[0], 4, "Pawn shield 0", false, false, 0,
-		// 7));
-		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[1], 4, "Pawn shield 1", false, false, 0,
-		// 7));
-		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[2], 4, "Pawn shield 2", false, false, 0,
-		// 7));
+		// false, 0));
+		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[0], 4, "Pawn shield 0", false, false, 0));
+		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[1], 4, "Pawn shield 1", false, false, 0));
+		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[2], 4, "Pawn shield 2", false, false, 0));
+		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_SHIELD_BONUS[3], 4, "Pawn shield 3", false, false, 0));
 		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_BLOCKAGE, 4, "Pawn blockage", false, false, 0, 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_CONNECTED, 4, "Pawn connected", false, false, 0, 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.PAWN_NEIGHBOUR, 4, "Pawn neighbour", false, false, 0, 1));
 		//
 		// /* king-safety */
-		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_SCORES, 10, 1500, "KS", false, false));
+		// // tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_SCORES, 10, 1500, "KS", false, false));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_QUEEN_TROPISM, 1, "KS queen", false, true, 0,
 		// 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_COUNTER_RANKS, 1, "KS counter ranks", false,
@@ -78,6 +79,7 @@ public class Tuner {
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_CHECK, 1, "KS check", false, true, 0, 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_CHECK_QUEEN, 1, "KS check queen", false, true,
 		// 0, 1, 2, 3));
+		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_UCHECK, 1, "KS ucheck", false, true, 0, 1));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_NO_FRIENDS, 1, "KS no friends nearby", false,
 		// false));
 		// tuningObjects.add(new TuningObject(EvalConstants.KING_SAFETY_ATTACKS, 1, "KS attacks", false, false));
@@ -98,31 +100,26 @@ public class Tuner {
 		// tuningObjects.add(new TuningObject(EvalConstants.MOBILITY_KING_EG, 4, "Mobility king eg", true, false));
 		//
 		// /* psqt */
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.PAWN], 5, "PSQT pawn", true,
-		// 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60,
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.PAWN], 5, "PSQT p", true, 0,
+		// 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60,
 		// 61, 62, 63));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.PAWN], 5, "PSQT pawn-eg",
-		// true, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58,
-		// 59, 60, 61, 62, 63));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.NIGHT], 5, "PSQT knight",
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.PAWN], 5, "PSQT p eg",
+		// true, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59,
+		// 60, 61, 62, 63));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.NIGHT], 5, "PSQT n", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.NIGHT], 5, "PSQT n eg",
 		// true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.NIGHT], 5,
-		// "PSQT-knight-eg", true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.BISHOP], 5, "PSQT bishop",
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.BISHOP], 5, "PSQT b", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.BISHOP], 5, "PSQT b eg",
 		// true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.BISHOP], 5,
-		// "PSQT-bishop-eg", true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.ROOK], 5, "PSQT rook",
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.ROOK], 5, "PSQT r", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.ROOK], 5, "PSQT r eg",
 		// true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.ROOK], 5, "PSQT rook-eg",
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.QUEEN], 5, "PSQT q", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.QUEEN], 5, "PSQT q eg",
 		// true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.QUEEN], 5, "PSQT queen",
-		// true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.QUEEN], 5,
-		// "PSQT-queen-eg", true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.KING], 5, "PSQT king",
-		// true));
-		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.KING], 5, "PSQT king eg",
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_SCORES[ChessConstants.KING], 5, "PSQT k", true));
+		// tuningObjects.add(new PsqtTuningObject(EvalConstants.PSQT_EG_SCORES[ChessConstants.KING], 5, "PSQT k eg",
 		// true));
 
 		return tuningObjects;
@@ -255,7 +252,7 @@ public class Tuner {
 						newError = calculateErrorMultiThreaded();
 						if (newError < bestError) {
 							bestError = newError;
-							System.out.println(String.format("%s: %f", tuningObject, bestError));
+							System.out.println(String.format("%f - %s", bestError, tuningObject));
 							improved = true;
 						} else {
 							tuningObject.addStep(i);
@@ -265,7 +262,7 @@ public class Tuner {
 						double newError = calculateErrorMultiThreaded();
 						if (newError < bestError) {
 							bestError = newError;
-							System.out.println(String.format("%s: %f", tuningObject, bestError));
+							System.out.println(String.format("%f - %s", bestError, tuningObject));
 							improved = true;
 						} else {
 							tuningObject.removeStep(i);
@@ -276,7 +273,7 @@ public class Tuner {
 							newError = calculateErrorMultiThreaded();
 							if (newError < bestError) {
 								bestError = newError;
-								System.out.println(String.format("%s: %f", tuningObject, bestError));
+								System.out.println(String.format("%f - %s", bestError, tuningObject));
 								improved = true;
 							} else {
 								tuningObject.addStep(i);

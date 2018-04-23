@@ -1,3 +1,15 @@
+1.9 - 23-04-2018 - 3000 elo
+- fixed some crashes
+- improved sorting efficiency
+- calculation instead of lookups for pawn move generation
+- simplified SEE
+- fixed movetime UCI command
+- evaluation
+  - improved passed-pawn
+  - long ranged bishop
+  - bad bishop
+
+
 1.8 - 04-03-2018 - 2950 elo
 - generation of pseudo-legal moves (no elo gain but cleaner code)
 - refactored move generation class

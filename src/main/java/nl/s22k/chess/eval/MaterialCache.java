@@ -24,6 +24,11 @@ public class MaterialCache {
 	}
 
 	public static boolean hasScore(final long key) {
+
+		if (!EngineConstants.ENABLE_MATERIAL_CACHE) {
+			return false;
+		}
+
 		if (!Statistics.ENABLED) {
 			return keys[getIndex(key)] == key;
 		}
@@ -42,9 +47,7 @@ public class MaterialCache {
 	}
 
 	public static void addValue(final long key, final int score) {
-		if (!EngineConstants.ENABLE_MATERIAL_CACHE) {
-			return;
-		}
+
 		if (EngineConstants.ASSERT) {
 			assertTrue(score <= Util.SHORT_MAX);
 			assertTrue(score >= Util.SHORT_MIN);

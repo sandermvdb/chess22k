@@ -14,6 +14,7 @@ import nl.s22k.chess.engine.MainEngine;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.MaterialUtil;
+import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveList;
 import nl.s22k.chess.move.MoveUtil;
@@ -207,7 +208,6 @@ public final class NegamaxUtil {
 				MoveList.sort();
 				break;
 			case PHASE_KILLER_1:
-				// TODO skip killer when in-check?
 				killer1Move = HeuristicUtil.getKiller1(ply);
 				if (killer1Move != 0 && killer1Move != ttMove && cb.isValidQuietMove(killer1Move)) {
 					MoveList.addMove(killer1Move);
@@ -247,7 +247,8 @@ public final class NegamaxUtil {
 				}
 
 				// pruning allowed?
-				if (!isPv && cb.checkingPieces == 0 && MoveUtil.isQuiet(move) && movesPerformed > 0) {
+				if (!isPv && cb.checkingPieces == 0 && MoveUtil.isQuiet(move) && movesPerformed > 0 && moveScore < 100) {
+
 					/* late move pruning */
 					if (EngineConstants.ENABLE_LMP) {
 						if (depth <= 4 && movesPerformed >= depth * 3 + 3) {
@@ -260,7 +261,7 @@ public final class NegamaxUtil {
 
 					/* futility pruning */
 					if (EngineConstants.ENABLE_FUTILITY_PRUNING) {
-						if (moveScore < 100 && !MoveUtil.isPawnPush78(move)) {
+						if (!MoveUtil.isPawnPush78(move)) {
 							if (depth < FUTILITY_MARGIN.length) {
 								if (eval == Util.SHORT_MIN) {
 									eval = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.getScore(cb);
@@ -301,17 +302,18 @@ public final class NegamaxUtil {
 					}
 
 					// TODO create constant for LMR_DEPTH
-					if (EngineConstants.ENABLE_LMR && moveScore < EngineConstants.LMR_HISTORY && movesPerformed > EngineConstants.LMR_MOVE_COUNTER && depth > 3
-							&& MoveUtil.isQuiet(move) && cb.checkingPieces == 0 && !wasInCheck && !MoveUtil.isPawnPush678(move, cb.colorToMoveInverse)) {
+					if (EngineConstants.ENABLE_LMR && moveScore < 40 && movesPerformed > 2 && depth > 3 && MoveUtil.isQuiet(move) && cb.checkingPieces == 0
+							&& !wasInCheck && !MoveUtil.isPawnPush678(move, cb.colorToMoveInverse)) {
 						/* LMR */
 						final int reduction = move != killer1Move && moveScore < 20 && movesPerformed > 6 ? Math.min(depth - 1, 2 + depth / 6) : 2;
 						score = -calculateBestMove(cb, ply + 1, depth - reduction, -alpha - 1, -alpha, 0);
-						if (Statistics.ENABLED) {
-							if (score > alpha) {
+						if (score > alpha) {
+							score = -calculateBestMove(cb, ply + 1, depth - 1, -alpha - 1, -alpha, 0);
+							if (Statistics.ENABLED) {
 								Statistics.lmrMoveMiss++;
-							} else {
-								Statistics.lmrMoveHit++;
-							}
+							} 
+						} else if (Statistics.ENABLED) {
+							Statistics.lmrMoveHit++;
 						}
 					} else if (EngineConstants.ENABLE_PVS && movesPerformed > 1) {
 						/* PVS */
@@ -324,6 +326,7 @@ public final class NegamaxUtil {
 							}
 						}
 					}
+					// TODO score < beta?
 					if (score > alpha) {
 						score = -calculateBestMove(cb, ply + 1, depth - 1, -beta, -alpha, 0);
 					}
@@ -339,6 +342,10 @@ public final class NegamaxUtil {
 				}
 				alpha = Math.max(alpha, score);
 				if (alpha >= beta) {
+
+					if (Statistics.ENABLED) {
+						Statistics.failHigh[Math.min(movesPerformed - 1, Statistics.failHigh.length - 1)]++;
+					}
 
 					/* killer and history */
 					if (MoveUtil.isQuiet(move)) {
@@ -408,15 +415,19 @@ public final class NegamaxUtil {
 				Statistics.bestMovePromotion++;
 			} else if (MoveUtil.getAttackedPieceIndex(bestMove) != 0) {
 				// slow but disabled when statistics are disabled
-				// if (SEEUtil.getSeeCaptureScore(cb, bestMove) < 0) {
-				// Statistics.bestMoveLosingCapture++;
-				// } else {
-				// Statistics.bestMoveWinningCapture++;
-				// }
-			} else if (bestMove == killer1Move) {
+				if (SEEUtil.getSeeCaptureScore(cb, bestMove) < 0) {
+					Statistics.bestMoveLosingCapture++;
+				} else {
+					Statistics.bestMoveWinningCapture++;
+				}
+			} else if (bestMove == killer1Move && cb.checkingPieces == 0) {
 				Statistics.bestMoveKiller1++;
-			} else if (bestMove == killer2Move) {
+			} else if (bestMove == killer2Move && cb.checkingPieces == 0) {
 				Statistics.bestMoveKiller2++;
+			} else if (bestMove == killer1Move && cb.checkingPieces != 0) {
+				Statistics.bestMoveKillerEvasive1++;
+			} else if (bestMove == killer2Move && cb.checkingPieces != 0) {
+				Statistics.bestMoveKillerEvasive2++;
 			} else {
 				Statistics.bestMoveOther++;
 			}
@@ -427,8 +438,7 @@ public final class NegamaxUtil {
 				final int ttScore = TTUtil.getScore(ttValue, ply);
 				if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_EXACT && flag == TTUtil.FLAG_EXACT) {
 					if (ttScore != bestScore) {
-						System.out.println(String.format("Error: TT-score %s, bestScore %s", ttScore, alpha));
-						TTUtil.getScore(ttValue, ply);
+						throw new RuntimeException(String.format("Error: TT-score %s, bestScore %s", ttScore, bestScore));
 					}
 				}
 			}

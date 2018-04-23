@@ -61,30 +61,45 @@ public class PassedPawnEval {
 
 	private static int getPassedPawnScore(final ChessBoard cb, final int index, final int color) {
 
-		int score = EvalConstants.PASSED_PAWN_SCORE_EG[(7 * color) + ChessConstants.COLOR_FACTOR[color] * index / 8];
+		int score = EvalConstants.PASSED_PAWN_SCORE[(7 * color) + ChessConstants.COLOR_FACTOR[color] * index / 8];
+		final long maskNextIndex = Util.POWER_LOOKUP[index + ChessConstants.COLOR_FACTOR_8[color]];
 
 		// is piece blocked?
-		if ((cb.allPieces & Util.POWER_LOOKUP[index + ChessConstants.COLOR_FACTOR_8[color]]) != 0) {
+		if ((cb.allPieces & maskNextIndex) != 0) {
 			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[0];
 		}
 
-		// check if next squared is attacked
-		if ((cb.attacksAll[1 - color] & Util.POWER_LOOKUP[index + ChessConstants.COLOR_FACTOR_8[color]]) == 0) {
+		// is next squared attacked?
+		if ((cb.attacksAll[1 - color] & maskNextIndex) == 0) {
+			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[1];
+		}
+
+		// is next squared defended?
+		if ((cb.attacksAll[color] & maskNextIndex) != 0) {
+			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[3];
+		}
+
+		// is enemy king in front?
+		if (ChessConstants.COLOR_FACTOR[color] * cb.kingIndex[1 - color] > ChessConstants.COLOR_FACTOR[color] * index
+				&& (cb.kingIndex[1 - color] & 7) == (index & 7)) {
 			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[2];
 		}
 
-		// check if enemy king is in front
-		if (ChessConstants.COLOR_FACTOR[color] * cb.kingIndex[1 - color] > ChessConstants.COLOR_FACTOR[color] * index
-				&& (cb.kingIndex[1 - color] & 7) == (index & 7)) {
-			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[3];
+		// under attack?
+		if (cb.colorToMove != color && (cb.attacksAll[1 - color] & Util.POWER_LOOKUP[index]) != 0) {
+			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[4];
 		}
+
+		// king tropism
+		score *= 10f / EvalConstants.PASSED_PAWN_KING[Util.getDistance(cb.kingIndex[color], index)];
+		score *= 10f / EvalConstants.PASSED_PAWN_KING[8 - Util.getDistance(cb.kingIndex[1 - color], index)];
 
 		return score;
 	}
 
 	private static int getBlackPromotionDistance(final ChessBoard cb, final int index) {
 		// check if it cannot be stopped
-		int promotionDistance = index / 8;
+		int promotionDistance = index >>> 3;
 		if (promotionDistance == 1 && cb.colorToMove == BLACK) {
 			if ((Util.POWER_LOOKUP[index - 8] & (cb.attacksAll[WHITE] | cb.allPieces)) == 0) {
 				if ((Util.POWER_LOOKUP[index] & cb.attacksAll[WHITE]) == 0) {
@@ -109,7 +124,7 @@ public class PassedPawnEval {
 			}
 
 			// check distance of enemy king to promotion square
-			if (promotionDistance < Math.max(cb.kingIndex[WHITE] / 8, Math.abs((index & 7) - (cb.kingIndex[WHITE] & 7)))) {
+			if (promotionDistance < Math.max(cb.kingIndex[WHITE] >>> 3, Math.abs((index & 7) - (cb.kingIndex[WHITE] & 7)))) {
 				if (!MaterialUtil.hasWhiteMajorPieces(cb.materialKey)) {
 					return promotionDistance;
 				}
@@ -120,7 +135,7 @@ public class PassedPawnEval {
 					}
 				} else {
 					// can bishop stop the passed pawn?
-					if (index / 8 == 1) {
+					if (index >>> 3 == 1) {
 						if (((Util.POWER_LOOKUP[index] & Bitboard.WHITE_SQUARES) == 0) == ((cb.pieces[WHITE][BISHOP] & Bitboard.WHITE_SQUARES) == 0)) {
 							if ((cb.attacksAll[WHITE] & Util.POWER_LOOKUP[index]) == 0) {
 								return promotionDistance;
@@ -172,7 +187,7 @@ public class PassedPawnEval {
 					}
 				} else {
 					// can bishop stop the passed pawn?
-					if (index / 8 == 6) { // rank 7
+					if (index >>> 3 == 6) { // rank 7
 						if (((Util.POWER_LOOKUP[index] & Bitboard.WHITE_SQUARES) == 0) == ((cb.pieces[BLACK][BISHOP] & Bitboard.WHITE_SQUARES) == 0)) {
 							// other color than promotion square
 							if ((cb.attacksAll[BLACK] & Util.POWER_LOOKUP[index]) == 0) {

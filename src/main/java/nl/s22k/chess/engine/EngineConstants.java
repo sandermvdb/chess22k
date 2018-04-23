@@ -5,14 +5,13 @@ public class EngineConstants {
 	//@formatter:off
 	
 	public static final int MAX_PLIES 					= 64;
-	public static final int PLIES_EXTENDED 				= 28;
 	public static final int MAX_MOVES 					= 768;
 	public static final boolean GENERATE_BR_PROMOTIONS 	= false;
 
 	public static final boolean ASSERT 					= false;
 
 	public static final boolean TEST_EVAL_VALUES 		= false;
-	public static final boolean TEST_PAWN_EVAL_CACHE 	= false;
+	public static final boolean TEST_EVAL_CACHES	 	= false;
 	public static final boolean TEST_TT_VALUES 			= false;
 
 	public static boolean isTuningSession 				= false;
@@ -42,8 +41,6 @@ public class EngineConstants {
 	public static final boolean ENABLE_NULL_MOVE 		= true;
 	public static final boolean ENABLE_LMR 				= true;
 	public static final boolean ENABLE_LMP 				= true;
-	public static final int LMR_MOVE_COUNTER 			= 2;
-	public static final int LMR_HISTORY 				= 40;
 	public static final boolean ENABLE_Q_PRUNE_BAD_CAPTURES = true;
 	public static final boolean ENABLE_PVS 				= true;
 	public static final boolean ENABLE_MATE_DISTANCE_PRUNING = true;
@@ -55,9 +52,9 @@ public class EngineConstants {
 	public static final boolean ENABLE_EVAL_CACHE		= true;
 	public static final int POWER_2_EVAL_ENTRIES 		= 14;
 	public static boolean ENABLE_MATERIAL_CACHE			= true; //TODO make this variable final
-	public static final int POWER_2_MATERIAL_ENTRIES 	= 10;
+	public static final int POWER_2_MATERIAL_ENTRIES 	= 11;
 	public static boolean ENABLE_PAWN_EVAL_CACHE 		= true;	//TODO make this variable final
-	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 12;
+	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 13;
 	public static final boolean ENABLE_EVAL_MOBILITY 	= true;
 	public static final boolean ENABLE_EVAL_MOBILITY_KING_DEFENSE = true;
 	public static final boolean ENABLE_INCREMENTAL_PSQT = true;

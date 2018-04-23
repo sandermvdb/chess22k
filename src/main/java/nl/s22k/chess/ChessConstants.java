@@ -24,7 +24,7 @@ public class ChessConstants {
 	public static final int[] COLOR_FACTOR_8 = { 8, -8 };
 	public static final int[] COLOR_FACTOR_16 = { 16, -16 };
 
-	public static final long[][] KING_SAFETY_MASK = new long[2][64];
+	public static final long[][] KING_AREA = new long[2][64];
 	public static final long[][] KING_PAWN_SHIELD_KINGSIDE_MASK = new long[2][8];
 	public static final long[][] KING_PAWN_SHIELD_QUEENSIDE_MASK = new long[2][8];
 
@@ -176,7 +176,7 @@ public class ChessConstants {
 		// fill passed-pawn-masks
 		for (int i = 0; i < 64; i++) {
 			PASSED_PAWN_MASKS[WHITE][i] = ((Bitboard.FILES[i & 7] | Bitboard.FILES_ADJACENT[i & 7]) & ~Bitboard.RANKS[i / 8]) >>> i << i;
-			PASSED_PAWN_MASKS[BLACK][i] = ((Bitboard.FILES[i & 7] | Bitboard.FILES_ADJACENT[i & 7]) & ~Bitboard.RANKS[i / 8]) << (63 - i) >> (63 - i);
+			PASSED_PAWN_MASKS[BLACK][i] = ((Bitboard.FILES[i & 7] | Bitboard.FILES_ADJACENT[i & 7]) & ~Bitboard.RANKS[i / 8]) << (63 - i) >>> (63 - i);
 		}
 	}
 
@@ -190,22 +190,15 @@ public class ChessConstants {
 		//
 		for (int i = 0; i < 64; i++) {
 			// NEXT
-			KING_SAFETY_MASK[WHITE][i] |= (StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8]) | Util.POWER_LOOKUP[i];
-			KING_SAFETY_MASK[BLACK][i] |= (StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8]) | Util.POWER_LOOKUP[i];
+			KING_AREA[WHITE][i] |= StaticMoves.KING_MOVES[i] | Util.POWER_LOOKUP[i];
+			KING_AREA[BLACK][i] |= StaticMoves.KING_MOVES[i] | Util.POWER_LOOKUP[i];
 
-			if (i > 7) {
-				KING_SAFETY_MASK[WHITE][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
-				KING_SAFETY_MASK[BLACK][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 - 1];
-				if (i > 15) {
-					KING_SAFETY_MASK[BLACK][i] |= StaticMoves.KING_MOVES[i] >>> 8 & Bitboard.RANKS[i / 8 - 2];
-				}
+			if (i > 15) {
+				KING_AREA[BLACK][i] |= StaticMoves.KING_MOVES[i] >>> 8;
 			}
-			if (i < 56) {
-				KING_SAFETY_MASK[BLACK][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
-				KING_SAFETY_MASK[WHITE][i] |= StaticMoves.KING_MOVES[i] & Bitboard.RANKS[i / 8 + 1];
-				if (i < 48) {
-					KING_SAFETY_MASK[WHITE][i] |= StaticMoves.KING_MOVES[i] << 8 & Bitboard.RANKS[i / 8 + 2];
-				}
+
+			if (i < 48) {
+				KING_AREA[WHITE][i] |= StaticMoves.KING_MOVES[i] << 8;
 			}
 		}
 
@@ -213,9 +206,33 @@ public class ChessConstants {
 		for (int i = 0; i < 64; i++) {
 			for (int color = 0; color < 2; color++) {
 				if (i % 8 == 0) {
-					KING_SAFETY_MASK[color][i] |= KING_SAFETY_MASK[color][i + 1];
+					KING_AREA[color][i] |= KING_AREA[color][i + 1];
 				} else if (i % 8 == 7) {
-					KING_SAFETY_MASK[color][i] |= KING_SAFETY_MASK[color][i - 1];
+					KING_AREA[color][i] |= KING_AREA[color][i - 1];
+				}
+			}
+		}
+
+		// always 4 long
+		for (int i = 0; i < 64; i++) {
+			if (i < 8) {
+				KING_AREA[WHITE][i] = KING_AREA[WHITE][i + 8];
+			} else if (i > 47) {
+				if (i > 55) {
+					KING_AREA[WHITE][i] = KING_AREA[WHITE][i - 16];
+				} else {
+					KING_AREA[WHITE][i] = KING_AREA[WHITE][i - 8];
+				}
+			}
+		}
+		for (int i = 0; i < 64; i++) {
+			if (i > 55) {
+				KING_AREA[BLACK][i] = KING_AREA[BLACK][i - 8];
+			} else if (i < 16) {
+				if (i < 8) {
+					KING_AREA[BLACK][i] = KING_AREA[BLACK][i + 16];
+				} else {
+					KING_AREA[BLACK][i] = KING_AREA[BLACK][i + 8];
 				}
 			}
 		}
@@ -225,14 +242,14 @@ public class ChessConstants {
 		// king-pawn-shield masks
 		for (int i = 1; i < 64; i += 8) {
 			// king-side
-			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_MASK[WHITE][i];
-			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_MASK[BLACK][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_AREA[WHITE][i];
+			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_AREA[BLACK][i];
 		}
 
 		for (int i = 6; i < 64; i += 8) {
 			// queen-side
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_SAFETY_MASK[WHITE][i];
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_SAFETY_MASK[BLACK][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_AREA[WHITE][i];
+			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_AREA[BLACK][i];
 		}
 	}
 

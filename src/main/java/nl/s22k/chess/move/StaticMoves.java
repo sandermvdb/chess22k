@@ -10,70 +10,26 @@ public class StaticMoves {
 	public static final long[] KNIGHT_MOVES = new long[64];
 	public static final long[] KING_MOVES = new long[64];
 
-	public static final long[][] PAWN_MOVES_1 = new long[2][64];
-	public static final long[][] PAWN_PROMOTION_MOVES = new long[2][64];
-	public static final long[][] PAWN_PROMOTION_ATTACKS = new long[2][64];
-	public static final long[][] PAWN_NON_PROMOTION_ATTACKS = new long[2][64];
-	public static final long[][] PAWN_ALL_ATTACKS = new long[2][64];
+	public static final long[][] PAWN_ATTACKS = new long[2][64];
 
 	// PAWN
 	static {
 		for (int currentPosition = 0; currentPosition < 64; currentPosition++) {
 			for (int newPosition = 0; newPosition < 64; newPosition++) {
-				// 1-moves
-				if (newPosition == currentPosition + 8 && currentPosition > 7 && currentPosition < 48) {
-					PAWN_MOVES_1[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-				if (newPosition == currentPosition - 8 && currentPosition < 56 && currentPosition > 15) {
-					PAWN_MOVES_1[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-
-				// promotion-moves
-				if (newPosition == currentPosition + 8 && currentPosition >= 48) {
-					PAWN_PROMOTION_MOVES[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-				if (newPosition == currentPosition - 8 && currentPosition <= 15) {
-					PAWN_PROMOTION_MOVES[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-
 				// attacks
-				if (newPosition == currentPosition + 7 && newPosition % 8 != 7 && currentPosition > 7 && currentPosition < 48) {
-					PAWN_NON_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
+				if (newPosition == currentPosition + 7 && newPosition % 8 != 7) {
+					PAWN_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
-				if (newPosition == currentPosition + 9 && newPosition % 8 != 0 && currentPosition > 7 && currentPosition < 48) {
-					PAWN_NON_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
+				if (newPosition == currentPosition + 9 && newPosition % 8 != 0 ) {
+					PAWN_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
-				if (newPosition == currentPosition - 7 && newPosition % 8 != 0 && currentPosition < 56 && currentPosition > 15) {
-					PAWN_NON_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
+				if (newPosition == currentPosition - 7 && newPosition % 8 != 0) {
+					PAWN_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
-				if (newPosition == currentPosition - 9 && newPosition % 8 != 7 && currentPosition < 56 && currentPosition > 15) {
-					PAWN_NON_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-
-				// promotion attacks
-				// added white pawns at first rank because these could be mirrored black pieces (super-piece used in
-				// SEE). Same for black
-				if (newPosition == currentPosition + 7 && newPosition % 8 != 7 && (currentPosition >= 48 || currentPosition < 8)) {
-					PAWN_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-				if (newPosition == currentPosition + 9 && newPosition % 8 != 0 && (currentPosition >= 48 || currentPosition < 8)) {
-					PAWN_PROMOTION_ATTACKS[WHITE][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-				if (newPosition == currentPosition - 7 && newPosition % 8 != 0 && (currentPosition <= 15 || currentPosition > 55)) {
-					PAWN_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
-				}
-				if (newPosition == currentPosition - 9 && newPosition % 8 != 7 && (currentPosition <= 15 || currentPosition > 55)) {
-					PAWN_PROMOTION_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
+				if (newPosition == currentPosition - 9 && newPosition % 8 != 7) {
+					PAWN_ATTACKS[BLACK][currentPosition] |= Util.POWER_LOOKUP[newPosition];
 				}
 			}
-		}
-	}
-
-	// pawn-all-attacks
-	static {
-		for (int i = 0; i < 64; i++) {
-			PAWN_ALL_ATTACKS[WHITE][i] = PAWN_PROMOTION_ATTACKS[WHITE][i] | PAWN_NON_PROMOTION_ATTACKS[WHITE][i];
-			PAWN_ALL_ATTACKS[BLACK][i] = PAWN_PROMOTION_ATTACKS[BLACK][i] | PAWN_NON_PROMOTION_ATTACKS[BLACK][i];
 		}
 	}
 

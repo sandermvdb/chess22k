@@ -73,6 +73,7 @@ public final class ChessBoard {
 
 	public final int[] mobilityScore = new int[2];
 	public long passedPawns;
+	public final long[] outposts = new long[2];
 
 	public static ChessBoard getInstance() {
 		return instance;
@@ -441,34 +442,6 @@ public final class ChessBoard {
 		}
 	}
 
-	public long getPinnedPieces(final int color, final long allPieces) {
-
-		final int colorInverse = 1 - color;
-		long pinnedPieces = 0;
-
-		// bishop and queen
-		long piece = (pieces[colorInverse][BISHOP] | pieces[colorInverse][QUEEN]) & allPieces & MagicUtil.bishopMovesEmptyBoard[kingIndex[color]];
-		while (piece != 0) {
-			final long checkedPiece = ChessConstants.BISHOP_IN_BETWEEN[kingIndex[color]][Long.numberOfTrailingZeros(piece)] & allPieces;
-			if (Long.bitCount(checkedPiece) == 1) {
-				pinnedPieces |= checkedPiece;
-			}
-			piece &= piece - 1;
-		}
-
-		// rook and queen
-		piece = (pieces[colorInverse][ROOK] | pieces[colorInverse][QUEEN]) & allPieces & MagicUtil.rookMovesEmptyBoard[kingIndex[color]];
-		while (piece != 0) {
-			final long checkedPiece = ChessConstants.ROOK_IN_BETWEEN[kingIndex[color]][Long.numberOfTrailingZeros(piece)] & allPieces;
-			if (Long.bitCount(checkedPiece) == 1) {
-				pinnedPieces |= checkedPiece;
-			}
-			piece &= piece - 1;
-		}
-
-		return pinnedPieces;
-	}
-
 	public void undoMove(int move) {
 
 		final int fromIndex = MoveUtil.getFromIndex(move);
@@ -537,7 +510,7 @@ public final class ChessBoard {
 
 	public void updateKingValues(final int kingColor, final int index) {
 		kingIndex[kingColor] = index;
-		kingArea[kingColor] = ChessConstants.KING_SAFETY_MASK[kingColor][index];
+		kingArea[kingColor] = ChessConstants.KING_AREA[kingColor][index];
 	}
 
 	public boolean isLegal(final int move) {
@@ -556,12 +529,6 @@ public final class ChessBoard {
 			return isLegalEvasiveMove(MoveUtil.getFromIndex(move), MoveUtil.getToIndex(move));
 		}
 		return true;
-	}
-
-	public boolean isLegalMove(final int fromIndex, final int toIndex) {
-		// called when king is in check and by killer-move-validity-check
-		return !CheckUtil.isInSlidingCheck(kingIndex[colorToMove], pieces[colorToMoveInverse][ROOK] | pieces[colorToMoveInverse][QUEEN],
-				pieces[colorToMoveInverse][BISHOP] | pieces[colorToMoveInverse][QUEEN], allPieces ^ Util.POWER_LOOKUP[fromIndex] ^ Util.POWER_LOOKUP[toIndex]);
 	}
 
 	private boolean isLegalEvasiveMove(final int fromIndex, final int toIndex) {
@@ -621,10 +588,8 @@ public final class ChessBoard {
 				return false;
 			}
 			break;
-
 		case NIGHT:
 			break;
-
 		case BISHOP:
 			if ((MagicUtil.getBishopMoves(fromIndex, allPieces) & Util.POWER_LOOKUP[toIndex]) == 0) {
 				return false;
@@ -635,13 +600,11 @@ public final class ChessBoard {
 				return false;
 			}
 			break;
-
 		case QUEEN:
 			if (((MagicUtil.getBishopMoves(fromIndex, allPieces) | MagicUtil.getRookMoves(fromIndex, allPieces)) & Util.POWER_LOOKUP[toIndex]) == 0) {
 				return false;
 			}
 			break;
-
 		case KING:
 			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_CASTLING) {
 				long castlingIndexes = CastlingUtil.getCastlingIndexes(this);

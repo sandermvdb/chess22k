@@ -47,7 +47,11 @@ public class KingSafetyEval {
 					counter++;
 				}
 				counter += EvalConstants.KING_SAFETY_ATTACKS[Long.bitCount(cb.kingArea[kingColor] & cb.attacksAll[enemyColor])];
-				counter += safeChecks(cb, kingColor);
+				counter += checks(cb, kingColor);
+
+				if ((cb.checkingPieces & cb.friendlyPieces[enemyColor]) != 0) {
+					counter++;
+				}
 			}
 
 			// bonus for stm
@@ -73,27 +77,27 @@ public class KingSafetyEval {
 		return score;
 	}
 
-	private static int safeChecks(final ChessBoard cb, final int kingColor) {
-		int counter = safeCheckNight(cb, kingColor);
+	private static int checks(final ChessBoard cb, final int kingColor) {
+		int counter = checkNight(cb, kingColor);
 		final int enemyColor = 1 - kingColor;
 
 		long moves;
 		long queenMoves = 0;
 		if ((cb.pieces[enemyColor][QUEEN] | cb.pieces[enemyColor][BISHOP]) != 0) {
 			moves = MagicUtil.getBishopMoves(cb.kingIndex[kingColor], cb.allPieces, cb.friendlyPieces[enemyColor])
-					& ~StaticMoves.KING_MOVES[cb.kingIndex[kingColor]] & ~cb.attacksAll[kingColor];
+					& ~StaticMoves.KING_MOVES[cb.kingIndex[kingColor]];
 			queenMoves = moves;
-			counter += safeCheckBishop(cb, kingColor, moves);
+			counter += checkBishop(cb, kingColor, moves);
 		}
 		if ((cb.pieces[enemyColor][QUEEN] | cb.pieces[enemyColor][ROOK]) != 0) {
 			moves = MagicUtil.getRookMoves(cb.kingIndex[kingColor], cb.allPieces, cb.friendlyPieces[enemyColor])
-					& ~StaticMoves.KING_MOVES[cb.kingIndex[kingColor]] & ~cb.attacksAll[kingColor];
+					& ~StaticMoves.KING_MOVES[cb.kingIndex[kingColor]];
 			queenMoves |= moves;
-			counter += safeCheckRook(cb, kingColor, moves);
+			counter += checkRook(cb, kingColor, moves);
 		}
 
 		if (Long.bitCount(cb.pieces[enemyColor][QUEEN]) == 1) {
-			counter += safeCheckQueen(cb, kingColor, queenMoves);
+			counter += safeCheckQueen(cb, kingColor, queenMoves & ~cb.attacksAll[kingColor]);
 			counter += safeCheckQueenTouch(cb, kingColor);
 		}
 
@@ -148,11 +152,11 @@ public class KingSafetyEval {
 		return counter;
 	}
 
-	private static int safeCheckRook(final ChessBoard cb, final int kingColor, final long rookMoves) {
+	private static int checkRook(final ChessBoard cb, final int kingColor, final long rookMoves) {
 
 		int counter = 0;
 
-		if ((rookMoves & cb.attacks[1 - kingColor][ROOK]) != 0) {
+		if ((rookMoves & ~cb.attacksAll[kingColor] & cb.attacks[1 - kingColor][ROOK]) != 0) {
 			counter += EvalConstants.KING_SAFETY_CHECK[ROOK];
 
 			// last rank?
@@ -171,16 +175,18 @@ public class KingSafetyEval {
 					}
 				}
 			}
+		} else if ((rookMoves & cb.attacks[1 - kingColor][ROOK]) != 0) {
+			counter += EvalConstants.KING_SAFETY_UCHECK[ROOK];
 		}
 
 		return counter;
 	}
 
-	private static int safeCheckBishop(final ChessBoard cb, final int kingColor, final long bishopMoves) {
+	private static int checkBishop(final ChessBoard cb, final int kingColor, final long bishopMoves) {
 
 		int counter = 0;
 
-		if ((bishopMoves & cb.attacks[1 - kingColor][BISHOP]) != 0) {
+		if ((bishopMoves & ~cb.attacksAll[kingColor] & cb.attacks[1 - kingColor][BISHOP]) != 0) {
 			counter += EvalConstants.KING_SAFETY_CHECK[BISHOP];
 
 			// skewed pieces
@@ -195,16 +201,20 @@ public class KingSafetyEval {
 				}
 			}
 
+		} else if ((bishopMoves & cb.attacks[1 - kingColor][BISHOP]) != 0) {
+			counter += EvalConstants.KING_SAFETY_UCHECK[BISHOP];
 		}
 		return counter;
 	}
 
-	private static int safeCheckNight(final ChessBoard cb, final int kingColor) {
+	private static int checkNight(final ChessBoard cb, final int kingColor) {
 		// safe check possible
 		if (cb.pieces[1 - kingColor][NIGHT] != 0) {
 			if ((StaticMoves.KNIGHT_MOVES[cb.kingIndex[kingColor]] & ~cb.attacksAll[kingColor] & ~cb.friendlyPieces[1 - kingColor]
 					& cb.attacks[1 - kingColor][NIGHT]) != 0) {
 				return EvalConstants.KING_SAFETY_CHECK[NIGHT];
+			} else if ((StaticMoves.KNIGHT_MOVES[cb.kingIndex[kingColor]] & ~cb.friendlyPieces[1 - kingColor] & cb.attacks[1 - kingColor][NIGHT]) != 0) {
+				return EvalConstants.KING_SAFETY_UCHECK[NIGHT];
 			}
 		}
 		return 0;

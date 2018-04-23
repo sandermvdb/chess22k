@@ -64,23 +64,6 @@ public class MoveTest {
 	}
 
 	@Test
-	public void hhTest() {
-		System.out.println("HH-test");
-
-		int fromIndex = 0;
-		int toIndex = 1;
-
-		int move = MoveUtil.createMove(fromIndex, toIndex, ChessConstants.PAWN);
-		HeuristicUtil.HH_MOVES[ChessConstants.WHITE][MoveUtil.getFromToIndex(move)] = 2000000;
-		HeuristicUtil.BF_MOVES[ChessConstants.WHITE][MoveUtil.getFromToIndex(move)] = 2;
-		MoveList.addMove(move);
-
-		System.out.println("HH-score: " + MoveUtil.getScore(move));
-		System.out.println("HH-score: " + MoveUtil.getScore(MoveList.next()));
-		System.out.println("");
-	}
-
-	@Test
 	public void killerTest() {
 		System.out.println("Killer-test");
 

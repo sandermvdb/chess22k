@@ -4,8 +4,6 @@ import nl.s22k.chess.Statistics;
 
 public class TimeUtil {
 
-	private static final int MAX_TIME_FACTOR = 3;
-
 	private static final int MOVE_MARGIN = 1;
 
 	private static boolean isExactMoveTime = false;
@@ -70,7 +68,7 @@ public class TimeUtil {
 
 	public static void setExactMoveTime(int moveTimeMs) {
 		isExactMoveTime = true;
-		timeWindowNs = moveTimeMs * 1_000_000 / MAX_TIME_FACTOR;
+		maxTimeMs = moveTimeMs;
 	}
 
 	public static void setSimpleTimeWindow(final long thinkingTimeMs) {

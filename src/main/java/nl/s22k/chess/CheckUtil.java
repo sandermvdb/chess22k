@@ -21,14 +21,14 @@ public final class CheckUtil {
 		return (cb.pieces[cb.colorToMoveInverse][NIGHT] & StaticMoves.KNIGHT_MOVES[kingIndex]
 				| (cb.pieces[cb.colorToMoveInverse][ROOK]|cb.pieces[cb.colorToMoveInverse][QUEEN]) & MagicUtil.getRookMoves(kingIndex, cb.allPieces)
 				| (cb.pieces[cb.colorToMoveInverse][BISHOP]|cb.pieces[cb.colorToMoveInverse][QUEEN]) & MagicUtil.getBishopMoves(kingIndex, cb.allPieces) 
-				| cb.pieces[cb.colorToMoveInverse][PAWN] & StaticMoves.PAWN_ALL_ATTACKS[cb.colorToMove][kingIndex]
+				| cb.pieces[cb.colorToMoveInverse][PAWN] & StaticMoves.PAWN_ATTACKS[cb.colorToMove][kingIndex]
 			);
 	}
 	
 	public static long getCheckingPieces(final ChessBoard cb, final int sourcePieceIndex) {
 		switch(sourcePieceIndex) {
 			case PAWN:
-				return cb.pieces[cb.colorToMoveInverse][PAWN] & StaticMoves.PAWN_ALL_ATTACKS[cb.colorToMove][cb.kingIndex[cb.colorToMove]];
+				return cb.pieces[cb.colorToMoveInverse][PAWN] & StaticMoves.PAWN_ATTACKS[cb.colorToMove][cb.kingIndex[cb.colorToMove]];
 			case NIGHT:
 				return cb.pieces[cb.colorToMoveInverse][NIGHT] & StaticMoves.KNIGHT_MOVES[cb.kingIndex[cb.colorToMove]];
 			case BISHOP:
@@ -50,15 +50,7 @@ public final class CheckUtil {
 		return (enemyPieces[NIGHT] & StaticMoves.KNIGHT_MOVES[kingIndex]
 				| (enemyPieces[ROOK] | enemyPieces[QUEEN]) & MagicUtil.getRookMoves(kingIndex, allPieces)
 				| (enemyPieces[BISHOP] | enemyPieces[QUEEN]) & MagicUtil.getBishopMoves(kingIndex, allPieces) 
-				| enemyPieces[PAWN] & StaticMoves.PAWN_ALL_ATTACKS[colorToMove][kingIndex]
-			)!= 0;
-	}
-	
-	public static boolean isInSlidingCheck(final int kingIndex, final long horVerPieces, final long diagPieces, final long allPieces) {
-		
-		// put 'super-piece' in kings position
-		return (horVerPieces & MagicUtil.getRookMoves(kingIndex, allPieces)
-				| diagPieces & MagicUtil.getBishopMoves(kingIndex, allPieces) 
+				| enemyPieces[PAWN] & StaticMoves.PAWN_ATTACKS[colorToMove][kingIndex]
 			)!= 0;
 	}
 
@@ -66,7 +58,7 @@ public final class CheckUtil {
 
 		//TODO
 		if(enemyMajorPieces==0) {
-			return (enemyPieces[PAWN] & StaticMoves.PAWN_ALL_ATTACKS[colorToMove][kingIndex]
+			return (enemyPieces[PAWN] & StaticMoves.PAWN_ATTACKS[colorToMove][kingIndex]
 					| enemyPieces[KING] & StaticMoves.KING_MOVES[kingIndex]
 				)!= 0;
 		}
@@ -75,7 +67,7 @@ public final class CheckUtil {
 		return (enemyPieces[NIGHT] & StaticMoves.KNIGHT_MOVES[kingIndex]
 				| (enemyPieces[ROOK] | enemyPieces[QUEEN]) & MagicUtil.getRookMoves(kingIndex, allPieces)
 				| (enemyPieces[BISHOP] | enemyPieces[QUEEN]) & MagicUtil.getBishopMoves(kingIndex, allPieces) 
-				| enemyPieces[PAWN] & StaticMoves.PAWN_ALL_ATTACKS[colorToMove][kingIndex]
+				| enemyPieces[PAWN] & StaticMoves.PAWN_ATTACKS[colorToMove][kingIndex]
 				| enemyPieces[KING] & StaticMoves.KING_MOVES[kingIndex]
 			)!= 0;
 	}
