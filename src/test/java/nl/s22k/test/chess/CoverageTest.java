@@ -7,7 +7,6 @@ import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveWrapper;
 import nl.s22k.chess.search.NegamaxUtil;
-import nl.s22k.chess.search.RepetitionTable;
 import nl.s22k.chess.search.TimeUtil;
 import nl.s22k.chess.unittests.MainTest;
 
@@ -53,7 +52,6 @@ public class CoverageTest {
 		for (String moveToken : movesArray) {
 			MoveWrapper move = new MoveWrapper(moveToken, cb);
 			cb.doMove(move.move);
-			RepetitionTable.addValue(cb.zobristKey);
 		}
 
 		/* time-managed */

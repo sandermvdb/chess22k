@@ -12,7 +12,6 @@ import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveGenerator;
-import nl.s22k.chess.move.MoveList;
 import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.texel.Tuner;
 
@@ -21,6 +20,8 @@ import nl.s22k.chess.texel.Tuner;
  *
  */
 public class SeeTest {
+
+	private static MoveGenerator moveGen = new MoveGenerator();
 
 	public static void main(String[] args) {
 
@@ -37,10 +38,10 @@ public class SeeTest {
 		final long start = System.currentTimeMillis();
 		for (Entry<String, Double> entry : fens.entrySet()) {
 			ChessBoard cb = ChessBoardUtil.getNewCB(entry.getKey());
-			MoveList.startPly();
-			MoveGenerator.generateAttacks(cb);
-			while (MoveList.hasNext()) {
-				final int move = MoveList.next();
+			moveGen.startPly();
+			moveGen.generateAttacks(cb);
+			while (moveGen.hasNext()) {
+				final int move = moveGen.next();
 				if (!cb.isLegal(move)) {
 					continue;
 				}
@@ -58,7 +59,7 @@ public class SeeTest {
 				// System.out.println();
 				// }
 			}
-			MoveList.endPly();
+			moveGen.endPly();
 		}
 		System.out.println(String.format("%.0f %.0f = %.4f", sameScore, totalAttacks, sameScore / totalAttacks));
 		System.out.println("msec: " + (System.currentTimeMillis() - start));
@@ -69,13 +70,13 @@ public class SeeTest {
 
 		cb.doMove(move);
 
-		MoveList.startPly();
-		MoveGenerator.generateAttacks(cb);
+		moveGen.startPly();
+		moveGen.generateAttacks(cb);
 
 		boolean movePerformed = false;
-		while (MoveList.hasNext()) {
+		while (moveGen.hasNext()) {
 			// only attacks on the same square
-			int currentMove = MoveList.next();
+			int currentMove = moveGen.next();
 			if (!cb.isLegal(currentMove)) {
 				continue;
 			}
@@ -91,7 +92,7 @@ public class SeeTest {
 				bestScore = score;
 			}
 		}
-		MoveList.endPly();
+		moveGen.endPly();
 
 		if (!movePerformed) {
 			bestScore = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateMaterialScore(cb);

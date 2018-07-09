@@ -1,7 +1,6 @@
 package nl.s22k.chess.search;
 
-import static org.junit.Assert.assertEquals;
-
+import nl.s22k.chess.Assert;
 import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
@@ -10,15 +9,18 @@ import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
-import nl.s22k.chess.move.MoveList;
 import nl.s22k.chess.move.MoveUtil;
 
 public class QuiescenceUtil {
 
-	public static int calculateBestMove(final ChessBoard cb, int alpha, int beta) {
+	public static int calculateBestMove(final ChessBoard cb, final MoveGenerator moveGen, int alpha, final int beta) {
 
 		if (Statistics.ENABLED) {
 			Statistics.qNodes++;
+		}
+
+		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+			return 0;
 		}
 
 		/* stand-pat check */
@@ -29,23 +31,24 @@ public class QuiescenceUtil {
 
 		alpha = Math.max(alpha, score);
 
-		MoveList.startPly();
-		MoveGenerator.generateAttacks(cb);
-		MoveList.setMVVLVAScores(cb);
-		MoveList.sort();
+		moveGen.startPly();
+		moveGen.generateAttacks(cb);
+		moveGen.setMVVLVAScores(cb);
+		moveGen.sort();
 
-		while (MoveList.hasNext()) {
-			final int move = MoveList.next();
+		while (moveGen.hasNext()) {
+			final int move = moveGen.next();
 
 			if (!cb.isLegal(move)) {
 				continue;
 			}
 
+			// skip under promotions
 			if (MoveUtil.isPromotion(move) && MoveUtil.getMoveType(move) != MoveUtil.TYPE_PROMOTION_Q) {
 				continue;
 			}
 
-			/* prune bad-captures */
+			// skip bad-captures
 			if (EngineConstants.ENABLE_Q_PRUNE_BAD_CAPTURES && SEEUtil.getSeeCaptureScore(cb, move) <= 0) {
 				continue;
 			}
@@ -54,22 +57,22 @@ public class QuiescenceUtil {
 
 			if (EngineConstants.ASSERT) {
 				cb.changeSideToMove();
-				assertEquals(0, CheckUtil.getCheckingPieces(cb));
+				Assert.isTrue(0 == CheckUtil.getCheckingPieces(cb));
 				cb.changeSideToMove();
 			}
 
-			score = -calculateBestMove(cb, -beta, -alpha);
+			score = -calculateBestMove(cb, moveGen, -beta, -alpha);
 
 			cb.undoMove(move);
 
 			if (score >= beta) {
-				MoveList.endPly();
+				moveGen.endPly();
 				return score;
 			}
 			alpha = Math.max(alpha, score);
 		}
 
-		MoveList.endPly();
+		moveGen.endPly();
 		return alpha;
 	}
 }

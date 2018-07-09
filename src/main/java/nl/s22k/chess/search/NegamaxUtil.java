@@ -1,10 +1,11 @@
 package nl.s22k.chess.search;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import nl.s22k.chess.Assert;
 import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.ChessConstants.ScoreType;
 import nl.s22k.chess.Statistics;
@@ -16,14 +17,15 @@ import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.MaterialUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
-import nl.s22k.chess.move.MoveList;
 import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.move.MoveWrapper;
 
 public final class NegamaxUtil {
 
-	public static boolean stop = true;
-	public static int maxDepth = EngineConstants.MAX_PLIES;
+	public static final int MODE_STOP = 0;
+	public static final int MODE_STOP_SLAVES = 1;
+	public static final int MODE_START = 2;
+	public static final int MODE_ANY_SLAVE_READY = 3;
 
 	public static final int PHASE_TT = 0;
 	public static final int PHASE_ATTACKING = 1;
@@ -36,24 +38,38 @@ public final class NegamaxUtil {
 	private static final int[] RAZORING_MARGIN = { 0, 240, 280, 300 };
 	private static final int[] FUTILITY_MARGIN = { 0, 80, 170, 270, 380, 500, 630 };
 
-	public static int calculateBestMove(final ChessBoard cb, final int ply, int depth, int alpha, int beta, final int nullMoveCounter) {
+	public static long totalMoveCount;
+	public static int maxDepth = EngineConstants.MAX_PLIES;
 
-		if (stop) {
+	public static AtomicInteger nrOfActiveSlaveThreads = new AtomicInteger(0);
+	public static AtomicInteger mode = new AtomicInteger(MODE_STOP);
+
+	private static MoveGenerator[] moveGens = new MoveGenerator[EngineConstants.MAX_THREADS];
+	static {
+		for (int i = 0; i < moveGens.length; i++) {
+			moveGens[i] = new MoveGenerator();
+		}
+	}
+
+	public static int calculateBestMove(final ChessBoard cb, final MoveGenerator moveGen, final int ply, int depth, int alpha, int beta,
+			final int nullMoveCounter) {
+
+		if (mode.get() != MODE_START) {
 			return 0;
 		}
 
 		if (EngineConstants.ASSERT) {
-			assertTrue(depth >= 0);
-			assertTrue(alpha >= Util.SHORT_MIN && alpha <= Util.SHORT_MAX);
-			assertTrue(beta >= Util.SHORT_MIN && beta <= Util.SHORT_MAX);
+			Assert.isTrue(depth >= 0);
+			Assert.isTrue(alpha >= Util.SHORT_MIN && alpha <= Util.SHORT_MAX);
+			Assert.isTrue(beta >= Util.SHORT_MIN && beta <= Util.SHORT_MAX);
 		}
 
 		// get extensions
-		depth += extensions(cb, ply);
+		depth += extensions(cb, moveGen, ply);
 
 		// TODO JITWatch unpredictable branch
 		if (depth == 0) {
-			return QuiescenceUtil.calculateBestMove(cb, alpha, beta);
+			return QuiescenceUtil.calculateBestMove(cb, moveGen, alpha, beta);
 		}
 
 		Statistics.maxDepth = Math.max(Statistics.maxDepth, ply);
@@ -70,16 +86,13 @@ public final class NegamaxUtil {
 			}
 		}
 
-		int score;
-
 		/* transposition-table */
 		long ttValue = TTUtil.getTTValue(cb.zobristKey);
-		if (ttValue != 0) {
+		int score = TTUtil.getScore(ttValue, ply);
+		if (ttValue != 0 && ply != 0) {
 			if (!EngineConstants.TEST_TT_VALUES) {
 
 				if (TTUtil.getDepth(ttValue) >= (depth)) {
-					score = TTUtil.getScore(ttValue, ply);
-
 					switch (TTUtil.getFlag(ttValue)) {
 					case TTUtil.FLAG_EXACT:
 						return score;
@@ -105,9 +118,9 @@ public final class NegamaxUtil {
 
 			/* use tt value as eval */
 			if (ttValue != 0) {
-				if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_EXACT || TTUtil.getFlag(ttValue) == TTUtil.FLAG_UPPER && TTUtil.getScore(ttValue, ply) < eval
-						|| TTUtil.getFlag(ttValue) == TTUtil.FLAG_LOWER && TTUtil.getScore(ttValue, ply) > eval) {
-					eval = TTUtil.getScore(ttValue, ply);
+				if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_EXACT || TTUtil.getFlag(ttValue) == TTUtil.FLAG_UPPER && score < eval
+						|| TTUtil.getFlag(ttValue) == TTUtil.FLAG_LOWER && score > eval) {
+					eval = score;
 				}
 			}
 
@@ -125,9 +138,9 @@ public final class NegamaxUtil {
 
 			/* razoring */
 			if (EngineConstants.ENABLE_RAZORING) {
-				if (depth < RAZORING_MARGIN.length) {
+				if (depth < RAZORING_MARGIN.length && Math.abs(alpha) < EvalConstants.SCORE_MATE_BOUND) {
 					if (eval + RAZORING_MARGIN[depth] < alpha) {
-						final int q = QuiescenceUtil.calculateBestMove(cb, alpha - RAZORING_MARGIN[depth], alpha - RAZORING_MARGIN[depth] + 1);
+						final int q = QuiescenceUtil.calculateBestMove(cb, moveGen, alpha - RAZORING_MARGIN[depth], alpha - RAZORING_MARGIN[depth] + 1);
 						if (q + RAZORING_MARGIN[depth] <= alpha) {
 							if (Statistics.ENABLED) {
 								Statistics.razored[depth]++;
@@ -140,12 +153,12 @@ public final class NegamaxUtil {
 
 			/* null-move */
 			if (EngineConstants.ENABLE_NULL_MOVE) {
-				if (nullMoveCounter < 2 && MaterialUtil.hasMajorPieces(cb.materialKey, cb.colorToMove) && depth > 1) {
+				if (nullMoveCounter < 2 && MaterialUtil.hasMajorPieces(cb.materialKey, cb.colorToMove)) {
 					cb.doNullMove();
 					// TODO less reduction if stm (other side) has only 1 major piece
 					final int reduction = 2 + depth / 3;
-					score = depth - reduction == 0 ? -QuiescenceUtil.calculateBestMove(cb, -beta, -beta + 1)
-							: -calculateBestMove(cb, ply + 1, depth - reduction, -beta, -beta + 1, nullMoveCounter + 1);
+					score = depth - reduction <= 0 ? -QuiescenceUtil.calculateBestMove(cb, moveGen, -beta, -beta + 1)
+							: -calculateBestMove(cb, moveGen, ply + 1, depth - reduction, -beta, -beta + 1, nullMoveCounter + 1);
 					cb.undoNullMove();
 					if (score >= beta) {
 						if (Statistics.ENABLED) {
@@ -170,7 +183,7 @@ public final class NegamaxUtil {
 		int killer2Move = 0;
 		int movesPerformed = 0;
 
-		MoveList.startPly();
+		moveGen.startPly();
 		int phase = PHASE_TT;
 		while (phase <= PHASE_QUIET) {
 			switch (phase) {
@@ -183,7 +196,7 @@ public final class NegamaxUtil {
 							if (Statistics.ENABLED) {
 								Statistics.iidCount++;
 							}
-							calculateBestMove(cb, ply, depth - EngineConstants.IID_REDUCTION - 1, alpha, beta, 0);
+							calculateBestMove(cb, moveGen, ply, depth - EngineConstants.IID_REDUCTION - 1, alpha, beta, 0);
 							ttValue = TTUtil.getTTValue(cb.zobristKey);
 						}
 					}
@@ -198,56 +211,51 @@ public final class NegamaxUtil {
 						}
 					}
 
-					MoveList.addMove(ttMove);
+					moveGen.addMove(ttMove);
 				}
 				break;
 			case PHASE_ATTACKING:
 				// TODO no ordering at ALL-nodes?
-				MoveGenerator.generateAttacks(cb);
-				MoveList.setMVVLVAScores(cb);
-				MoveList.sort();
+				moveGen.generateAttacks(cb);
+				moveGen.setMVVLVAScores(cb);
+				moveGen.sort();
 				break;
 			case PHASE_KILLER_1:
-				killer1Move = HeuristicUtil.getKiller1(ply);
-				if (killer1Move != 0 && killer1Move != ttMove && cb.isValidQuietMove(killer1Move)) {
-					MoveList.addMove(killer1Move);
+				killer1Move = moveGen.getKiller1(ply);
+				if (killer1Move != 0 && killer1Move != ttMove && cb.isValidQuietMove(killer1Move) && cb.isLegal(killer1Move)) {
+					moveGen.addMove(killer1Move);
 				}
 				break;
 			case PHASE_KILLER_2:
-				killer2Move = HeuristicUtil.getKiller2(ply);
-				if (killer2Move != 0 && killer2Move != ttMove && cb.isValidQuietMove(killer2Move)) {
-					MoveList.addMove(killer2Move);
+				killer2Move = moveGen.getKiller2(ply);
+				if (killer2Move != 0 && killer2Move != ttMove && cb.isValidQuietMove(killer2Move) && cb.isLegal(killer2Move)) {
+					moveGen.addMove(killer2Move);
 				}
 				break;
 			case PHASE_QUIET:
-				MoveGenerator.generateMoves(cb);
-				MoveList.setHHScores(cb);
-				MoveList.sort();
+				moveGen.generateMoves(cb);
+				moveGen.setHHScores(cb);
+				moveGen.sort();
 			}
 
-			while (MoveList.hasNext()) {
+			while (moveGen.hasNext()) {
 
-				final int moveScore = MoveList.getNextScore();
-				final int move = MoveUtil.getCleanMove(MoveList.next());
+				final int moveScore = moveGen.getNextScore();
+				final int move = MoveUtil.getCleanMove(moveGen.next());
 
-				if (phase != PHASE_TT && !cb.isLegal(move)) {
-					continue;
-				}
-
-				if (phase == PHASE_ATTACKING) {
-					// skip tt-moves
-					if (move == ttMove) {
+				if (phase == PHASE_QUIET) {
+					if (move == ttMove || move == killer1Move || move == killer2Move || !cb.isLegal(move)) {
 						continue;
 					}
-				} else if (phase == PHASE_QUIET) {
-					// skip tt- and killer-moves
-					if (move == ttMove || move == killer1Move || move == killer2Move) {
+				} else if (phase == PHASE_ATTACKING) {
+					if (move == ttMove || !cb.isLegal(move)) {
 						continue;
 					}
 				}
 
 				// pruning allowed?
-				if (!isPv && cb.checkingPieces == 0 && MoveUtil.isQuiet(move) && movesPerformed > 0 && moveScore < 100) {
+				if (!isPv && cb.checkingPieces == 0 && MoveUtil.isQuiet(move) && movesPerformed > 0 && moveScore < 100
+						&& (cb.discoveredPieces & Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)]) == 0) {
 
 					/* late move pruning */
 					if (EngineConstants.ENABLE_LMP) {
@@ -286,18 +294,16 @@ public final class NegamaxUtil {
 				if (ply == 0) {
 					MainEngine.sendMoveInfo(move, movesPerformed);
 				}
-				score = Util.SHORT_MAX; // initial is above alpha
 
 				/* draw check */
-				if (RepetitionTable.isRepetition(cb) || cb.isDrawByMaterial()) {
+				if (cb.isRepetition() || cb.isDrawByMaterial()) {
 					score = EvalConstants.SCORE_DRAW;
 				} else {
-
-					RepetitionTable.addValue(cb.zobristKey);
+					score = alpha + 1; // initial is above alpha
 
 					if (EngineConstants.ASSERT) {
 						cb.changeSideToMove();
-						assertEquals("king under attack", 0, CheckUtil.getCheckingPieces(cb));
+						Assert.isTrue(0 == CheckUtil.getCheckingPieces(cb));
 						cb.changeSideToMove();
 					}
 
@@ -306,18 +312,18 @@ public final class NegamaxUtil {
 							&& !wasInCheck && !MoveUtil.isPawnPush678(move, cb.colorToMoveInverse)) {
 						/* LMR */
 						final int reduction = move != killer1Move && moveScore < 20 && movesPerformed > 6 ? Math.min(depth - 1, 2 + depth / 6) : 2;
-						score = -calculateBestMove(cb, ply + 1, depth - reduction, -alpha - 1, -alpha, 0);
+						score = -calculateBestMove(cb, moveGen, ply + 1, depth - reduction, -alpha - 1, -alpha, 0);
 						if (score > alpha) {
-							score = -calculateBestMove(cb, ply + 1, depth - 1, -alpha - 1, -alpha, 0);
+							score = -calculateBestMove(cb, moveGen, ply + 1, depth - 1, -alpha - 1, -alpha, 0);
 							if (Statistics.ENABLED) {
 								Statistics.lmrMoveMiss++;
-							} 
+							}
 						} else if (Statistics.ENABLED) {
 							Statistics.lmrMoveHit++;
 						}
 					} else if (EngineConstants.ENABLE_PVS && movesPerformed > 1) {
 						/* PVS */
-						score = -calculateBestMove(cb, ply + 1, depth - 1, -alpha - 1, -alpha, 0);
+						score = -calculateBestMove(cb, moveGen, ply + 1, depth - 1, -alpha - 1, -alpha, 0);
 						if (Statistics.ENABLED) {
 							if (score > alpha) {
 								Statistics.pvsMoveMiss++;
@@ -328,19 +334,22 @@ public final class NegamaxUtil {
 					}
 					// TODO score < beta?
 					if (score > alpha) {
-						score = -calculateBestMove(cb, ply + 1, depth - 1, -beta, -alpha, 0);
+						score = -calculateBestMove(cb, moveGen, ply + 1, depth - 1, -beta, -alpha, 0);
 					}
-
-					RepetitionTable.removeValue(cb.zobristKey);
 
 				}
 				cb.undoMove(move);
 
+				if (mode.get() != MODE_START) {
+					moveGen.endPly();
+					return 0;
+				}
+
 				if (score > bestScore) {
 					bestScore = score;
 					bestMove = move;
+					alpha = Math.max(alpha, score);
 				}
-				alpha = Math.max(alpha, score);
 				if (alpha >= beta) {
 
 					if (Statistics.ENABLED) {
@@ -349,8 +358,8 @@ public final class NegamaxUtil {
 
 					/* killer and history */
 					if (MoveUtil.isQuiet(move)) {
-						HeuristicUtil.addKillerMove(move, ply);
-						HeuristicUtil.addHHValue(cb.colorToMove, MoveUtil.getFromToIndex(move), depth);
+						moveGen.addKillerMove(move, ply);
+						moveGen.addHHValue(cb.colorToMove, MoveUtil.getFromToIndex(move), depth);
 					}
 
 					phase += 10;
@@ -358,15 +367,15 @@ public final class NegamaxUtil {
 				}
 
 				if (MoveUtil.isQuiet(move)) {
-					HeuristicUtil.addBFValue(cb.colorToMove, MoveUtil.getFromToIndex(move), depth);
+					moveGen.addBFValue(cb.colorToMove, MoveUtil.getFromToIndex(move), depth);
 				}
 			}
 			phase++;
 		}
+		moveGen.endPly();
 
 		/* checkmate or stalemate */
 		if (movesPerformed == 0) {
-			MoveList.endPly();
 			if (cb.checkingPieces == 0) {
 				if (Statistics.ENABLED) {
 					Statistics.staleMateCount++;
@@ -381,7 +390,7 @@ public final class NegamaxUtil {
 		}
 
 		if (EngineConstants.ASSERT) {
-			assertTrue(bestMove != 0);
+			Assert.isTrue(bestMove != 0);
 		}
 
 		// set tt-flag
@@ -435,22 +444,21 @@ public final class NegamaxUtil {
 
 		if (EngineConstants.TEST_TT_VALUES) {
 			if (ttValue != 0 && TTUtil.getDepth(ttValue) == depth) {
-				final int ttScore = TTUtil.getScore(ttValue, ply);
 				if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_EXACT && flag == TTUtil.FLAG_EXACT) {
-					if (ttScore != bestScore) {
-						throw new RuntimeException(String.format("Error: TT-score %s, bestScore %s", ttScore, bestScore));
+					score = TTUtil.getScore(ttValue, ply);
+					if (score != bestScore) {
+						throw new RuntimeException(String.format("Error: TT-score %s, bestScore %s", score, bestScore));
 					}
 				}
 			}
 		}
 
-		MoveList.endPly();
 		return bestScore;
 	}
 
-	private static int extensions(final ChessBoard cb, final int ply) {
+	private static int extensions(final ChessBoard cb, final MoveGenerator moveGen, final int ply) {
 		/* extension when the pawn endgame starts */
-		if (EngineConstants.ENABLE_ENDGAME_EXTENSION && ply > 0 && MoveUtil.getAttackedPieceIndex(MoveList.previous()) > ChessConstants.PAWN
+		if (EngineConstants.ENABLE_ENDGAME_EXTENSION && ply > 0 && MoveUtil.getAttackedPieceIndex(moveGen.previous()) > ChessConstants.PAWN
 				&& !MaterialUtil.containsMajorPieces(cb.materialKey)) {
 			if (Statistics.ENABLED) {
 				Statistics.endGameExtensions++;
@@ -470,89 +478,162 @@ public final class NegamaxUtil {
 		return 0;
 	}
 
-	public static void start(ChessBoard chessBoard) {
-		stop = false;
+	public static void start(ChessBoard cb) {
+		start(cb, 1);
+	}
 
-		TTUtil.init(false);
+	public static void start(ChessBoard chessBoard, final int nrOfThreads) {
 
-		int depth = 1;
-		int alpha = Util.SHORT_MIN;
-		int beta = Util.SHORT_MAX;
-		int score = Util.SHORT_MIN;
-		boolean panic = false;
+		try {
 
-		while (depth != maxDepth + 1) {
+			if (mode.get() != MODE_STOP) {
+				throw new RuntimeException("Already calculating!");
+			}
 
-			Statistics.depth = depth;
+			mode.set(MODE_START);
 
-			int delta = EngineConstants.ASPIRATION_WINDOW_DELTA;
-
-			while (true) {
-
-				// final boolean losing = score < -50;
-
-				// stop if depth!=1 and no time is left
-				if (depth != 1 && !TimeUtil.isTimeLeft()) {
-					if (panic) {
-						panic = false;
-					} else {
-						break;
-					}
+			chessBoard.moveCount = 0;
+			moveGens[0].clearHeuristicTables();
+			if (nrOfThreads > 1) {
+				ChessBoard.initTuningInstances(nrOfThreads - 1);
+				for (int i = 0; i < nrOfThreads - 1; i++) {
+					ChessBoardUtil.copy(chessBoard, ChessBoard.getTuningInstance(i));
+					moveGens[i + 1].clearHeuristicTables();
 				}
+			}
 
-				final int previousScore = score;
-				score = calculateBestMove(chessBoard, 0, depth, alpha, beta, 0);
+			TTUtil.init(false);
 
-				if (depth > 8 && score + 100 < previousScore && Math.abs(score) < EvalConstants.SCORE_MATE_BOUND) {
-					if (Statistics.ENABLED) {
-						Statistics.panic = true;
+			int depth = 1;
+			int alpha = Util.SHORT_MIN;
+			int beta = Util.SHORT_MAX;
+			int score = Util.SHORT_MIN;
+			boolean panic = false;
+
+			while (depth != maxDepth + 1) {
+
+				Statistics.depth = depth;
+
+				int delta = EngineConstants.ASPIRATION_WINDOW_DELTA;
+
+				while (true) {
+
+					totalMoveCount = 0;
+					// stop if depth!=1 and no time is left
+					if (depth != 1 && !TimeUtil.isTimeLeft()) {
+						if (panic) {
+							panic = false;
+						} else {
+							break;
+						}
 					}
-					panic = true;
-				}
 
-				if (score <= alpha) {
-					if (score < -EvalConstants.SCORE_MATE_BOUND) {
-						alpha = Util.SHORT_MIN;
+					final int previousScore = score;
+					if (nrOfThreads == 1 || depth < 10) {
+						score = calculateBestMove(chessBoard, moveGens[0], 0, depth, alpha, beta, 0);
 					} else {
-						alpha = Math.max(alpha - delta, Util.SHORT_MIN);
+						// start slave threads
+						for (int i = 1; i < nrOfThreads; i++) {
+							NegamaxUtil.nrOfActiveSlaveThreads.incrementAndGet();
+							new SearchThread(ChessBoard.getTuningInstance(i - 1), moveGens[i], depth + (i % 2), alpha, beta).start();
+						}
+						// long now = System.currentTimeMillis();
+						Thread.sleep(10);
+						while (nrOfActiveSlaveThreads.get() != nrOfThreads - 1 && mode.get() != MODE_ANY_SLAVE_READY && mode.get() != MODE_STOP) {
+							// System.out.println("Wait till all slave threads have started or any slave is ready.
+							// Mode=" + mode.get());
+							Thread.sleep(10);
+						}
+						// System.out.println((System.currentTimeMillis() - now) + " starting slaves time");
+
+						// start main thread
+						score = calculateBestMove(chessBoard, moveGens[0], 0, depth, alpha, beta, 0);
+
+						// wait for all slave threads to be ready
+						mode.compareAndSet(MODE_START, MODE_STOP_SLAVES);
+						// now = System.currentTimeMillis();
+						while (nrOfActiveSlaveThreads.get() != 0) {
+							// System.out.println("Wait till all slave threads have stopped");
+							Thread.sleep(5);
+						}
+						mode.compareAndSet(MODE_STOP_SLAVES, MODE_START);
+						// System.out.println((System.currentTimeMillis() - now) + " stopping slaves time");
+
+						// use slave score if finished sooner
+						if (mode.compareAndSet(MODE_ANY_SLAVE_READY, MODE_START)) {
+							// System.out.println("Slave threads already finished");
+							score = TTUtil.getScore(TTUtil.getTTValue(chessBoard.zobristKey), 0);
+						}
 					}
-					delta += delta / 2;
-					TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.ALPHA);
-					if (!TimeUtil.isTimeLeft()) {
+
+					totalMoveCount += chessBoard.moveCount;
+					for (int i = 0; i < nrOfThreads - 1; i++) {
+						totalMoveCount += ChessBoard.getTuningInstance(i).moveCount;
+					}
+
+					if (depth > 8 && score + 100 < previousScore && Math.abs(score) < EvalConstants.SCORE_MATE_BOUND) {
 						if (Statistics.ENABLED) {
 							Statistics.panic = true;
 						}
 						panic = true;
 					}
-					MainEngine.sendPlyInfo();
-				} else if (score >= beta) {
-					if (score > EvalConstants.SCORE_MATE_BOUND) {
-						beta = Util.SHORT_MAX;
+
+					if (score <= alpha) {
+						if (score < -EvalConstants.SCORE_MATE_BOUND) {
+							alpha = Util.SHORT_MIN;
+							beta = Util.SHORT_MAX;
+						} else {
+							alpha = Math.max(alpha - delta, Util.SHORT_MIN);
+						}
+						delta *= 2;
+						TTUtil.setScoreInStatistics(chessBoard);
+						if (!TimeUtil.isTimeLeft()) {
+							if (Statistics.ENABLED) {
+								Statistics.panic = true;
+							}
+							panic = true;
+						}
+						MainEngine.sendPlyInfo();
+					} else if (score >= beta) {
+						if (score > EvalConstants.SCORE_MATE_BOUND) {
+							alpha = Util.SHORT_MIN;
+							beta = Util.SHORT_MAX;
+						} else {
+							beta = Math.min(beta + delta, Util.SHORT_MAX);
+						}
+						delta += delta / 2;
+						TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.BETA);
+						MainEngine.sendPlyInfo();
 					} else {
-						beta = Math.min(beta + delta, Util.SHORT_MAX);
+						if (EngineConstants.ENABLE_ASPIRATION) {
+							if (Math.abs(score) > EvalConstants.SCORE_MATE_BOUND) {
+								alpha = Util.SHORT_MIN;
+								beta = Util.SHORT_MAX;
+							} else {
+								alpha = Math.max(score - delta, Util.SHORT_MIN);
+								beta = Math.min(score + delta, Util.SHORT_MAX);
+							}
+						}
+						TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.EXACT);
+						MainEngine.sendPlyInfo();
+						break;
 					}
-					delta += delta / 2;
-					TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.BETA);
-					MainEngine.sendPlyInfo();
-				} else {
-					if (EngineConstants.ENABLE_ASPIRATION) {
-						alpha = Math.max(score - delta, Util.SHORT_MIN);
-						beta = Math.min(score + delta, Util.SHORT_MAX);
+
+					if (mode.get() == MODE_STOP) {
+						break;
 					}
-					TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.EXACT);
-					MainEngine.sendPlyInfo();
+				}
+				if (mode.get() == MODE_STOP) {
 					break;
 				}
 
-				if (stop) {
-					break;
-				}
-			}
-			if (stop) {
-				break;
+				depth++;
 			}
 
-			depth++;
+			mode.set(MODE_STOP);
+
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
 

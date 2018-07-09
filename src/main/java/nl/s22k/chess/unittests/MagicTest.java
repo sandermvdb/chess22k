@@ -40,14 +40,14 @@ public class MagicTest {
 	}
 
 	private static void doRookTest(int bitIndex, long allPieces, long friendly, long destination) {
-		long calculatedDestination = MagicUtil.getRookMoves(bitIndex, allPieces, friendly);
+		long calculatedDestination = MagicUtil.getRookMoves(bitIndex, allPieces) & ~friendly;
 		if (calculatedDestination != destination) {
 			System.out.println(String.format("Wrong destination!! calculated: %s , should be %s", calculatedDestination, destination));
 		}
 	}
 
 	private static void doBishopTest(int bitIndex, long allPieces, long friendly, long destination) {
-		long calculatedDestination = MagicUtil.getBishopMoves(bitIndex, allPieces, friendly);
+		long calculatedDestination = MagicUtil.getBishopMoves(bitIndex, allPieces) & ~friendly;
 		if (calculatedDestination != destination) {
 			System.out.println(String.format("Wrong destination!! calculated: %s , should be %s", calculatedDestination, destination));
 		}

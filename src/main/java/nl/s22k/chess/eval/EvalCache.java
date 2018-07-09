@@ -1,9 +1,9 @@
 package nl.s22k.chess.eval;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.Arrays;
 
+import nl.s22k.chess.Assert;
+import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
@@ -23,22 +23,20 @@ public class EvalCache {
 		usageCounter = 0;
 	}
 
-	public static boolean hasScore(final long key) {
-		if (!Statistics.ENABLED) {
-			return keys[getIndex(key)] == key;
-		}
-
-		if (keys[getIndex(key)] == key) {
-			Statistics.evalCacheHits++;
-			return true;
-		}
-
-		Statistics.evalCacheMisses++;
-		return false;
-	}
-
 	public static int getScore(final long key) {
-		return scores[getIndex(key)];
+		final int score = scores[getIndex(key)];
+
+		if ((keys[getIndex(key)] ^ score) == key) {
+			if (Statistics.ENABLED) {
+				Statistics.evalCacheHits++;
+			}
+			return score;
+		}
+
+		if (Statistics.ENABLED) {
+			Statistics.evalCacheMisses++;
+		}
+		return ChessConstants.CACHE_MISS;
 	}
 
 	public static void addValue(final long key, final int score) {
@@ -46,8 +44,8 @@ public class EvalCache {
 			return;
 		}
 		if (EngineConstants.ASSERT) {
-			assertTrue(score <= Util.SHORT_MAX);
-			assertTrue(score >= Util.SHORT_MIN);
+			Assert.isTrue(score <= Util.SHORT_MAX);
+			Assert.isTrue(score >= Util.SHORT_MIN);
 		}
 
 		final int ttIndex = getIndex(key);
@@ -57,7 +55,7 @@ public class EvalCache {
 				usageCounter++;
 			}
 		}
-		keys[ttIndex] = key;
+		keys[ttIndex] = key ^ score;
 		scores[ttIndex] = score;
 	}
 

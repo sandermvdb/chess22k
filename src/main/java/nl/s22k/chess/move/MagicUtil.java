@@ -40,22 +40,17 @@ public final class MagicUtil {
 	public static final long[] rookMovesEmptyBoard = new long[64];
 	public static final long[] bishopMovesEmptyBoard = new long[64];
 
-	public static long getRookMoves(final int fromIndex, final long allPieces, final long friendly) {
-		return rookMagicMoves[fromIndex][(int) ((allPieces & rookMovementMasks[fromIndex]) * rookMagicNumbers[fromIndex] >>> rookShifts[fromIndex])]
-				& ~friendly;
-	}
-
-	public static long getBishopMoves(final int fromIndex, final long allPieces, final long friendly) {
-		return bishopMagicMoves[fromIndex][(int) ((allPieces & bishopMovementMasks[fromIndex]) * bishopMagicNumbers[fromIndex] >>> bishopShifts[fromIndex])]
-				& ~friendly;
-	}
-
 	public static long getRookMoves(final int fromIndex, final long allPieces) {
 		return rookMagicMoves[fromIndex][(int) ((allPieces & rookMovementMasks[fromIndex]) * rookMagicNumbers[fromIndex] >>> rookShifts[fromIndex])];
 	}
 
 	public static long getBishopMoves(final int fromIndex, final long allPieces) {
 		return bishopMagicMoves[fromIndex][(int) ((allPieces & bishopMovementMasks[fromIndex]) * bishopMagicNumbers[fromIndex] >>> bishopShifts[fromIndex])];
+	}
+
+	public static long getQueenMoves(final int fromIndex, final long allPieces) {
+		return rookMagicMoves[fromIndex][(int) ((allPieces & rookMovementMasks[fromIndex]) * rookMagicNumbers[fromIndex] >>> rookShifts[fromIndex])]
+				| bishopMagicMoves[fromIndex][(int) ((allPieces & bishopMovementMasks[fromIndex]) * bishopMagicNumbers[fromIndex] >>> bishopShifts[fromIndex])];
 	}
 
 	public static void init() {

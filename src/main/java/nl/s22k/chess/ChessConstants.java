@@ -4,6 +4,8 @@ import nl.s22k.chess.move.StaticMoves;
 
 public class ChessConstants {
 
+	public static final int CACHE_MISS = Integer.MIN_VALUE;
+
 	public static final String FEN_WHITE_PIECES[] = { "1", "P", "N", "B", "R", "Q", "K" };
 	public static final String FEN_BLACK_PIECES[] = { "1", "p", "n", "b", "r", "q", "k" };
 
@@ -22,16 +24,12 @@ public class ChessConstants {
 
 	public static final int[] COLOR_FACTOR = { 1, -1 };
 	public static final int[] COLOR_FACTOR_8 = { 8, -8 };
-	public static final int[] COLOR_FACTOR_16 = { 16, -16 };
 
 	public static final long[][] KING_AREA = new long[2][64];
-	public static final long[][] KING_PAWN_SHIELD_KINGSIDE_MASK = new long[2][8];
-	public static final long[][] KING_PAWN_SHIELD_QUEENSIDE_MASK = new long[2][8];
 
 	public static final long[][] PASSED_PAWN_MASKS = new long[2][64];
 
-	public static final long[][] ROOK_IN_BETWEEN = new long[64][64];
-	public static final long[][] BISHOP_IN_BETWEEN = new long[64][64];
+	public static final long[][] IN_BETWEEN = new long[64][64];
 	/** pinned-piece index, king index */
 	public static final long[][] PINNED_MOVEMENT = new long[64][64];
 
@@ -62,7 +60,7 @@ public class ChessConstants {
 				if (from / 8 == to / 8) {
 					i = to - 1;
 					while (i > from) {
-						ROOK_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
 						i--;
 					}
 				}
@@ -71,7 +69,7 @@ public class ChessConstants {
 				if (from % 8 == to % 8) {
 					i = to - 8;
 					while (i > from) {
-						ROOK_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
 						i -= 8;
 					}
 				}
@@ -81,7 +79,7 @@ public class ChessConstants {
 		// fill from->to where to < from
 		for (int from = 0; from < 64; from++) {
 			for (int to = 0; to < from; to++) {
-				ROOK_IN_BETWEEN[from][to] = ROOK_IN_BETWEEN[to][from];
+				IN_BETWEEN[from][to] = IN_BETWEEN[to][from];
 			}
 		}
 	}
@@ -97,7 +95,7 @@ public class ChessConstants {
 				if ((to - from) % 9 == 0 && to % 8 > from % 8) {
 					i = to - 9;
 					while (i > from) {
-						BISHOP_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
 						i -= 9;
 					}
 				}
@@ -106,7 +104,7 @@ public class ChessConstants {
 				if ((to - from) % 7 == 0 && to % 8 < from % 8) {
 					i = to - 7;
 					while (i > from) {
-						BISHOP_IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
+						IN_BETWEEN[from][to] |= Util.POWER_LOOKUP[i];
 						i -= 7;
 					}
 				}
@@ -116,7 +114,7 @@ public class ChessConstants {
 		// fill from->to where to < from
 		for (int from = 0; from < 64; from++) {
 			for (int to = 0; to < from; to++) {
-				BISHOP_IN_BETWEEN[from][to] = BISHOP_IN_BETWEEN[to][from];
+				IN_BETWEEN[from][to] = IN_BETWEEN[to][from];
 			}
 		}
 	}
@@ -235,21 +233,6 @@ public class ChessConstants {
 					KING_AREA[BLACK][i] = KING_AREA[BLACK][i + 8];
 				}
 			}
-		}
-	}
-
-	static {
-		// king-pawn-shield masks
-		for (int i = 1; i < 64; i += 8) {
-			// king-side
-			KING_PAWN_SHIELD_KINGSIDE_MASK[WHITE][i / 8] |= KING_AREA[WHITE][i];
-			KING_PAWN_SHIELD_KINGSIDE_MASK[BLACK][i / 8] |= KING_AREA[BLACK][i];
-		}
-
-		for (int i = 6; i < 64; i += 8) {
-			// queen-side
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[WHITE][i / 8] |= KING_AREA[WHITE][i];
-			KING_PAWN_SHIELD_QUEENSIDE_MASK[BLACK][i / 8] |= KING_AREA[BLACK][i];
 		}
 	}
 

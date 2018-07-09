@@ -1,12 +1,10 @@
 package nl.s22k.chess.search;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import nl.s22k.chess.Assert;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants.ScoreType;
 import nl.s22k.chess.Statistics;
@@ -71,25 +69,28 @@ public class TTUtil {
 
 	public static long getTTValue(final long key) {
 
-		final int index = getZobristIndex(key);
+		final int index = getIndex(key);
 
-		if (alwaysReplaceKeys[index] == key) {
+		final long alwaysValue = alwaysReplaceValues[index];
+		final long depthValue = depthReplaceValues[index];
+
+		if ((alwaysReplaceKeys[index] ^ alwaysValue) == key) {
 			if (Statistics.ENABLED) {
 				Statistics.ttHits++;
 			}
 
-			if (depthReplaceKeys[index] == key && getDepth(depthReplaceValues[index]) > getDepth(alwaysReplaceValues[index])) {
-				return depthReplaceValues[index];
+			if ((depthReplaceKeys[index] ^ depthValue) == key && getDepth(depthValue) > getDepth(alwaysValue)) {
+				return depthValue;
 			}
 
-			return alwaysReplaceValues[index];
+			return alwaysValue;
 		}
 
-		if (depthReplaceKeys[index] == key) {
+		if ((depthReplaceKeys[index] ^ depthValue) == key) {
 			if (Statistics.ENABLED) {
 				Statistics.ttHits++;
 			}
-			return depthReplaceValues[index];
+			return depthValue;
 		}
 
 		if (Statistics.ENABLED) {
@@ -99,37 +100,59 @@ public class TTUtil {
 		return 0;
 	}
 
-	private static int getZobristIndex(final long key) {
+	private static int getIndex(final long key) {
 		return (int) (key >>> keyShifts);
 	}
 
-	public static void setBestMoveInStatistics(ChessBoard chessBoard, ScoreType scoreType) {
-		if (NegamaxUtil.stop) {
+	public static void setScoreInStatistics(ChessBoard cb) {
+		final long key = alwaysReplaceKeys[getIndex(cb.zobristKey)];
+		final long value = alwaysReplaceValues[getIndex(cb.zobristKey)];
+
+		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
 			return;
 		}
-		long value = getTTValue(chessBoard.zobristKey);
-		if (value == 0) {
-			throw new RuntimeException("No best-move found!!");
+
+		if ((key ^ value) != cb.zobristKey) {
+			// throw new RuntimeException("No best-move found");
+			System.out.println("No bestmove found. SMP race condition?!");
+			return;
+		}
+		Statistics.bestMove.score = getScore(value, 0);
+		Statistics.bestMove.scoreType = ScoreType.ALPHA;
+	}
+
+	public static void setBestMoveInStatistics(ChessBoard cb, ScoreType scoreType) {
+		long key = alwaysReplaceKeys[getIndex(cb.zobristKey)];
+		long value = alwaysReplaceValues[getIndex(cb.zobristKey)];
+
+		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+			return;
+		}
+
+		if ((key ^ value) != cb.zobristKey) {
+			// throw new RuntimeException("No best-move found");
+			System.out.println("No bestmove found. SMP race condition?!");
+			return;
 		}
 
 		int move = getMove(value);
-		List<Integer> moves = new ArrayList<Integer>(8);
+		List<Integer> moves = new ArrayList<Integer>(12);
 		moves.add(move);
 		TreeMove bestMove = new TreeMove(move, getScore(value, 0), scoreType);
-		chessBoard.doMove(move);
+		cb.doMove(move);
 
-		for (int i = 0; i < 11; i++) {
-			value = getTTValue(chessBoard.zobristKey);
+		for (int i = 0; i <= 10; i++) {
+			value = getTTValue(cb.zobristKey);
 			if (value == 0) {
 				break;
 			}
 			move = getMove(value);
 			moves.add(move);
 			bestMove.appendMove(new TreeMove(move));
-			chessBoard.doMove(move);
+			cb.doMove(move);
 		}
 		for (int i = moves.size() - 1; i >= 0; i--) {
-			chessBoard.undoMove(moves.get(i));
+			cb.undoMove(moves.get(i));
 		}
 
 		Statistics.bestMove = bestMove;
@@ -137,30 +160,32 @@ public class TTUtil {
 
 	public static void addValue(final long key, int score, final int ply, final int depth, final int flag, final int cleanMove) {
 
-		if (NegamaxUtil.stop) {
+		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
 			return;
 		}
 
 		if (EngineConstants.ASSERT) {
-			assertTrue(depth >= 1);
-			assertTrue(cleanMove != 0);
-			assertTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
-			assertEquals(MoveUtil.getCleanMove(cleanMove), cleanMove);
-			assertTrue(MoveUtil.getSourcePieceIndex(cleanMove) != 0);
+			Assert.isTrue(depth >= 1);
+			Assert.isTrue(cleanMove != 0);
+			Assert.isTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
+			Assert.isTrue(MoveUtil.getCleanMove(cleanMove) == cleanMove);
+			Assert.isTrue(MoveUtil.getSourcePieceIndex(cleanMove) != 0);
 		}
 
 		// correct mate-score
 		if (score > EvalConstants.SCORE_MATE_BOUND) {
-			score += ply;
+			// Math.min because of qsearch
+			score = Math.min(score + ply, Util.SHORT_MAX);
 		} else if (score < -EvalConstants.SCORE_MATE_BOUND) {
-			score -= ply;
+			// Math.max because of qsearch
+			score = Math.max(score - ply, Util.SHORT_MIN);
 		}
 
 		if (EngineConstants.ASSERT) {
-			assertTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
+			Assert.isTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
 		}
 
-		final int index = getZobristIndex(key);
+		final int index = getIndex(key);
 		final long value = createValue(score, cleanMove, flag, depth);
 
 		if (Statistics.ENABLED) {
@@ -169,19 +194,23 @@ public class TTUtil {
 			}
 		}
 
-		// TODO do not store if already stored in depth-TT?
-		alwaysReplaceKeys[index] = key;
-		alwaysReplaceValues[index] = value;
-
 		if (depth > getDepth(depthReplaceValues[index]) || halfMoveCounter != getHalfMoveCounter(depthReplaceValues[index])) {
 			if (Statistics.ENABLED) {
 				if (depthReplaceKeys[index] == 0) {
 					usageCounter++;
 				}
 			}
-			depthReplaceKeys[index] = key;
+			depthReplaceKeys[index] = key ^ value;
 			depthReplaceValues[index] = value;
 		}
+
+		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+			return;
+		}
+
+		// TODO do not store if already stored in depth-TT?
+		alwaysReplaceKeys[index] = key ^ value;
+		alwaysReplaceValues[index] = value;
 	}
 
 	public static int getScore(final long value, final int ply) {
@@ -195,7 +224,7 @@ public class TTUtil {
 		}
 
 		if (EngineConstants.ASSERT) {
-			assertTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
+			Assert.isTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
 		}
 
 		return score;
@@ -220,9 +249,9 @@ public class TTUtil {
 	// SCORE,HALF_MOVE_COUNTER,MOVE,FLAG,DEPTH
 	public static long createValue(final long score, final long cleanMove, final long flag, final long depth) {
 		if (EngineConstants.ASSERT) {
-			assertEquals(cleanMove, MoveUtil.getCleanMove((int) cleanMove));
-			assertTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
-			assertTrue(depth <= 255);
+			Assert.isTrue(cleanMove == MoveUtil.getCleanMove((int) cleanMove));
+			Assert.isTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
+			Assert.isTrue(depth <= 255);
 		}
 		return score << SCORE | halfMoveCounter << HALF_MOVE_COUNTER | cleanMove << MOVE | flag << FLAG | depth;
 	}

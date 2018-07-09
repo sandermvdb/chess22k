@@ -2,8 +2,8 @@ package nl.s22k.chess;
 
 public class Util {
 
-	public static final short SHORT_MIN = Short.MIN_VALUE + 1;
-	public static final short SHORT_MAX = Short.MAX_VALUE;
+	public static final short SHORT_MIN = -32767;
+	public static final short SHORT_MAX = 32767;
 
 	public static final long[] POWER_LOOKUP = new long[64];
 	static {

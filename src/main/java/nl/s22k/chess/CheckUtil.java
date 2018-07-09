@@ -36,8 +36,7 @@ public final class CheckUtil {
 			case ROOK:
 				return cb.pieces[cb.colorToMoveInverse][ROOK] & MagicUtil.getRookMoves(cb.kingIndex[cb.colorToMove], cb.allPieces);
 			case QUEEN:
-				return cb.pieces[cb.colorToMoveInverse][QUEEN] & MagicUtil.getRookMoves(cb.kingIndex[cb.colorToMove], cb.allPieces) |
-						cb.pieces[cb.colorToMoveInverse][QUEEN] & MagicUtil.getBishopMoves(cb.kingIndex[cb.colorToMove], cb.allPieces);
+				return cb.pieces[cb.colorToMoveInverse][QUEEN] & MagicUtil.getQueenMoves(cb.kingIndex[cb.colorToMove], cb.allPieces);
 			default:
 				//king can never set the other king in check
 				return 0;	

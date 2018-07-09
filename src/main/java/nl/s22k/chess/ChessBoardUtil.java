@@ -15,8 +15,6 @@ import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.MaterialUtil;
-import nl.s22k.chess.search.HeuristicUtil;
-import nl.s22k.chess.search.RepetitionTable;
 
 public class ChessBoardUtil {
 
@@ -28,8 +26,6 @@ public class ChessBoardUtil {
 		ChessBoard cb = ChessBoard.getInstance();
 
 		if (!EngineConstants.isTuningSession) {
-			RepetitionTable.clearValues();
-			HeuristicUtil.clearTables();
 			cb.clearHistoryValues();
 		}
 
@@ -202,6 +198,47 @@ public class ChessBoardUtil {
 				break;
 			}
 		}
+	}
+
+	public static void copy(final ChessBoard source, final ChessBoard target) {
+
+		// primitives
+		target.castlingRights = source.castlingRights;
+		target.psqtScore = source.psqtScore;
+		target.psqtScoreEg = source.psqtScoreEg;
+		target.colorToMove = source.colorToMove;
+		target.colorToMoveInverse = source.colorToMoveInverse;
+		target.epIndex = source.epIndex;
+		target.materialKey = source.materialKey;
+		target.phase = source.phase;
+		target.allPieces = source.allPieces;
+		target.emptySpaces = source.emptySpaces;
+		target.zobristKey = source.zobristKey;
+		target.pawnZobristKey = source.pawnZobristKey;
+		target.checkingPieces = source.checkingPieces;
+		target.pinnedPieces = source.pinnedPieces;
+		target.discoveredPieces = source.discoveredPieces;
+		target.moveCounter = source.moveCounter;
+		target.moveCount = source.moveCount;
+
+		// arrays
+		System.arraycopy(source.pieceIndexes, 0, target.pieceIndexes, 0, source.pieceIndexes.length);
+		System.arraycopy(source.kingIndex, 0, target.kingIndex, 0, source.kingIndex.length);
+		System.arraycopy(source.kingArea, 0, target.kingArea, 0, source.kingArea.length);
+		System.arraycopy(source.friendlyPieces, 0, target.friendlyPieces, 0, source.friendlyPieces.length);
+		System.arraycopy(source.psqtScoreHistory, 0, target.psqtScoreHistory, 0, source.psqtScoreHistory.length);
+		System.arraycopy(source.psqtScoreEgHistory, 0, target.psqtScoreEgHistory, 0, source.psqtScoreEgHistory.length);
+		System.arraycopy(source.castlingHistory, 0, target.castlingHistory, 0, source.castlingHistory.length);
+		System.arraycopy(source.epIndexHistory, 0, target.epIndexHistory, 0, source.epIndexHistory.length);
+		System.arraycopy(source.zobristKeyHistory, 0, target.zobristKeyHistory, 0, source.zobristKeyHistory.length);
+		System.arraycopy(source.pawnZobristKeyHistory, 0, target.pawnZobristKeyHistory, 0, source.pawnZobristKeyHistory.length);
+		System.arraycopy(source.checkingPiecesHistory, 0, target.checkingPiecesHistory, 0, source.checkingPiecesHistory.length);
+		System.arraycopy(source.pinnedPiecesHistory, 0, target.pinnedPiecesHistory, 0, source.pinnedPiecesHistory.length);
+		System.arraycopy(source.discoveredPiecesHistory, 0, target.discoveredPiecesHistory, 0, source.discoveredPiecesHistory.length);
+
+		// multi-dimensional arrays
+		System.arraycopy(source.pieces[0], 0, target.pieces[0], 0, source.pieces[0].length);
+		System.arraycopy(source.pieces[1], 0, target.pieces[1], 0, source.pieces[1].length);
 	}
 
 	public static void init(ChessBoard cb) {

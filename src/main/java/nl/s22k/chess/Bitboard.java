@@ -142,6 +142,7 @@ public class Bitboard {
 	public static final long RANK_34567 = RANK_3 | RANK_4 | RANK_5 | RANK_6 | RANK_7;
 	public static final long RANK_PROMOTION[] = { RANK_7, RANK_2 };
 	public static final long RANK_NON_PROMOTION[] = { ~RANK_PROMOTION[0], ~RANK_PROMOTION[1] };
+	public static final long RANK_FIRST[] = { RANK_1, RANK_8 };
 
 	// files
 	public static final long FILE_A = A1 | A2 | A3 | A4 | A5 | A6 | A7 | A8;

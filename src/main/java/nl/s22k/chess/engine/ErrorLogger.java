@@ -13,9 +13,6 @@ import java.util.logging.SimpleFormatter;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.move.MoveList;
-import nl.s22k.chess.move.MoveWrapper;
-import nl.s22k.chess.search.TTUtil;
 
 public class ErrorLogger {
 
@@ -51,18 +48,9 @@ public class ErrorLogger {
 			System.out.println(cb);
 			System.out.println();
 
-			// print last move
-			System.out.println("last move");
-			System.out.println(new MoveWrapper(MoveList.previous()));
-			System.out.println("tt move");
-			MoveWrapper move = new MoveWrapper(TTUtil.getMove(TTUtil.getTTValue(cb.zobristKeyHistory[cb.moveCounter - 1])));
-			System.out.println(move);
-			System.out.println("source: " + move.pieceIndex + " target:" + move.pieceIndexAttacked);
-			cb.undoMove(move.move);
-			System.out.println("valid move: " + cb.isValidMove(move.move));
-			System.out.println();
-
+			// print statistics
 			Statistics.print();
+
 			System.out.flush();
 
 			// print exception

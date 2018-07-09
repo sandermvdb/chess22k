@@ -7,6 +7,7 @@ import nl.s22k.chess.eval.EvalCache;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.move.TreeMove;
+import nl.s22k.chess.search.NegamaxUtil;
 import nl.s22k.chess.search.TTUtil;
 
 public class Statistics {
@@ -32,8 +33,6 @@ public class Statistics {
 	public static long pvsMoveHit, pvsMoveMiss;
 	public static long evalCacheHits, evalCacheMisses;
 	public static int iidCount;
-	public static long moveCount;
-	public static long movesGenerated;
 	public static int drawByMaterialCount;
 	public static final int[] razored = new int[10];
 	public static final int[] futile = new int[10];
@@ -43,7 +42,7 @@ public class Statistics {
 	public static int drawishByMaterialCount;
 
 	public static long calculateNps() {
-		return moveCount * 1000 / Math.max(getPassedTimeMs(), 1);
+		return NegamaxUtil.totalMoveCount * 1000 / Math.max(getPassedTimeMs(), 1);
 	}
 
 	public static void reset() {
@@ -62,8 +61,6 @@ public class Statistics {
 		drawByMaterialCount = 0;
 		pawnEvalCacheMisses = 0;
 		pawnEvalCacheHits = 0;
-		movesGenerated = 0;
-		moveCount = 0;
 		bestMove = null;
 		startTime = System.nanoTime();
 		castleCount = 0;
@@ -127,7 +124,7 @@ public class Statistics {
 		System.out.println("See-nodes     " + seeNodes);
 		System.out.println("Evaluated     " + evalNodes);
 		System.out.println("Eval in check " + evaluatedInCheck);
-		System.out.println("Moves         " + moveCount + "/" + movesGenerated);
+		System.out.println("Moves         " + NegamaxUtil.totalMoveCount);
 		System.out.println("IID           " + iidCount);
 		System.out.println("Panic         " + panic);
 

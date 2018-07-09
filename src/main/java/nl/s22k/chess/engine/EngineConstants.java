@@ -6,6 +6,8 @@ public class EngineConstants {
 	
 	public static final int MAX_PLIES 					= 64;
 	public static final int MAX_MOVES 					= 768;
+	public static final int MAX_THREADS					= 16;
+	public static final int THREADS_DEFAULT				= 1;
 	public static final boolean GENERATE_BR_PROMOTIONS 	= false;
 
 	public static final boolean ASSERT 					= false;
@@ -17,7 +19,6 @@ public class EngineConstants {
 	public static boolean isTuningSession 				= false;
 
 	// Repetition-table
-	public static final int REPETITION_TABLE_ENTRIES 	= 16; // 16
 	public static final boolean ENABLE_REPETITION_TABLE = true;
 
 	// TT values
@@ -55,7 +56,5 @@ public class EngineConstants {
 	public static final int POWER_2_MATERIAL_ENTRIES 	= 11;
 	public static boolean ENABLE_PAWN_EVAL_CACHE 		= true;	//TODO make this variable final
 	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 13;
-	public static final boolean ENABLE_EVAL_MOBILITY 	= true;
-	public static final boolean ENABLE_EVAL_MOBILITY_KING_DEFENSE = true;
 	public static final boolean ENABLE_INCREMENTAL_PSQT = true;
 }

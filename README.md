@@ -19,13 +19,14 @@ Score is about 3000 elo.
 - aspiration window
 - evaluation parameters tuned using the Texel's tuning method
 - tapered eval
+- lazy SMP
 - no openingbook or endgame tablebases
 - no pondering
 
 ## Future
-- multi-threading
 - singular extensions
 - improved king safety
+- ...
 
 
 _"Simplicity is the soul of efficiency"_       - Austin Freeman -

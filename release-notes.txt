@@ -1,3 +1,9 @@
+
+1.10 - 09-07-2018 - 3000 elo
+- lazy SMP
+- several simplifications and small updates 
+
+
 1.9 - 23-04-2018 - 3000 elo
 - fixed some crashes
 - improved sorting efficiency

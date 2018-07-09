@@ -10,14 +10,13 @@ import nl.s22k.chess.Statistics;
 import nl.s22k.chess.eval.EvalCache;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.KingSafetyEval;
+import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PassedPawnEval;
 import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveWrapper;
 import nl.s22k.chess.move.TreeMove;
-import nl.s22k.chess.search.HeuristicUtil;
 import nl.s22k.chess.search.NegamaxUtil;
-import nl.s22k.chess.search.RepetitionTable;
 import nl.s22k.chess.search.TTUtil;
 import nl.s22k.chess.search.TimeUtil;
 
@@ -30,6 +29,8 @@ public class MainEngine {
 
 	private static boolean previousPlyTookLong;
 	private static long previousPlyStartTime = System.currentTimeMillis();
+
+	private static int nrOfThreads = EngineConstants.THREADS_DEFAULT;
 
 	private static Thread searchThread;
 	static {
@@ -45,7 +46,7 @@ public class MainEngine {
 							}
 						}
 
-						NegamaxUtil.start(cb);
+						NegamaxUtil.start(cb, nrOfThreads);
 
 						// calculation ready
 						calculating = false;
@@ -78,7 +79,7 @@ public class MainEngine {
 						}
 						Thread.sleep(TimeUtil.getMaxTimeMs());
 						if (Statistics.bestMove != null) {
-							NegamaxUtil.stop = true;
+							NegamaxUtil.mode.set(NegamaxUtil.MODE_STOP);
 						}
 
 					} catch (InterruptedException e) {
@@ -136,14 +137,15 @@ public class MainEngine {
 					System.out.println("id name chess22k " + getVersion());
 					System.out.println("id author Sander MvdB");
 					System.out.println("option name Hash type spin default 128 min 1 max 4096");
+					System.out.println("option name Threads type spin default 1 min 1 max 16");
 					System.out.println("uciok");
 				} else if (tokens[0].equals("isready")) {
 					TTUtil.init(false);
 					System.out.println("readyok");
 				} else if (tokens[0].equals("ucinewgame")) {
-					HeuristicUtil.clearTables();
 					TTUtil.clearValues();
 					PawnEvalCache.clearValues();
+					MaterialCache.clearValues();
 					EvalCache.clearValues();
 				} else if (tokens[0].equals("position")) {
 					position(tokens);
@@ -157,7 +159,7 @@ public class MainEngine {
 					sc.close();
 					System.exit(0);
 				} else if (tokens[0].equals("stop")) {
-					NegamaxUtil.stop = true;
+					NegamaxUtil.mode.set(NegamaxUtil.MODE_STOP);
 				} else {
 					System.out.println("Unknown command: " + tokens[0]);
 				}
@@ -232,6 +234,8 @@ public class MainEngine {
 				}
 			}
 
+		} else if (optionName.toLowerCase().equals("threads")) {
+			nrOfThreads = Integer.parseInt(optionValue);
 		} else {
 			System.out.println("Unknown option: " + optionName);
 		}
@@ -262,10 +266,10 @@ public class MainEngine {
 			for (int i = 1; i < goCommandTokens.length; i++) {
 				if (goCommandTokens[i].equals("infinite")) {
 					// TODO are we clearing the values again?
-					HeuristicUtil.clearTables();
 					TTUtil.clearValues();
 					PawnEvalCache.clearValues();
 					EvalCache.clearValues();
+					MaterialCache.clearValues();
 					TimeUtil.setInfiniteWindow();
 				} else if (goCommandTokens[i].equals("movetime")) {
 					TimeUtil.setExactMoveTime(Integer.parseInt(goCommandTokens[i + 1]));
@@ -301,15 +305,14 @@ public class MainEngine {
 		for (String moveToken : moveTokens) {
 			MoveWrapper move = new MoveWrapper(moveToken, cb);
 			cb.doMove(move.move);
-			RepetitionTable.addValue(cb.zobristKey);
 		}
 	}
 
 	private static void eval() {
-		EvalUtil.calculateMobilityScoresAndSetAttackBoards(cb);
+		final int mobilityScore = EvalUtil.calculateMobilityScoresAndSetAttackBoards(cb);
 		System.out.println(" Material imbalance: " + EvalUtil.getImbalances(cb));
 		System.out.println("          Position : " + cb.psqtScore + "/" + cb.psqtScoreEg);
-		System.out.println("          Mobility : " + cb.mobilityScore[EvalUtil.MG] + "/" + cb.mobilityScore[EvalUtil.EG]);
+		System.out.println("          Mobility : " + EvalUtil.getMgScore(mobilityScore) + "/" + EvalUtil.getEgScore(mobilityScore));
 		System.out.println("              Pawn : " + EvalUtil.getPawnScores(cb));
 		System.out.println("    Pawn-passed-eg : " + PassedPawnEval.calculatePassedPawnScores(cb));
 		System.out.println("       King-safety : " + KingSafetyEval.calculateKingSafetyScores(cb));
@@ -333,20 +336,20 @@ public class MainEngine {
 	}
 
 	public static void sendInfo() {
-		if (lessOutput || noOutput) {
-			return;
-		}
-		System.out.println("info nodes " + Statistics.moveCount + " nps " + Statistics.calculateNps() + " hashfull "
-				+ TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2));
+		// if (lessOutput || noOutput) {
+		// return;
+		// }
+		// System.out.println("info nodes " + Statistics.moveCount + " nps " + Statistics.calculateNps() + " hashfull "
+		// + TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2));
 	}
 
 	public static void sendMoveInfo(final int move, final int movesPerformed) {
-		if (lessOutput || noOutput) {
-			return;
-		}
-		if (previousPlyTookLong) {
-			System.out.println("info currmove " + new MoveWrapper(move) + " currmovenumber " + movesPerformed);
-		}
+		// if (lessOutput || noOutput) {
+		// return;
+		// }
+		// if (previousPlyTookLong) {
+		// System.out.println("info currmove " + new MoveWrapper(move) + " currmovenumber " + movesPerformed);
+		// }
 	}
 
 	public static void sendPlyInfo() {
@@ -358,12 +361,14 @@ public class MainEngine {
 		// restart info thread
 		infoThread.interrupt();
 
+		final String hashInfo = TTUtil.usageCounter == 0 ? "" : " hashfull " + TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2);
+
 		// info depth 1 seldepth 2 score cp 50 pv d2d4 d7d5 e2e3 hashfull 0 nps 1000 nodes 22
 		// info depth 4 seldepth 10 score cp 40 upperbound pv d2d4 d7d5 e2e3 hashfull 0 nps 30000 nodes 1422
 		TreeMove bestMove = Statistics.bestMove;
-		System.out.println("info depth " + Statistics.depth + " seldepth " + Statistics.maxDepth + " time " + Statistics.getPassedTimeMs() + " score cp "
-				+ bestMove.score + bestMove.scoreType + "nps " + Statistics.calculateNps() + " nodes " + Statistics.moveCount + " hashfull "
-				+ TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2) + " pv " + bestMove);
+		System.out.println(
+				"info depth " + Statistics.depth + " seldepth " + Statistics.maxDepth + " time " + Statistics.getPassedTimeMs() + " score cp " + bestMove.score
+						+ bestMove.scoreType + "nps " + Statistics.calculateNps() + " nodes " + NegamaxUtil.totalMoveCount + hashInfo + " pv " + bestMove);
 		previousPlyStartTime = System.currentTimeMillis();
 	}
 

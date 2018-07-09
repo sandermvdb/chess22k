@@ -3,6 +3,7 @@ package nl.s22k.chess.eval;
 import static nl.s22k.chess.ChessConstants.BISHOP;
 import static nl.s22k.chess.ChessConstants.BLACK;
 import static nl.s22k.chess.ChessConstants.NIGHT;
+import static nl.s22k.chess.ChessConstants.ROOK;
 import static nl.s22k.chess.ChessConstants.WHITE;
 
 import nl.s22k.chess.Bitboard;
@@ -21,7 +22,7 @@ public class PassedPawnEval {
 		int blackPromotionDistance = Util.SHORT_MAX;
 
 		// white passed pawns
-		long passedPawns = cb.passedPawns & cb.friendlyPieces[WHITE];
+		long passedPawns = cb.passedPawnsAndOutposts & cb.pieces[WHITE][ChessConstants.PAWN];
 		while (passedPawns != 0) {
 			final int index = 63 - Long.numberOfLeadingZeros(passedPawns);
 
@@ -36,7 +37,7 @@ public class PassedPawnEval {
 		}
 
 		// black passed pawns
-		passedPawns = cb.passedPawns & cb.friendlyPieces[BLACK];
+		passedPawns = cb.passedPawnsAndOutposts & cb.pieces[BLACK][ChessConstants.PAWN];
 		while (passedPawns != 0) {
 			final int index = Long.numberOfTrailingZeros(passedPawns);
 
@@ -61,40 +62,61 @@ public class PassedPawnEval {
 
 	private static int getPassedPawnScore(final ChessBoard cb, final int index, final int color) {
 
-		int score = EvalConstants.PASSED_PAWN_SCORE[(7 * color) + ChessConstants.COLOR_FACTOR[color] * index / 8];
-		final long maskNextIndex = Util.POWER_LOOKUP[index + ChessConstants.COLOR_FACTOR_8[color]];
+		final int nextIndex = index + ChessConstants.COLOR_FACTOR_8[color];
+		final long square = Util.POWER_LOOKUP[index];
+		final long maskNextSquare = Util.POWER_LOOKUP[nextIndex];
+		final long maskPreviousSquare = Util.POWER_LOOKUP[index - ChessConstants.COLOR_FACTOR_8[color]];
+		final long maskFile = Bitboard.FILES[index & 7];
+		final int enemyColor = 1 - color;
+		float multiplier = 1;
 
 		// is piece blocked?
-		if ((cb.allPieces & maskNextIndex) != 0) {
-			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[0];
+		if ((cb.allPieces & maskNextSquare) != 0) {
+			multiplier *= EvalConstants.PASSED_MULTIPLIERS[0];
 		}
 
 		// is next squared attacked?
-		if ((cb.attacksAll[1 - color] & maskNextIndex) == 0) {
-			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[1];
+		if ((cb.attacksAll[enemyColor] & maskNextSquare) == 0) {
+
+			// complete path free of enemy attacks?
+			if ((ChessConstants.PINNED_MOVEMENT[nextIndex][index] & cb.attacksAll[enemyColor]) == 0) {
+				multiplier *= EvalConstants.PASSED_MULTIPLIERS[7];
+			} else {
+				multiplier *= EvalConstants.PASSED_MULTIPLIERS[1];
+			}
 		}
 
 		// is next squared defended?
-		if ((cb.attacksAll[color] & maskNextIndex) != 0) {
-			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[3];
+		if ((cb.attacksAll[color] & maskNextSquare) != 0) {
+			multiplier *= EvalConstants.PASSED_MULTIPLIERS[3];
 		}
 
 		// is enemy king in front?
-		if (ChessConstants.COLOR_FACTOR[color] * cb.kingIndex[1 - color] > ChessConstants.COLOR_FACTOR[color] * index
-				&& (cb.kingIndex[1 - color] & 7) == (index & 7)) {
-			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[2];
+		if ((ChessConstants.PINNED_MOVEMENT[nextIndex][index] & cb.pieces[enemyColor][ChessConstants.KING]) != 0) {
+			multiplier *= EvalConstants.PASSED_MULTIPLIERS[2];
 		}
 
 		// under attack?
-		if (cb.colorToMove != color && (cb.attacksAll[1 - color] & Util.POWER_LOOKUP[index]) != 0) {
-			score *= 10f / EvalConstants.PASSED_PAWN_MULTIPLIERS[4];
+		if (cb.colorToMove != color && (cb.attacksAll[enemyColor] & square) != 0) {
+			multiplier *= EvalConstants.PASSED_MULTIPLIERS[4];
+		}
+
+		// defended by rook from behind?
+		if ((maskFile & cb.pieces[color][ROOK]) != 0 && (cb.attacks[color][ROOK] & square) != 0 && (cb.attacks[color][ROOK] & maskPreviousSquare) != 0) {
+			multiplier *= EvalConstants.PASSED_MULTIPLIERS[5];
+		}
+
+		// attacked by from behind?
+		else if ((maskFile & cb.pieces[enemyColor][ROOK]) != 0 && (cb.attacks[enemyColor][ROOK] & square) != 0
+				&& (cb.attacks[enemyColor][ROOK] & maskPreviousSquare) != 0) {
+			multiplier *= EvalConstants.PASSED_MULTIPLIERS[6];
 		}
 
 		// king tropism
-		score *= 10f / EvalConstants.PASSED_PAWN_KING[Util.getDistance(cb.kingIndex[color], index)];
-		score *= 10f / EvalConstants.PASSED_PAWN_KING[8 - Util.getDistance(cb.kingIndex[1 - color], index)];
+		multiplier *= EvalConstants.PASSED_KING[Util.getDistance(cb.kingIndex[color], index)];
+		multiplier *= EvalConstants.PASSED_KING[8 - Util.getDistance(cb.kingIndex[enemyColor], index)];
 
-		return score;
+		return (int) (EvalConstants.PASSED_SCORE[(7 * color) + ChessConstants.COLOR_FACTOR[color] * index / 8] * multiplier);
 	}
 
 	private static int getBlackPromotionDistance(final ChessBoard cb, final int index) {

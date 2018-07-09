@@ -12,28 +12,28 @@ public class NodeCounter {
 
 	private static final int MAX_PLY = 14;
 	private static final int NUMBER_OF_POSITIONS = 100;
-	
-	public static void main(String[] args){
+
+	public static void main(String[] args) {
 		// setup
 		MagicUtil.init();
-		NegamaxUtil.maxDepth=MAX_PLY;
+		NegamaxUtil.maxDepth = MAX_PLY;
 		TimeUtil.setInfiniteWindow();
 		MainEngine.noOutput = true;
-		
+
 		long totalNodesSearched = 0;
-		
-		for(int index = 0; index < NUMBER_OF_POSITIONS; index++){
+
+		for (int index = 0; index < NUMBER_OF_POSITIONS; index++) {
 			System.out.println(index);
 			String epdString = BestMoveTest.WAC_EPDS[index];
 			Statistics.reset();
 			EPD epd = new EPD(epdString);
 			ChessBoard cb = ChessBoardUtil.getNewCB(epd.getFen());
 			NegamaxUtil.start(cb);
-			totalNodesSearched += Statistics.moveCount;
+			totalNodesSearched += NegamaxUtil.totalMoveCount;
 		}
 		System.out.println("Total   " + totalNodesSearched);
 		System.out.println("Average " + totalNodesSearched / NUMBER_OF_POSITIONS);
-		
+
 	}
-	
+
 }

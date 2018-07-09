@@ -1,9 +1,10 @@
 package nl.s22k.chess.eval;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.Arrays;
 
+import nl.s22k.chess.Assert;
+import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
@@ -14,70 +15,55 @@ public class PawnEvalCache {
 	public static final int MAX_TABLE_ENTRIES = 1 << EngineConstants.POWER_2_PAWN_EVAL_ENTRIES;
 
 	private static final long[] keys = new long[MAX_TABLE_ENTRIES];
-	private static final long[] passedPawns = new long[MAX_TABLE_ENTRIES];
-	private static final long[] whiteOutposts = new long[MAX_TABLE_ENTRIES];
-	private static final long[] blackOutposts = new long[MAX_TABLE_ENTRIES];
+	private static final long[] passedPawnsAndOutposts = new long[MAX_TABLE_ENTRIES];
 	private static final int[] scores = new int[MAX_TABLE_ENTRIES];
 	public static int usageCounter;
 
 	public static void clearValues() {
 		Arrays.fill(keys, 0);
-		Arrays.fill(passedPawns, 0);
-		Arrays.fill(whiteOutposts, 0);
-		Arrays.fill(blackOutposts, 0);
+		Arrays.fill(passedPawnsAndOutposts, 0);
 		Arrays.fill(scores, 0);
 		usageCounter = 0;
 	}
 
-	public static boolean hasScore(final long key) {
+	public static int updateBoardAndGetScore(final ChessBoard cb) {
 
 		if (!EngineConstants.ENABLE_PAWN_EVAL_CACHE) {
-			return false;
+			return ChessConstants.CACHE_MISS;
 		}
 
-		if (!Statistics.ENABLED) {
-			return keys[getIndex(key)] == key;
+		final int index = getIndex(cb.pawnZobristKey);
+		final int score = scores[index];
+		final long passedPawnsAndOutpostsValue = passedPawnsAndOutposts[index];
+
+		if ((keys[index] ^ score ^ passedPawnsAndOutpostsValue) == cb.pawnZobristKey) {
+			if (Statistics.ENABLED) {
+				Statistics.pawnEvalCacheHits++;
+			}
+			if (!EngineConstants.TEST_EVAL_CACHES) {
+				cb.passedPawnsAndOutposts = passedPawnsAndOutpostsValue;
+			}
+			return score;
 		}
 
-		if (keys[getIndex(key)] == key) {
-			Statistics.pawnEvalCacheHits++;
-			return true;
+		if (Statistics.ENABLED) {
+			Statistics.pawnEvalCacheMisses++;
 		}
-
-		Statistics.pawnEvalCacheMisses++;
-		return false;
+		return ChessConstants.CACHE_MISS;
 	}
 
-	public static int getScore(final long key) {
-		return scores[getIndex(key)];
-	}
-
-	public static long getPassedPawns(final long key) {
-		return passedPawns[getIndex(key)];
-	}
-
-	public static long getWhiteOutposts(final long key) {
-		return whiteOutposts[getIndex(key)];
-	}
-
-	public static long getBlackOutposts(final long key) {
-		return blackOutposts[getIndex(key)];
-	}
-
-	public static void addValue(final long key, final int score, final long passedPawnsValue, final long whiteOutpostsValue, final long blackOutpostsValue) {
+	public static void addValue(final long key, final int score, final long passedPawnsAndOutpostsValue) {
 
 		if (EngineConstants.ASSERT) {
-			assertTrue(score <= Util.SHORT_MAX);
-			assertTrue(score >= Util.SHORT_MIN);
+			Assert.isTrue(score <= Util.SHORT_MAX);
+			Assert.isTrue(score >= Util.SHORT_MIN);
 		}
 
 		final int ttIndex = getIndex(key);
 
-		keys[ttIndex] = key;
+		keys[ttIndex] = key ^ score ^ passedPawnsAndOutpostsValue;
 		scores[ttIndex] = score;
-		passedPawns[ttIndex] = passedPawnsValue;
-		whiteOutposts[ttIndex] = whiteOutpostsValue;
-		blackOutposts[ttIndex] = blackOutpostsValue;
+		passedPawnsAndOutposts[ttIndex] = passedPawnsAndOutpostsValue;
 
 		if (Statistics.ENABLED) {
 			if (keys[ttIndex] == 0) {

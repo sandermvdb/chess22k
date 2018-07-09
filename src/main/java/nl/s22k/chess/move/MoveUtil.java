@@ -1,7 +1,6 @@
 package nl.s22k.chess.move;
 
-import static org.junit.Assert.assertEquals;
-
+import nl.s22k.chess.Assert;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.engine.EngineConstants;
 
@@ -145,8 +144,8 @@ public class MoveUtil {
 
 	public static int setScoredMove(final int move, final int score) {
 		if (EngineConstants.ASSERT) {
-			assertEquals(move, getCleanMove(move));
-			assertEquals(score, getScore(move | score << SHIFT_SCORE));
+			Assert.isTrue(move == getCleanMove(move));
+			Assert.isTrue(score == getScore(move | score << SHIFT_SCORE));
 		}
 		return move | score << SHIFT_SCORE;
 	}

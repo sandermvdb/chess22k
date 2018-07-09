@@ -9,7 +9,6 @@ import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveUtil;
-import nl.s22k.chess.search.RepetitionTable;
 
 public class RepetitionTest {
 
@@ -29,21 +28,16 @@ public class RepetitionTest {
 		int move4 = MoveUtil.createMove(36, 43, ChessConstants.KING);
 
 		System.out.println(cb.zobristKey);
-		RepetitionTable.addValue(cb.zobristKey);
 		cb.doMove(move1);
 		System.out.println(cb.zobristKey);
-		RepetitionTable.addValue(cb.zobristKey);
 		cb.doMove(move2);
 		System.out.println(cb.zobristKey);
-		RepetitionTable.addValue(cb.zobristKey);
 		cb.doMove(move3);
 		System.out.println(cb.zobristKey);
-		RepetitionTable.addValue(cb.zobristKey);
 		cb.doMove(move4);
 		System.out.println(cb.zobristKey);
-		RepetitionTable.addValue(cb.zobristKey);
 
-		System.out.println(RepetitionTable.isRepetition(cb));
+		System.out.println(cb.isRepetition());
 	}
 
 }

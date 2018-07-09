@@ -6,36 +6,30 @@ public class PsqtTuningObject extends TuningObject {
 
 	public int[][] psqtValues;
 
-	public PsqtTuningObject(int[][] psqtValues, int step, String name, boolean showAverage, Integer... skipValues) {
-		super(psqtValues[ChessConstants.WHITE], step, name, showAverage, false, skipValues);
+	public PsqtTuningObject(int[][] psqtValues, int step, String name) {
+		super(psqtValues[ChessConstants.WHITE], step, name, true, false);
 		this.psqtValues = psqtValues;
-		this.tunedValues = psqtValues[ChessConstants.WHITE].length / 2 - skipValues.length / 2;
-		orgValues = new int[psqtValues[ChessConstants.WHITE].length];
-		System.arraycopy(psqtValues[ChessConstants.WHITE], 0, orgValues, 0, psqtValues[ChessConstants.WHITE].length);
+		this.tunedValues = 32;
+		orgValues = new int[64];
+		System.arraycopy(psqtValues[ChessConstants.WHITE], 0, orgValues, 0, 64);
 	}
 
-	@Override
-	public void printOrgValues() {
-		if (showAverage) {
-			int sum = 0;
-			for (int i = 0; i < orgValues.length; i++) {
-				sum += orgValues[i];
-			}
-			System.out.println(name + ": (" + sum / orgValues.length + ")" + getArrayFriendlyFormatted(orgValues));
-		} else {
-			System.out.println(name + ": " + getArrayFriendlyFormatted(orgValues));
-		}
+	public PsqtTuningObject(int[][] psqtValues, int step, String name, boolean pawnPsqt) {
+		super(psqtValues[ChessConstants.WHITE], step, name, true, false, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60, 61, 62, 63);
+		this.psqtValues = psqtValues;
+		this.tunedValues = 24;
+		orgValues = new int[64];
+		System.arraycopy(psqtValues[ChessConstants.WHITE], 0, orgValues, 0, 64);
 	}
 
 	@Override
 	public void printNewValues() {
 		if (showAverage) {
 			int sum = 0;
-			for (int i = 0; i < psqtValues[ChessConstants.WHITE].length; i++) {
+			for (int i = 0; i < 64; i++) {
 				sum += psqtValues[ChessConstants.WHITE][i];
 			}
-			System.out
-					.println(name + ": (" + sum / psqtValues[ChessConstants.WHITE].length + ")" + getArrayFriendlyFormatted(psqtValues[ChessConstants.WHITE]));
+			System.out.println(name + ": (" + sum / 64 + ")" + getArrayFriendlyFormatted(psqtValues[ChessConstants.WHITE]));
 		} else {
 			System.out.println(name + ": " + getArrayFriendlyFormatted(psqtValues[ChessConstants.WHITE]));
 		}
@@ -45,10 +39,10 @@ public class PsqtTuningObject extends TuningObject {
 	public String toString() {
 		if (showAverage) {
 			int sum = 0;
-			for (int i = 0; i < psqtValues[ChessConstants.WHITE].length; i++) {
+			for (int i = 0; i < 64; i++) {
 				sum += psqtValues[ChessConstants.WHITE][i];
 			}
-			return name + ": " + sum / psqtValues[ChessConstants.WHITE].length;
+			return name + ": " + sum / 64;
 		}
 		return name;
 	}
@@ -86,7 +80,7 @@ public class PsqtTuningObject extends TuningObject {
 	}
 
 	public int numberOfParameters() {
-		return psqtValues[ChessConstants.WHITE].length;
+		return 64;
 	}
 
 	public boolean skip(int i) {
@@ -104,6 +98,35 @@ public class PsqtTuningObject extends TuningObject {
 		}
 		sb.delete(sb.length() - 2, sb.length());
 		return sb.toString();
+	}
+
+	@Override
+	public void clearValues() {
+		for (int i = 0; i < 64; i++) {
+			psqtValues[ChessConstants.WHITE][i] = 0;
+			psqtValues[ChessConstants.BLACK][i] = 0;
+		}
+	}
+
+	@Override
+	public void restoreValues() {
+		for (int i = 0; i < 64; i++) {
+			psqtValues[ChessConstants.WHITE][i] = orgValues[i];
+		}
+
+		for (int i = 0; i < 64; i++) {
+			psqtValues[ChessConstants.BLACK][i] = -psqtValues[ChessConstants.WHITE][63 - i];
+		}
+	}
+
+	@Override
+	public boolean isUpdated() {
+		for (int i = 0; i < 64; i++) {
+			if (orgValues[i] != psqtValues[ChessConstants.WHITE][i]) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }
