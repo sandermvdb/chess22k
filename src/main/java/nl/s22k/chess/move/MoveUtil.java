@@ -150,4 +150,16 @@ public class MoveUtil {
 		return move | score << SHIFT_SCORE;
 	}
 
+	public static boolean isNormalMove(final int move) {
+		return getMoveType(move) == TYPE_NORMAL;
+	}
+
+	public static boolean isEPMove(final int move) {
+		return getMoveType(move) == TYPE_EP;
+	}
+
+	public static boolean isCastlingMove(int move) {
+		return getMoveType(move) == TYPE_CASTLING;
+	}
+
 }

@@ -11,7 +11,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import nl.s22k.chess.ChessBoard;
-import nl.s22k.chess.engine.EngineConstants;
+import nl.s22k.chess.eval.MaterialCache;
+import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.move.MagicUtil;
 
 public class EvalEvaluator {
@@ -22,9 +23,6 @@ public class EvalEvaluator {
 
 	public static void main(String[] args) {
 		// setup
-		EngineConstants.ENABLE_PAWN_EVAL_CACHE = false;
-		EngineConstants.ENABLE_MATERIAL_CACHE = false;
-		EngineConstants.isTuningSession = true;
 		MagicUtil.init();
 
 		// read all fens, including score
@@ -32,9 +30,9 @@ public class EvalEvaluator {
 		System.out.println("Fens found : " + fens.size());
 
 		// init workers
-		ChessBoard.initTuningInstances(numberOfThreads);
+		ChessBoard.initInstances(numberOfThreads);
 		for (int i = 0; i < numberOfThreads; i++) {
-			workers[i] = new ErrorCalculator(ChessBoard.getTuningInstance(i));
+			workers[i] = new ErrorCalculator(ChessBoard.getInstance(i));
 		}
 
 		// add fens to workers
@@ -47,7 +45,7 @@ public class EvalEvaluator {
 		}
 
 		// get tuned values
-		List<TuningObject> tuningObjects = Tuner.getTuningObjects();
+		List<Tuning> tuningObjects = Tuner.getTuningObjects();
 
 		// tune
 		eval(tuningObjects);
@@ -55,11 +53,13 @@ public class EvalEvaluator {
 		executor.shutdown();
 	}
 
-	private static void eval(List<TuningObject> tuningObjects) {
+	private static void eval(List<Tuning> tuningObjects) {
 		final double bestError = calculateErrorMultiThreaded();
 		System.out.println(String.format("%f - org", bestError));
-		for (TuningObject tuningObject : tuningObjects) {
+		for (Tuning tuningObject : tuningObjects) {
 			tuningObject.clearValues();
+			PawnEvalCache.clearValues();
+			MaterialCache.clearValues();
 			final double newError = calculateErrorMultiThreaded();
 			System.out.println(String.format("%f - %s", newError, tuningObject.name));
 			tuningObject.restoreValues();

@@ -23,13 +23,13 @@ public final class MoveGenerator {
 	private final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES * 2];
 	private final int[] nextToMove = new int[EngineConstants.MAX_PLIES * 2];
 	private int currentPly;
-	
+
 	private final int[] KILLER_MOVE_1 = new int[EngineConstants.MAX_PLIES * 2];
 	private final int[] KILLER_MOVE_2 = new int[EngineConstants.MAX_PLIES * 2];
 
 	private final int[][] HH_MOVES = new int[2][64 * 64];
 	private final int[][] BF_MOVES = new int[2][64 * 64];
-	
+
 	public MoveGenerator() {
 		clearHeuristicTables();
 	}
@@ -45,17 +45,17 @@ public final class MoveGenerator {
 		Arrays.fill(BF_MOVES[ChessConstants.BLACK], 1);
 	}
 
-	public void addHHValue(final int color, final int fromToIndex, final int depth) {
-		HH_MOVES[color][fromToIndex] += depth * depth;
+	public void addHHValue(final int color, final int move, final int depth) {
+		HH_MOVES[color][MoveUtil.getFromToIndex(move)] += depth * depth;
 		if (EngineConstants.ASSERT) {
-			Assert.isTrue(HH_MOVES[color][fromToIndex] >= 0);
+			Assert.isTrue(HH_MOVES[color][MoveUtil.getFromToIndex(move)] >= 0);
 		}
 	}
 
-	public void addBFValue(final int color, final int fromToIndex, final int depth) {
-		BF_MOVES[color][fromToIndex] += depth * depth;
+	public void addBFValue(final int color, final int move, final int depth) {
+		BF_MOVES[color][MoveUtil.getFromToIndex(move)] += depth * depth;
 		if (EngineConstants.ASSERT) {
-			Assert.isTrue(BF_MOVES[color][fromToIndex] >= 0);
+			Assert.isTrue(BF_MOVES[color][MoveUtil.getFromToIndex(move)] >= 0);
 		}
 	}
 
@@ -121,15 +121,15 @@ public final class MoveGenerator {
 		moves[nextToGenerate[currentPly]++] = move;
 	}
 
-	public void setMVVLVAScores(final ChessBoard cb) {
+	public void setMVVLVAScores() {
 		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
 			moves[j] = MoveUtil.setScoredMove(moves[j], MoveUtil.getAttackedPieceIndex(moves[j]) * 6 - MoveUtil.getSourcePieceIndex(moves[j]));
 		}
 	}
 
-	public void setHHScores(final ChessBoard cb) {
+	public void setHHScores(final int colorToMove) {
 		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
-			moves[j] = MoveUtil.setScoredMove(moves[j], getHHScore(cb.colorToMove, MoveUtil.getFromToIndex(moves[j])));
+			moves[j] = MoveUtil.setScoredMove(moves[j], getHHScore(colorToMove, MoveUtil.getFromToIndex(moves[j])));
 		}
 	}
 
@@ -193,7 +193,7 @@ public final class MoveGenerator {
 			break;
 		default:
 			// double check, only the king can attack
-			addKingAttacks(cb, cb.friendlyPieces[cb.colorToMoveInverse]);
+			addKingAttacks(cb);
 		}
 	}
 
@@ -253,21 +253,20 @@ public final class MoveGenerator {
 
 		// non pinned pieces
 		addEpAttacks(cb);
-		addPawnAttacks(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, enemies, cb.emptySpaces);
+		addPawnAttacksAndPromotions(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, enemies, cb.emptySpaces);
 		addNightAttacks(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb.pieceIndexes, enemies);
 		addRookAttacks(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, enemies);
 		addBishopAttacks(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, enemies);
 		addQueenAttacks(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb, enemies);
-		addKingAttacks(cb, enemies);
+		addKingAttacks(cb);
 
 		// pinned pieces
 		long piece = cb.friendlyPieces[cb.colorToMove] & cb.pinnedPieces;
 		while (piece != 0) {
 			switch (cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]) {
 			case PAWN:
-				addPawnAttacks(Long.lowestOneBit(piece), cb,
-						enemies & ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(piece)][cb.kingIndex[cb.colorToMove]],
-						cb.emptySpaces & ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(piece)][cb.kingIndex[cb.colorToMove]]);
+				addPawnAttacksAndPromotions(Long.lowestOneBit(piece), cb,
+						enemies & ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(piece)][cb.kingIndex[cb.colorToMove]], 0);
 				break;
 			case BISHOP:
 				addBishopAttacks(Long.lowestOneBit(piece), cb,
@@ -289,15 +288,15 @@ public final class MoveGenerator {
 	private void generateOutOfCheckAttacks(final ChessBoard cb) {
 		// attack attacker
 		addEpAttacks(cb);
-		addPawnAttacks(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.checkingPieces, cb.emptySpaces);
+		addPawnAttacksAndPromotions(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.checkingPieces, cb.emptySpaces);
 		addNightAttacks(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb.pieceIndexes, cb.checkingPieces);
 		addBishopAttacks(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, cb.checkingPieces);
 		addRookAttacks(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, cb.checkingPieces);
 		addQueenAttacks(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb, cb.checkingPieces);
-		addKingAttacks(cb, cb.friendlyPieces[cb.colorToMoveInverse]);
+		addKingAttacks(cb);
 	}
 
-	private void addPawnAttacks(final long pawns, final ChessBoard cb, final long enemies, final long emptySpaces) {
+	private void addPawnAttacksAndPromotions(final long pawns, final ChessBoard cb, final long enemies, final long emptySpaces) {
 
 		if (pawns == 0) {
 			return;
@@ -515,9 +514,9 @@ public final class MoveGenerator {
 		}
 	}
 
-	private void addKingAttacks(final ChessBoard cb, final long possiblePositions) {
+	private void addKingAttacks(final ChessBoard cb) {
 		final int fromIndex = cb.kingIndex[cb.colorToMove];
-		long moves = StaticMoves.KING_MOVES[fromIndex] & possiblePositions;
+		long moves = StaticMoves.KING_MOVES[fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse];
 		while (moves != 0) {
 			final int toIndex = Long.numberOfTrailingZeros(moves);
 			addMove(MoveUtil.createAttackMove(fromIndex, toIndex, ChessConstants.KING, cb.pieceIndexes[toIndex]));

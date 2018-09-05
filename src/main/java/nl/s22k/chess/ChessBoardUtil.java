@@ -11,7 +11,6 @@ import static nl.s22k.chess.ChessConstants.WHITE;
 
 import java.util.Arrays;
 
-import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.MaterialUtil;
@@ -24,11 +23,7 @@ public class ChessBoardUtil {
 
 	public static ChessBoard getNewCB(String fen) {
 		ChessBoard cb = ChessBoard.getInstance();
-
-		if (!EngineConstants.isTuningSession) {
-			cb.clearHistoryValues();
-		}
-
+		cb.clearHistoryValues();
 		setFenValues(fen, cb);
 		init(cb);
 		return cb;
@@ -205,7 +200,6 @@ public class ChessBoardUtil {
 		// primitives
 		target.castlingRights = source.castlingRights;
 		target.psqtScore = source.psqtScore;
-		target.psqtScoreEg = source.psqtScoreEg;
 		target.colorToMove = source.colorToMove;
 		target.colorToMoveInverse = source.colorToMoveInverse;
 		target.epIndex = source.epIndex;
@@ -221,24 +215,27 @@ public class ChessBoardUtil {
 		target.moveCounter = source.moveCounter;
 		target.moveCount = source.moveCount;
 
-		// arrays
+		// small arrays
+		target.kingArea[WHITE] = source.kingArea[WHITE];
+		target.kingArea[BLACK] = source.kingArea[BLACK];
+		target.kingIndex[WHITE] = source.kingIndex[WHITE];
+		target.kingIndex[BLACK] = source.kingIndex[BLACK];
+		target.friendlyPieces[WHITE] = source.friendlyPieces[WHITE];
+		target.friendlyPieces[BLACK] = source.friendlyPieces[BLACK];
+
+		// large arrays
 		System.arraycopy(source.pieceIndexes, 0, target.pieceIndexes, 0, source.pieceIndexes.length);
-		System.arraycopy(source.kingIndex, 0, target.kingIndex, 0, source.kingIndex.length);
-		System.arraycopy(source.kingArea, 0, target.kingArea, 0, source.kingArea.length);
-		System.arraycopy(source.friendlyPieces, 0, target.friendlyPieces, 0, source.friendlyPieces.length);
 		System.arraycopy(source.psqtScoreHistory, 0, target.psqtScoreHistory, 0, source.psqtScoreHistory.length);
-		System.arraycopy(source.psqtScoreEgHistory, 0, target.psqtScoreEgHistory, 0, source.psqtScoreEgHistory.length);
 		System.arraycopy(source.castlingHistory, 0, target.castlingHistory, 0, source.castlingHistory.length);
 		System.arraycopy(source.epIndexHistory, 0, target.epIndexHistory, 0, source.epIndexHistory.length);
 		System.arraycopy(source.zobristKeyHistory, 0, target.zobristKeyHistory, 0, source.zobristKeyHistory.length);
-		System.arraycopy(source.pawnZobristKeyHistory, 0, target.pawnZobristKeyHistory, 0, source.pawnZobristKeyHistory.length);
 		System.arraycopy(source.checkingPiecesHistory, 0, target.checkingPiecesHistory, 0, source.checkingPiecesHistory.length);
 		System.arraycopy(source.pinnedPiecesHistory, 0, target.pinnedPiecesHistory, 0, source.pinnedPiecesHistory.length);
 		System.arraycopy(source.discoveredPiecesHistory, 0, target.discoveredPiecesHistory, 0, source.discoveredPiecesHistory.length);
 
 		// multi-dimensional arrays
-		System.arraycopy(source.pieces[0], 0, target.pieces[0], 0, source.pieces[0].length);
-		System.arraycopy(source.pieces[1], 0, target.pieces[1], 0, source.pieces[1].length);
+		System.arraycopy(source.pieces[WHITE], 0, target.pieces[WHITE], 0, source.pieces[WHITE].length);
+		System.arraycopy(source.pieces[BLACK], 0, target.pieces[BLACK], 0, source.pieces[BLACK].length);
 	}
 
 	public static void init(ChessBoard cb) {
@@ -270,18 +267,14 @@ public class ChessBoardUtil {
 		cb.checkingPieces = CheckUtil.getCheckingPieces(cb);
 		cb.setPinnedAndDiscoPieces();
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);
-		cb.psqtScoreEg = EvalUtil.calculatePositionEgScores(cb);
 
 		cb.phase = EvalUtil.PHASE_TOTAL - (Long.bitCount(cb.pieces[WHITE][NIGHT] | cb.pieces[BLACK][NIGHT]) * EvalConstants.PHASE[NIGHT]
 				+ Long.bitCount(cb.pieces[WHITE][BISHOP] | cb.pieces[BLACK][BISHOP]) * EvalConstants.PHASE[BISHOP]
 				+ Long.bitCount(cb.pieces[WHITE][ROOK] | cb.pieces[BLACK][ROOK]) * EvalConstants.PHASE[ROOK]
 				+ Long.bitCount(cb.pieces[WHITE][QUEEN] | cb.pieces[BLACK][QUEEN]) * EvalConstants.PHASE[QUEEN]);
 
-		if (!EngineConstants.isTuningSession) {
-			// cached scores are not used
-			calculatePawnZobristKeys(cb);
-			calculateZobristKeys(cb);
-		}
+		calculatePawnZobristKeys(cb);
+		calculateZobristKeys(cb);
 	}
 
 	private static void calculateMaterialZobrist(final ChessBoard cb) {

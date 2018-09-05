@@ -5,7 +5,6 @@ import java.util.Map.Entry;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
-import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.move.MagicUtil;
 
@@ -17,9 +16,6 @@ public class LargestErrorCalculator {
 	public static void main(String[] args) {
 
 		// setup
-		EngineConstants.ENABLE_PAWN_EVAL_CACHE = false;
-		EngineConstants.ENABLE_MATERIAL_CACHE = false;
-		EngineConstants.isTuningSession = true;
 		MagicUtil.init();
 
 		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\epds\\quiet-labeled.epd", true, false);

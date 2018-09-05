@@ -106,17 +106,18 @@ public class PassedPawnEval {
 			multiplier *= EvalConstants.PASSED_MULTIPLIERS[5];
 		}
 
-		// attacked by from behind?
+		// attacked by rook from behind?
 		else if ((maskFile & cb.pieces[enemyColor][ROOK]) != 0 && (cb.attacks[enemyColor][ROOK] & square) != 0
 				&& (cb.attacks[enemyColor][ROOK] & maskPreviousSquare) != 0) {
 			multiplier *= EvalConstants.PASSED_MULTIPLIERS[6];
 		}
 
 		// king tropism
-		multiplier *= EvalConstants.PASSED_KING[Util.getDistance(cb.kingIndex[color], index)];
-		multiplier *= EvalConstants.PASSED_KING[8 - Util.getDistance(cb.kingIndex[enemyColor], index)];
+		multiplier *= EvalConstants.PASSED_KING_MULTI[Util.getDistance(cb.kingIndex[color], index)];
+		multiplier *= EvalConstants.PASSED_KING_MULTI[8 - Util.getDistance(cb.kingIndex[enemyColor], index)];
 
-		return (int) (EvalConstants.PASSED_SCORE[(7 * color) + ChessConstants.COLOR_FACTOR[color] * index / 8] * multiplier);
+		final int scoreIndex = (7 * color) + ChessConstants.COLOR_FACTOR[color] * index / 8;
+		return EvalUtil.score((int) (EvalConstants.PASSED_SCORE_MG[scoreIndex] * multiplier), (int) (EvalConstants.PASSED_SCORE_EG[scoreIndex] * multiplier));
 	}
 
 	private static int getBlackPromotionDistance(final ChessBoard cb, final int index) {
@@ -128,7 +129,7 @@ public class PassedPawnEval {
 					return 1;
 				}
 			}
-		} else if (MaterialUtil.noWhiteMajorPiecesOrOneNightOrBishop(cb.materialKey)) {
+		} else if (MaterialUtil.onlyWhitePawnsOrOneNightOrBishop(cb.materialKey)) {
 
 			// check if it is my turn
 			if (cb.colorToMove == WHITE) {
@@ -147,7 +148,7 @@ public class PassedPawnEval {
 
 			// check distance of enemy king to promotion square
 			if (promotionDistance < Math.max(cb.kingIndex[WHITE] >>> 3, Math.abs((index & 7) - (cb.kingIndex[WHITE] & 7)))) {
-				if (!MaterialUtil.hasWhiteMajorPieces(cb.materialKey)) {
+				if (!MaterialUtil.hasWhiteNonPawnPieces(cb.materialKey)) {
 					return promotionDistance;
 				}
 				if (cb.pieces[WHITE][NIGHT] != 0) {
@@ -179,7 +180,7 @@ public class PassedPawnEval {
 					return 1;
 				}
 			}
-		} else if (MaterialUtil.noBlackMajorPiecesOrOneNightOrBishop(cb.materialKey)) {
+		} else if (MaterialUtil.onlyBlackPawnsOrOneNightOrBishop(cb.materialKey)) {
 
 			// check if it is my turn
 			if (cb.colorToMove == BLACK) {
@@ -199,7 +200,7 @@ public class PassedPawnEval {
 
 			// check distance of enemy king to promotion square
 			if (promotionDistance < Math.max(7 - cb.kingIndex[BLACK] / 8, Math.abs((index & 7) - (cb.kingIndex[BLACK] & 7)))) {
-				if (!MaterialUtil.hasBlackMajorPieces(cb.materialKey)) {
+				if (!MaterialUtil.hasBlackNonPawnPieces(cb.materialKey)) {
 					return promotionDistance;
 				}
 				if (cb.pieces[BLACK][NIGHT] != 0) {

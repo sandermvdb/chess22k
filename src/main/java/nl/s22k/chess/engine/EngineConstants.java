@@ -8,6 +8,7 @@ public class EngineConstants {
 	public static final int MAX_MOVES 					= 768;
 	public static final int MAX_THREADS					= 16;
 	public static final int THREADS_DEFAULT				= 1;
+	public static final boolean ENABLE_PONDERING		= true;
 	public static final boolean GENERATE_BR_PROMOTIONS 	= false;
 
 	public static final boolean ASSERT 					= false;
@@ -15,8 +16,6 @@ public class EngineConstants {
 	public static final boolean TEST_EVAL_VALUES 		= false;
 	public static final boolean TEST_EVAL_CACHES	 	= false;
 	public static final boolean TEST_TT_VALUES 			= false;
-
-	public static boolean isTuningSession 				= false;
 
 	// Repetition-table
 	public static final boolean ENABLE_REPETITION_TABLE = true;
@@ -52,9 +51,8 @@ public class EngineConstants {
 	// Evaluation-function
 	public static final boolean ENABLE_EVAL_CACHE		= true;
 	public static final int POWER_2_EVAL_ENTRIES 		= 14;
-	public static boolean ENABLE_MATERIAL_CACHE			= true; //TODO make this variable final
+	public static final boolean ENABLE_MATERIAL_CACHE	= true;
 	public static final int POWER_2_MATERIAL_ENTRIES 	= 11;
-	public static boolean ENABLE_PAWN_EVAL_CACHE 		= true;	//TODO make this variable final
+	public static final boolean ENABLE_PAWN_EVAL_CACHE 	= true;
 	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 13;
-	public static final boolean ENABLE_INCREMENTAL_PSQT = true;
 }

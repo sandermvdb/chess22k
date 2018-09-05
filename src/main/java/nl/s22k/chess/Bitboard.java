@@ -154,6 +154,7 @@ public class Bitboard {
 	public static final long FILE_G = G1 | G2 | G3 | G4 | G5 | G6 | G7 | G8;
 	public static final long FILE_H = H1 | H2 | H3 | H4 | H5 | H6 | H7 | H8;
 	public static final long FILE_D_E = FILE_D | FILE_E;
+	public static final long FILE_CDEF = FILE_C | FILE_D| FILE_E | FILE_F;
 	public static final long NOT_FILE_A = ~FILE_A;
 	public static final long NOT_FILE_H = ~FILE_H;
 

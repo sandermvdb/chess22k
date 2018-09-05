@@ -16,7 +16,7 @@ public class NodeCounter {
 	public static void main(String[] args) {
 		// setup
 		MagicUtil.init();
-		NegamaxUtil.maxDepth = MAX_PLY;
+		MainEngine.maxDepth = MAX_PLY;
 		TimeUtil.setInfiniteWindow();
 		MainEngine.noOutput = true;
 
@@ -29,7 +29,7 @@ public class NodeCounter {
 			EPD epd = new EPD(epdString);
 			ChessBoard cb = ChessBoardUtil.getNewCB(epd.getFen());
 			NegamaxUtil.start(cb);
-			totalNodesSearched += NegamaxUtil.totalMoveCount;
+			totalNodesSearched += NegamaxUtil.getTotalMoveCount();
 		}
 		System.out.println("Total   " + totalNodesSearched);
 		System.out.println("Average " + totalNodesSearched / NUMBER_OF_POSITIONS);

@@ -12,18 +12,6 @@ public class Util {
 		}
 	}
 
-	public static int[] getSetBitsSlow(long value) {
-		int[] setBits = new int[Long.bitCount(value)];
-
-		int counter = 0;
-		while (value != 0) {
-			setBits[counter++] = Long.numberOfTrailingZeros(value);
-			value &= value - 1;
-		}
-
-		return setBits;
-	}
-
 	public static void reverse(int[] array) {
 		for (int i = 0; i < array.length / 2; i++) {
 			int temp = array[i];

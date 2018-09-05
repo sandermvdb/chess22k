@@ -7,7 +7,6 @@ import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Util;
-import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MagicUtil;
@@ -26,7 +25,6 @@ public class SeeTest {
 	public static void main(String[] args) {
 
 		// setup
-		EngineConstants.isTuningSession = true;
 		MagicUtil.init();
 
 		// read all fens, including score

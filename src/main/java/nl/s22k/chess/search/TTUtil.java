@@ -105,12 +105,12 @@ public class TTUtil {
 	}
 
 	public static void setScoreInStatistics(ChessBoard cb) {
-		final long key = alwaysReplaceKeys[getIndex(cb.zobristKey)];
-		final long value = alwaysReplaceValues[getIndex(cb.zobristKey)];
-
-		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+		if (NegamaxUtil.mode.get() == Mode.STOP) {
 			return;
 		}
+
+		final long key = alwaysReplaceKeys[getIndex(cb.zobristKey)];
+		final long value = alwaysReplaceValues[getIndex(cb.zobristKey)];
 
 		if ((key ^ value) != cb.zobristKey) {
 			// throw new RuntimeException("No best-move found");
@@ -122,12 +122,12 @@ public class TTUtil {
 	}
 
 	public static void setBestMoveInStatistics(ChessBoard cb, ScoreType scoreType) {
-		long key = alwaysReplaceKeys[getIndex(cb.zobristKey)];
-		long value = alwaysReplaceValues[getIndex(cb.zobristKey)];
-
-		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+		if (NegamaxUtil.mode.get() == Mode.STOP) {
 			return;
 		}
+
+		final long key = alwaysReplaceKeys[getIndex(cb.zobristKey)];
+		long value = alwaysReplaceValues[getIndex(cb.zobristKey)];
 
 		if ((key ^ value) != cb.zobristKey) {
 			// throw new RuntimeException("No best-move found");
@@ -160,7 +160,7 @@ public class TTUtil {
 
 	public static void addValue(final long key, int score, final int ply, final int depth, final int flag, final int cleanMove) {
 
-		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+		if (NegamaxUtil.mode.get() != Mode.START) {
 			return;
 		}
 
@@ -204,7 +204,7 @@ public class TTUtil {
 			depthReplaceValues[index] = value;
 		}
 
-		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+		if (NegamaxUtil.mode.get() != Mode.START) {
 			return;
 		}
 

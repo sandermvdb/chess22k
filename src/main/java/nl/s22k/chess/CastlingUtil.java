@@ -144,7 +144,6 @@ public final class CastlingUtil {
 			cb.pieceIndexes[2] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[0][WHITE][ROOK] ^ ChessBoard.zkPieceValues[2][WHITE][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][2] - EvalConstants.PSQT[ROOK][cb.colorToMove][0];
-			cb.psqtScoreEg += EvalConstants.PSQT_EG[ROOK][cb.colorToMove][2] - EvalConstants.PSQT_EG[ROOK][cb.colorToMove][0];
 			return;
 		case 57:
 			// black rook from 56 to 58
@@ -154,7 +153,6 @@ public final class CastlingUtil {
 			cb.pieceIndexes[58] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[56][BLACK][ROOK] ^ ChessBoard.zkPieceValues[58][BLACK][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][58] - EvalConstants.PSQT[ROOK][cb.colorToMove][56];
-			cb.psqtScoreEg += EvalConstants.PSQT_EG[ROOK][cb.colorToMove][58] - EvalConstants.PSQT_EG[ROOK][cb.colorToMove][56];
 			return;
 		case 5:
 			// white rook from 7 to 4
@@ -164,7 +162,6 @@ public final class CastlingUtil {
 			cb.pieceIndexes[4] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[7][WHITE][ROOK] ^ ChessBoard.zkPieceValues[4][WHITE][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][4] - EvalConstants.PSQT[ROOK][cb.colorToMove][7];
-			cb.psqtScoreEg += EvalConstants.PSQT_EG[ROOK][cb.colorToMove][4] - EvalConstants.PSQT_EG[ROOK][cb.colorToMove][7];
 			return;
 		case 61:
 			// black rook from 63 to 60
@@ -174,7 +171,6 @@ public final class CastlingUtil {
 			cb.pieceIndexes[60] = ROOK;
 			cb.zobristKey ^= ChessBoard.zkPieceValues[63][BLACK][ROOK] ^ ChessBoard.zkPieceValues[60][BLACK][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][60] - EvalConstants.PSQT[ROOK][cb.colorToMove][63];
-			cb.psqtScoreEg += EvalConstants.PSQT_EG[ROOK][cb.colorToMove][60] - EvalConstants.PSQT_EG[ROOK][cb.colorToMove][63];
 			return;
 		}
 		throw new RuntimeException("Incorrect king castling to-index: " + kingToIndex);

@@ -24,7 +24,7 @@ import nl.s22k.chess.move.MoveUtil;
 public final class ChessBoard {
 
 	private static ChessBoard instance = new ChessBoard();
-	private static ChessBoard[] tuningInstances;
+	private static ChessBoard[] instances;
 
 	// zobrist-keys
 	public static long zkWhiteToMove;
@@ -38,7 +38,7 @@ public final class ChessBoard {
 
 	/** 4 bits: white-king,white-queen,black-king,black-queen */
 	public int castlingRights;
-	public int psqtScore, psqtScoreEg;
+	public int psqtScore;
 	public int colorToMove, colorToMoveInverse;
 	public int epIndex;
 	public int materialKey;
@@ -57,11 +57,9 @@ public final class ChessBoard {
 
 	public int moveCounter = 0;
 	public final int[] psqtScoreHistory = new int[EngineConstants.MAX_MOVES];
-	public final int[] psqtScoreEgHistory = new int[EngineConstants.MAX_MOVES];
 	public final int[] castlingHistory = new int[EngineConstants.MAX_MOVES];
 	public final int[] epIndexHistory = new int[EngineConstants.MAX_MOVES];
 	public final long[] zobristKeyHistory = new long[EngineConstants.MAX_MOVES];
-	public final long[] pawnZobristKeyHistory = new long[EngineConstants.MAX_MOVES];
 	public final long[] checkingPiecesHistory = new long[EngineConstants.MAX_MOVES];
 	public final long[] pinnedPiecesHistory = new long[EngineConstants.MAX_MOVES];
 	public final long[] discoveredPiecesHistory = new long[EngineConstants.MAX_MOVES];
@@ -69,7 +67,7 @@ public final class ChessBoard {
 	// attack boards
 	public final long[][] attacks = new long[2][7];
 	public final long[] attacksAll = new long[2];
-	public final long[] attacksWithoutKing = new long[2];
+	public final long[] doubleAttacks = new long[2];
 	public final int[] kingAttackersFlag = new int[2];
 
 	public long passedPawnsAndOutposts;
@@ -82,15 +80,15 @@ public final class ChessBoard {
 		return new ChessBoard();
 	}
 
-	public static void initTuningInstances(int numberOfInstances) {
-		tuningInstances = new ChessBoard[numberOfInstances];
+	public static void initInstances(int numberOfInstances) {
+		instances = new ChessBoard[numberOfInstances];
 		for (int i = 0; i < numberOfInstances; i++) {
-			tuningInstances[i] = new ChessBoard();
+			instances[i] = new ChessBoard();
 		}
 	}
 
-	public static ChessBoard getTuningInstance(int instanceNumber) {
-		return tuningInstances[instanceNumber];
+	public static ChessBoard getInstance(int instanceNumber) {
+		return instances[instanceNumber];
 	}
 
 	/**
@@ -221,13 +219,15 @@ public final class ChessBoard {
 		colorToMoveInverse = 1 - colorToMove;
 	}
 
+	public boolean isDiscoveredMove(final int fromIndex) {
+		return (discoveredPieces & Util.POWER_LOOKUP[fromIndex]) != 0;
+	}
+
 	private void pushHistoryValues() {
 		psqtScoreHistory[moveCounter] = psqtScore;
-		psqtScoreEgHistory[moveCounter] = psqtScoreEg;
 		castlingHistory[moveCounter] = castlingRights;
 		epIndexHistory[moveCounter] = epIndex;
 		zobristKeyHistory[moveCounter] = zobristKey;
-		pawnZobristKeyHistory[moveCounter] = pawnZobristKey;
 		pinnedPiecesHistory[moveCounter] = pinnedPieces;
 		discoveredPiecesHistory[moveCounter] = discoveredPieces;
 		checkingPiecesHistory[moveCounter] = checkingPieces;
@@ -239,9 +239,7 @@ public final class ChessBoard {
 		epIndex = epIndexHistory[moveCounter];
 		zobristKey = zobristKeyHistory[moveCounter];
 		psqtScore = psqtScoreHistory[moveCounter];
-		psqtScoreEg = psqtScoreEgHistory[moveCounter];
 		castlingRights = castlingHistory[moveCounter];
-		pawnZobristKey = pawnZobristKeyHistory[moveCounter];
 		pinnedPieces = pinnedPiecesHistory[moveCounter];
 		discoveredPieces = discoveredPiecesHistory[moveCounter];
 		checkingPieces = checkingPiecesHistory[moveCounter];
@@ -296,7 +294,6 @@ public final class ChessBoard {
 		pieceIndexes[toIndex] = sourcePieceIndex;
 		pieces[colorToMove][sourcePieceIndex] ^= fromToMask;
 		psqtScore += EvalConstants.PSQT[sourcePieceIndex][colorToMove][toIndex] - EvalConstants.PSQT[sourcePieceIndex][colorToMove][fromIndex];
-		psqtScoreEg += EvalConstants.PSQT_EG[sourcePieceIndex][colorToMove][toIndex] - EvalConstants.PSQT_EG[sourcePieceIndex][colorToMove][fromIndex];
 
 		switch (sourcePieceIndex) {
 		case PAWN:
@@ -309,7 +306,6 @@ public final class ChessBoard {
 				pieceIndexes[toIndex] = MoveUtil.getMoveType(move);
 				zobristKey ^= zkPieceValues[toIndex][colorToMove][PAWN] ^ zkPieceValues[toIndex][colorToMove][MoveUtil.getMoveType(move)];
 				psqtScore += EvalConstants.PSQT[MoveUtil.getMoveType(move)][colorToMove][toIndex] - EvalConstants.PSQT[PAWN][colorToMove][toIndex];
-				psqtScoreEg += EvalConstants.PSQT_EG[MoveUtil.getMoveType(move)][colorToMove][toIndex] - EvalConstants.PSQT_EG[PAWN][colorToMove][toIndex];
 			} else {
 				pawnZobristKey ^= zkPieceValues[toIndex][colorToMove][PAWN];
 				// check 2-move
@@ -331,7 +327,7 @@ public final class ChessBoard {
 		case KING:
 			updateKingValues(colorToMove, toIndex);
 			if (castlingRights != 0) {
-				if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_CASTLING) {
+				if (MoveUtil.isCastlingMove(move)) {
 					CastlingUtil.castleRookUpdateKeyAndPsqt(this, toIndex);
 				}
 				zobristKey ^= zkCastling[castlingRights];
@@ -345,14 +341,13 @@ public final class ChessBoard {
 		case EMPTY:
 			break;
 		case PAWN:
-			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) {
+			if (MoveUtil.isEPMove(move)) {
 				toIndex += ChessConstants.COLOR_FACTOR_8[colorToMoveInverse];
 				toMask = Util.POWER_LOOKUP[toIndex];
 				pieceIndexes[toIndex] = EMPTY;
 			}
 			pawnZobristKey ^= zkPieceValues[toIndex][colorToMoveInverse][PAWN];
 			psqtScore -= EvalConstants.PSQT[attackedPieceIndex][colorToMoveInverse][toIndex];
-			psqtScoreEg -= EvalConstants.PSQT_EG[attackedPieceIndex][colorToMoveInverse][toIndex];
 			friendlyPieces[colorToMoveInverse] ^= toMask;
 			pieces[colorToMoveInverse][attackedPieceIndex] ^= toMask;
 			zobristKey ^= zkPieceValues[toIndex][colorToMoveInverse][attackedPieceIndex];
@@ -367,7 +362,6 @@ public final class ChessBoard {
 		default:
 			phase += EvalConstants.PHASE[attackedPieceIndex];
 			psqtScore -= EvalConstants.PSQT[attackedPieceIndex][colorToMoveInverse][toIndex];
-			psqtScoreEg -= EvalConstants.PSQT_EG[attackedPieceIndex][colorToMoveInverse][toIndex];
 			friendlyPieces[colorToMoveInverse] ^= toMask;
 			pieces[colorToMoveInverse][attackedPieceIndex] ^= toMask;
 			zobristKey ^= zkPieceValues[toIndex][colorToMoveInverse][attackedPieceIndex];
@@ -379,14 +373,14 @@ public final class ChessBoard {
 		changeSideToMove();
 
 		// update checking pieces
-		if ((discoveredPieces & Util.POWER_LOOKUP[fromIndex]) == 0) {
-			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_NORMAL) {
+		if (isDiscoveredMove(fromIndex)) {
+			checkingPieces = CheckUtil.getCheckingPieces(this);
+		} else {
+			if (MoveUtil.isNormalMove(move)) {
 				checkingPieces = CheckUtil.getCheckingPieces(this, sourcePieceIndex);
 			} else {
 				checkingPieces = CheckUtil.getCheckingPieces(this);
 			}
-		} else {
-			checkingPieces = CheckUtil.getCheckingPieces(this);
 		}
 
 		// TODO can this be done incrementally?
@@ -446,15 +440,18 @@ public final class ChessBoard {
 			// not necessary but provides a table-index
 			break;
 		case PAWN:
+			pawnZobristKey ^= zkPieceValues[fromIndex][colorToMoveInverse][PAWN];
 			if (MoveUtil.isPromotion(move)) {
 				phase += EvalConstants.PHASE[MoveUtil.getMoveType(move)];
 				materialKey -= MaterialUtil.VALUES[colorToMoveInverse][MoveUtil.getMoveType(move)] - MaterialUtil.VALUES[colorToMoveInverse][PAWN];
 				pieces[colorToMoveInverse][PAWN] ^= toMask;
 				pieces[colorToMoveInverse][MoveUtil.getMoveType(move)] ^= toMask;
+			} else {
+				pawnZobristKey ^= zkPieceValues[toIndex][colorToMoveInverse][PAWN];
 			}
 			break;
 		case KING:
-			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_CASTLING) {
+			if (MoveUtil.isCastlingMove(move)) {
 				CastlingUtil.uncastleRook(this, toIndex);
 			}
 			updateKingValues(colorToMoveInverse, fromIndex);
@@ -465,11 +462,12 @@ public final class ChessBoard {
 		case EMPTY:
 			break;
 		case PAWN:
-			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) {
+			if (MoveUtil.isEPMove(move)) {
 				pieceIndexes[toIndex] = EMPTY;
 				toIndex += ChessConstants.COLOR_FACTOR_8[colorToMove];
 				toMask = Util.POWER_LOOKUP[toIndex];
 			}
+			pawnZobristKey ^= zkPieceValues[toIndex][colorToMove][PAWN];
 			pieces[colorToMove][attackedPieceIndex] |= toMask;
 			friendlyPieces[colorToMove] |= toMask;
 			materialKey += MaterialUtil.VALUES[colorToMove][PAWN];
@@ -503,7 +501,7 @@ public final class ChessBoard {
 		}
 
 		if (MoveUtil.getAttackedPieceIndex(move) != 0) {
-			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) {
+			if (MoveUtil.isEPMove(move)) {
 				return isLegalEPMove(MoveUtil.getFromIndex(move));
 			}
 			return true;
@@ -580,7 +578,7 @@ public final class ChessBoard {
 			}
 			break;
 		case KING:
-			if (MoveUtil.getMoveType(move) == MoveUtil.TYPE_CASTLING) {
+			if (MoveUtil.isCastlingMove(move)) {
 				long castlingIndexes = CastlingUtil.getCastlingIndexes(this);
 				while (castlingIndexes != 0) {
 					if (toIndex == Long.numberOfTrailingZeros(castlingIndexes)) {
@@ -608,7 +606,7 @@ public final class ChessBoard {
 			return isValidQuietMove(move);
 		}
 
-		if (MoveUtil.isPromotion(move) || MoveUtil.getMoveType(move) == MoveUtil.TYPE_CASTLING || MoveUtil.getMoveType(move) == MoveUtil.TYPE_EP) {
+		if (MoveUtil.isPromotion(move) || MoveUtil.isCastlingMove(move) || MoveUtil.isEPMove(move)) {
 			// TODO
 			return true;
 		}
@@ -635,8 +633,8 @@ public final class ChessBoard {
 			return false;
 		}
 
-		// TODO same position but other side to move is also a draw?
-		for (int i = moveCounter - 1; i >= 0 && i > moveCounter - 50; i--) {
+		final int moveCounterMin = Math.max(0, moveCounter - 50);
+		for (int i = moveCounter - 1; i >= moveCounterMin; i--) {
 			// TODO if move was an attacking-move or pawn move, no repetition!
 			if (zobristKey == zobristKeyHistory[i]) {
 				if (Statistics.ENABLED) {
@@ -654,7 +652,6 @@ public final class ChessBoard {
 		Arrays.fill(castlingHistory, 0);
 		Arrays.fill(epIndexHistory, 0);
 		Arrays.fill(zobristKeyHistory, 0);
-		Arrays.fill(pawnZobristKeyHistory, 0);
 		Arrays.fill(checkingPiecesHistory, 0);
 		Arrays.fill(pinnedPiecesHistory, 0);
 	}
@@ -670,6 +667,8 @@ public final class ChessBoard {
 		attacks[BLACK][ROOK] = 0;
 		attacks[WHITE][QUEEN] = 0;
 		attacks[BLACK][QUEEN] = 0;
+		doubleAttacks[WHITE] = 0;
+		doubleAttacks[BLACK] = 0;
 	}
 
 }

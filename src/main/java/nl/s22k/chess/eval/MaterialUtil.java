@@ -10,10 +10,10 @@ public class MaterialUtil {
 
 	public static final int[] SHIFT = { 0, 16 };
 
-	private static final int MASK_MAJORS_ALL = 0xfff0fff0;
-	private static final int MASK_MAJORS_WHITE = 0xfff0;
-	private static final int MASK_MAJORS_BLACK = 0xfff00000;
-	private static final int[] MASK_MAJORS = { MASK_MAJORS_WHITE, MASK_MAJORS_BLACK };
+	private static final int MASK_NON_PAWNS_ALL = 0xfff0fff0;
+	private static final int MASK_NON_PAWNS_WHITE = 0xfff0;
+	private static final int MASK_NON_PAWNS_BLACK = 0xfff00000;
+	private static final int[] MASK_NON_PAWNS = { MASK_NON_PAWNS_WHITE, MASK_NON_PAWNS_BLACK };
 	private static final int MASK_NIGHTS[] = { 0x70, 0x700000 };
 	private static final int MASK_SINGLE_BISHOPS = 0x800080;
 	private static final int MASK_SINGLE_BISHOP_NIGHT_WHITE = 0x90;
@@ -22,27 +22,27 @@ public class MaterialUtil {
 	private static final int MASK_SLIDING_PIECES[] = { 0xff80, 0xff800000 };
 
 	public static boolean containsMajorPieces(final int material) {
-		return (material & MASK_MAJORS_ALL) != 0;
+		return (material & MASK_NON_PAWNS_ALL) != 0;
 	}
 
-	public static boolean hasMajorPieces(final int material, final int color) {
-		return (material & MASK_MAJORS[color]) != 0;
+	public static boolean hasNonPawnPieces(final int material, final int color) {
+		return (material & MASK_NON_PAWNS[color]) != 0;
 	}
 
-	public static boolean hasWhiteMajorPieces(final int material) {
-		return (material & MASK_MAJORS_WHITE) != 0;
+	public static boolean hasWhiteNonPawnPieces(final int material) {
+		return (material & MASK_NON_PAWNS_WHITE) != 0;
 	}
 
-	public static boolean hasBlackMajorPieces(final int material) {
-		return (material & MASK_MAJORS_BLACK) != 0;
+	public static boolean hasBlackNonPawnPieces(final int material) {
+		return (material & MASK_NON_PAWNS_BLACK) != 0;
 	}
 
 	public static boolean oppositeBishops(final int material) {
-		return Long.bitCount(material & MASK_MAJORS_ALL) == 2 && Long.bitCount(material & MASK_SINGLE_BISHOPS) == 2;
+		return Long.bitCount(material & MASK_NON_PAWNS_ALL) == 2 && Long.bitCount(material & MASK_SINGLE_BISHOPS) == 2;
 	}
 
-	public static boolean noWhiteMajorPiecesOrOneNightOrBishop(final int material) {
-		switch (Long.bitCount(material & MASK_MAJORS_WHITE)) {
+	public static boolean onlyWhitePawnsOrOneNightOrBishop(final int material) {
+		switch (Long.bitCount(material & MASK_NON_PAWNS_WHITE)) {
 		case 0:
 			return true;
 		case 1:
@@ -52,8 +52,8 @@ public class MaterialUtil {
 		}
 	}
 
-	public static boolean noBlackMajorPiecesOrOneNightOrBishop(final int material) {
-		switch (Long.bitCount(material & MASK_MAJORS_BLACK)) {
+	public static boolean onlyBlackPawnsOrOneNightOrBishop(final int material) {
+		switch (Long.bitCount(material & MASK_NON_PAWNS_BLACK)) {
 		case 0:
 			return true;
 		case 1:
@@ -68,11 +68,11 @@ public class MaterialUtil {
 	}
 
 	public static boolean hasOnlyNights(final int material, final int color) {
-		return (material & MASK_MAJORS[color]) == (material & MASK_NIGHTS[color]);
+		return (material & MASK_NON_PAWNS[color]) == (material & MASK_NIGHTS[color]);
 	}
 
 	public static int getMajorPieces(final int material, final int color) {
-		return (material & MASK_MAJORS[color]) >>> SHIFT[color];
+		return (material & MASK_NON_PAWNS[color]) >>> SHIFT[color];
 	}
 
 	public static boolean hasSlidingPieces(final int material, final int color) {

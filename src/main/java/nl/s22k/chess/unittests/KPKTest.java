@@ -8,7 +8,6 @@ import org.junit.Test;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
-import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.KPKBitbase;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.texel.Tuner;
@@ -18,7 +17,6 @@ public class KPKTest {
 	@Test
 	public void test() {
 		// setup
-		EngineConstants.isTuningSession = true;
 		MagicUtil.init();
 
 		// read all fens, including score

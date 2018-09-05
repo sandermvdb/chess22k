@@ -1,3 +1,10 @@
+1.11 - 05-09-2018 - 3025 elo
+- implemented pondering
+- improved SMP
+- SEE pruning
+- split-up several evaluation terms in midgame and endgame
+- better space evaluation (idea by Laser)
+
 
 1.10 - 09-07-2018 - 3000 elo
 - lazy SMP

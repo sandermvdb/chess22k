@@ -42,7 +42,7 @@ public class Statistics {
 	public static int drawishByMaterialCount;
 
 	public static long calculateNps() {
-		return NegamaxUtil.totalMoveCount * 1000 / Math.max(getPassedTimeMs(), 1);
+		return NegamaxUtil.getTotalMoveCount() * 1000 / Math.max(getPassedTimeMs(), 1);
 	}
 
 	public static void reset() {
@@ -124,7 +124,7 @@ public class Statistics {
 		System.out.println("See-nodes     " + seeNodes);
 		System.out.println("Evaluated     " + evalNodes);
 		System.out.println("Eval in check " + evaluatedInCheck);
-		System.out.println("Moves         " + NegamaxUtil.totalMoveCount);
+		System.out.println("Moves         " + NegamaxUtil.getTotalMoveCount());
 		System.out.println("IID           " + iidCount);
 		System.out.println("Panic         " + panic);
 

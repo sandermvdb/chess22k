@@ -16,7 +16,6 @@ public class ChessBoardTestUtil {
 		long pinnedPieces = cb.pinnedPieces;
 		long discoveredPieces = cb.discoveredPieces;
 		int iterativePsqt = cb.psqtScore;
-		int iterativePsqtEg = cb.psqtScoreEg;
 		long whiteKingArea = cb.kingArea[WHITE];
 		long blackKingArea = cb.kingArea[BLACK];
 		int phase = cb.phase;
@@ -49,7 +48,6 @@ public class ChessBoardTestUtil {
 
 		// psqt
 		Assert.isTrue(iterativePsqt == cb.psqtScore);
-		Assert.isTrue(iterativePsqtEg == cb.psqtScoreEg);
 
 		// piece-indexes
 		for (int i = 0; i < testPieceIndexes.length; i++) {

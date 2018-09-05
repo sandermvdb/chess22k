@@ -33,8 +33,6 @@ public final class MagicUtil {
 			0x800633408100500L, 0x2404080a1410L, 0x138200122002900L };
 	private static final long[][] rookMagicMoves = new long[64][];
 	private static final long[][] bishopMagicMoves = new long[64][];
-	private static long[][] rookOccupancyVariations = new long[64][];
-	private static long[][] bishopOccupancyVariations = new long[64][];
 	private static final int[] rookShifts = new int[64];
 	private static final int[] bishopShifts = new int[64];
 	public static final long[] rookMovesEmptyBoard = new long[64];
@@ -54,13 +52,13 @@ public final class MagicUtil {
 	}
 
 	public static void init() {
-		calculateMovementMasks();
-		calculateBishopVariations();
-		calculateRookVariations();
-		generateRookMoveDatabase();
-		generateBishopMoveDatabase();
+		calculateBishopMovementMasks();
+		calculateRookMovementMasks();
 		generateShiftArrys();
-		clearValues();
+		long[][] bishopOccupancyVariations = calculateVariations(bishopMovementMasks);
+		long[][] rookOccupancyVariations = calculateVariations(rookMovementMasks);
+		generateBishopMoveDatabase(bishopOccupancyVariations);
+		generateRookMoveDatabase(rookOccupancyVariations);
 		fillSlidingMovesEmptyBoard();
 	}
 
@@ -79,175 +77,146 @@ public final class MagicUtil {
 		}
 	}
 
-	private static void clearValues() {
-		rookOccupancyVariations = null;
-		bishopOccupancyVariations = null;
-	}
+	private static long[][] calculateVariations(long[] movementMasks) {
 
-	private static void calculateRookVariations() {
+		long[][] occupancyVariations = new long[64][];
+		for (int index = 0; index < 64; index++) {
+			int variationCount = (int) Util.POWER_LOOKUP[Long.bitCount(movementMasks[index])];
+			occupancyVariations[index] = new long[variationCount];
 
-		// calculate all variations
-		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			int[] setBitsInMask = Util.getSetBitsSlow(rookMovementMasks[bitIndex]);
-			int variationCount = (int) Util.POWER_LOOKUP[Long.bitCount(rookMovementMasks[bitIndex])];
-			rookOccupancyVariations[bitIndex] = new long[variationCount];
+			for (int variationIndex = 1; variationIndex < variationCount; variationIndex++) {
+				long currentMask = movementMasks[index];
 
-			for (int variationIndex = 0; variationIndex < variationCount; variationIndex++) {
-				int currentVariationIndex = variationIndex;
-				while (currentVariationIndex != 0) {
-					rookOccupancyVariations[bitIndex][variationIndex] |= Util.POWER_LOOKUP[setBitsInMask[Long.numberOfTrailingZeros(currentVariationIndex)]];
-					currentVariationIndex &= currentVariationIndex - 1;
+				for (int i = 0; i < 32 - Integer.numberOfLeadingZeros(variationIndex); i++) {
+					if ((Util.POWER_LOOKUP[i] & variationIndex) != 0) {
+						occupancyVariations[index][variationIndex] |= Long.lowestOneBit(currentMask);
+					}
+					currentMask &= currentMask - 1;
 				}
 			}
 		}
+
+		return occupancyVariations;
 	}
 
-	private static void calculateBishopVariations() {
-
-		// calculate all variations
-		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			int[] setBitsInMask = Util.getSetBitsSlow(bishopMovementMasks[bitIndex]);
-			int variationCount = (int) Util.POWER_LOOKUP[Long.bitCount(bishopMovementMasks[bitIndex])];
-			bishopOccupancyVariations[bitIndex] = new long[variationCount];
-
-			for (int variationIndex = 0; variationIndex < variationCount; variationIndex++) {
-				int currentVariationIndex = variationIndex;
-				while (currentVariationIndex != 0) {
-					bishopOccupancyVariations[bitIndex][variationIndex] |= Util.POWER_LOOKUP[setBitsInMask[Long.numberOfTrailingZeros(currentVariationIndex)]];
-					currentVariationIndex &= currentVariationIndex - 1;
-				}
-			}
-		}
-	}
-
-	private static void calculateMovementMasks() {
-		int j = 0;
-		// rook
-		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			long movementMaskValue = 0;
+	private static void calculateRookMovementMasks() {
+		for (int index = 0; index < 64; index++) {
 
 			// up
-			for (j = bitIndex + 8; j < 64 - 8; j += 8) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
+			for (int j = index + 8; j < 64 - 8; j += 8) {
+				rookMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
 			// down
-			for (j = bitIndex - 8; j >= 0 + 8; j -= 8) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
+			for (int j = index - 8; j >= 0 + 8; j -= 8) {
+				rookMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
 			// left
-			for (j = bitIndex + 1; j % 8 != 0 && j % 8 != 7; j++) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
+			for (int j = index + 1; j % 8 != 0 && j % 8 != 7; j++) {
+				rookMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
 			// right
-			for (j = bitIndex - 1; j % 8 != 7 && j % 8 != 0 && j > 0; j--) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
+			for (int j = index - 1; j % 8 != 7 && j % 8 != 0 && j > 0; j--) {
+				rookMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
-
-			rookMovementMasks[bitIndex] = movementMaskValue;
 		}
-		// bishop
-		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			long movementMaskValue = 0;
+	}
+
+	private static void calculateBishopMovementMasks() {
+		for (int index = 0; index < 64; index++) {
 
 			// up-right
-			for (j = bitIndex + 7; j < 64 - 7 && j % 8 != 7 && j % 8 != 0; j += 7) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
+			for (int j = index + 7; j < 64 - 7 && j % 8 != 7 && j % 8 != 0; j += 7) {
+				bishopMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
 			// up-left
-			for (j = bitIndex + 9; j < 64 - 9 && j % 8 != 7 && j % 8 != 0; j += 9) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
+			for (int j = index + 9; j < 64 - 9 && j % 8 != 7 && j % 8 != 0; j += 9) {
+				bishopMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
 			// down-right
-			for (j = bitIndex - 9; j >= 0 + 9 && j % 8 != 7 && j % 8 != 0; j -= 9) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
+			for (int j = index - 9; j >= 0 + 9 && j % 8 != 7 && j % 8 != 0; j -= 9) {
+				bishopMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
 			// down-left
-			for (j = bitIndex - 7; j >= 0 + 7 && j % 8 != 7 && j % 8 != 0; j -= 7) {
-				movementMaskValue |= Util.POWER_LOOKUP[j];
-			}
-
-			bishopMovementMasks[bitIndex] = movementMaskValue;
-		}
-	}
-
-	private static void generateRookMoveDatabase() {
-		int j = 0;
-		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			rookMagicMoves[bitIndex] = new long[rookOccupancyVariations[bitIndex].length];
-			for (int variationIndex = 0; variationIndex < rookOccupancyVariations[bitIndex].length; variationIndex++) {
-				long validMoves = 0;
-				int magicIndex = (int) ((rookOccupancyVariations[bitIndex][variationIndex] * rookMagicNumbers[bitIndex]) >>> (64
-						- Long.bitCount(rookMovementMasks[bitIndex])));
-
-				for (j = bitIndex + 8; j < 64; j += 8) {
-					validMoves |= Util.POWER_LOOKUP[j];
-					if ((rookOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
-						break;
-					}
-				}
-				for (j = bitIndex - 8; j >= 0; j -= 8) {
-					validMoves |= Util.POWER_LOOKUP[j];
-					if ((rookOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
-						break;
-					}
-				}
-				for (j = bitIndex + 1; j % 8 != 0; j++) {
-					validMoves |= Util.POWER_LOOKUP[j];
-					if ((rookOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
-						break;
-					}
-				}
-				for (j = bitIndex - 1; j % 8 != 7 && j >= 0; j--) {
-					validMoves |= Util.POWER_LOOKUP[j];
-					if ((rookOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
-						break;
-					}
-				}
-
-				rookMagicMoves[bitIndex][magicIndex] = validMoves;
+			for (int j = index - 7; j >= 0 + 7 && j % 8 != 7 && j % 8 != 0; j -= 7) {
+				bishopMovementMasks[index] |= Util.POWER_LOOKUP[j];
 			}
 		}
 	}
 
-	private static void generateBishopMoveDatabase() {
-		int j = 0;
-		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			bishopMagicMoves[bitIndex] = new long[bishopOccupancyVariations[bitIndex].length];
-			for (int variationIndex = 0; variationIndex < bishopOccupancyVariations[bitIndex].length; variationIndex++) {
+	private static void generateRookMoveDatabase(long[][] rookOccupancyVariations) {
+		for (int index = 0; index < 64; index++) {
+			rookMagicMoves[index] = new long[rookOccupancyVariations[index].length];
+			for (int variationIndex = 0; variationIndex < rookOccupancyVariations[index].length; variationIndex++) {
 				long validMoves = 0;
-				int magicIndex = (int) ((bishopOccupancyVariations[bitIndex][variationIndex] * bishopMagicNumbers[bitIndex]) >>> (64
-						- Long.bitCount(bishopMovementMasks[bitIndex])));
+				int magicIndex = (int) ((rookOccupancyVariations[index][variationIndex] * rookMagicNumbers[index]) >>> rookShifts[index]);
+
+				for (int j = index + 8; j < 64; j += 8) {
+					validMoves |= Util.POWER_LOOKUP[j];
+					if ((rookOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+						break;
+					}
+				}
+				for (int j = index - 8; j >= 0; j -= 8) {
+					validMoves |= Util.POWER_LOOKUP[j];
+					if ((rookOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+						break;
+					}
+				}
+				for (int j = index + 1; j % 8 != 0; j++) {
+					validMoves |= Util.POWER_LOOKUP[j];
+					if ((rookOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+						break;
+					}
+				}
+				for (int j = index - 1; j % 8 != 7 && j >= 0; j--) {
+					validMoves |= Util.POWER_LOOKUP[j];
+					if ((rookOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+						break;
+					}
+				}
+
+				rookMagicMoves[index][magicIndex] = validMoves;
+			}
+		}
+	}
+
+	private static void generateBishopMoveDatabase(long[][] bishopOccupancyVariations) {
+		for (int index = 0; index < 64; index++) {
+			bishopMagicMoves[index] = new long[bishopOccupancyVariations[index].length];
+			for (int variationIndex = 0; variationIndex < bishopOccupancyVariations[index].length; variationIndex++) {
+				long validMoves = 0;
+				int magicIndex = (int) ((bishopOccupancyVariations[index][variationIndex] * bishopMagicNumbers[index]) >>> bishopShifts[index]);
 
 				// up-right
-				for (j = bitIndex + 7; j % 8 != 7 && j < 64; j += 7) {
+				for (int j = index + 7; j % 8 != 7 && j < 64; j += 7) {
 					validMoves |= Util.POWER_LOOKUP[j];
-					if ((bishopOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+					if ((bishopOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
 						break;
 					}
 				}
 				// up-left
-				for (j = bitIndex + 9; j % 8 != 0 && j < 64; j += 9) {
+				for (int j = index + 9; j % 8 != 0 && j < 64; j += 9) {
 					validMoves |= Util.POWER_LOOKUP[j];
-					if ((bishopOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+					if ((bishopOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
 						break;
 					}
 				}
 				// down-right
-				for (j = bitIndex - 9; j % 8 != 7 && j >= 0; j -= 9) {
+				for (int j = index - 9; j % 8 != 7 && j >= 0; j -= 9) {
 					validMoves |= Util.POWER_LOOKUP[j];
-					if ((bishopOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+					if ((bishopOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
 						break;
 					}
 				}
 				// down-left
-				for (j = bitIndex - 7; j % 8 != 0 && j >= 0; j -= 7) {
+				for (int j = index - 7; j % 8 != 0 && j >= 0; j -= 7) {
 					validMoves |= Util.POWER_LOOKUP[j];
-					if ((bishopOccupancyVariations[bitIndex][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
+					if ((bishopOccupancyVariations[index][variationIndex] & Util.POWER_LOOKUP[j]) != 0) {
 						break;
 					}
 				}
 
-				bishopMagicMoves[bitIndex][magicIndex] = validMoves;
+				bishopMagicMoves[index][magicIndex] = validMoves;
 			}
 		}
 	}

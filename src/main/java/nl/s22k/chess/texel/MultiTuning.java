@@ -2,12 +2,12 @@ package nl.s22k.chess.texel;
 
 import java.util.Arrays;
 
-public class MultiTuningObject extends TuningObject {
+public class MultiTuning extends Tuning {
 
 	float[] floatValues;
 
-	public MultiTuningObject(float[] floatValues, String name) {
-		super(new int[floatValues.length], 1, name, false, true);
+	public MultiTuning(float[] floatValues, String name) {
+		super(new int[floatValues.length], 1, name, false);
 		this.floatValues = floatValues;
 
 		for (int i = 0; i < floatValues.length; i++) {

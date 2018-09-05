@@ -3,9 +3,9 @@ package nl.s22k.chess.search;
 import nl.s22k.chess.Assert;
 import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
-import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.engine.EngineConstants;
+import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
@@ -13,18 +13,20 @@ import nl.s22k.chess.move.MoveUtil;
 
 public class QuiescenceUtil {
 
+	private static final int FUTILITY_MARGIN = 100;
+
 	public static int calculateBestMove(final ChessBoard cb, final MoveGenerator moveGen, int alpha, final int beta) {
 
 		if (Statistics.ENABLED) {
 			Statistics.qNodes++;
 		}
 
-		if (NegamaxUtil.mode.get() != NegamaxUtil.MODE_START) {
+		if (NegamaxUtil.mode.get() != Mode.START) {
 			return 0;
 		}
 
 		/* stand-pat check */
-		int score = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.getScore(cb);
+		int score = EvalUtil.getScore(cb);
 		if (score >= beta) {
 			return score;
 		}
@@ -33,7 +35,7 @@ public class QuiescenceUtil {
 
 		moveGen.startPly();
 		moveGen.generateAttacks(cb);
-		moveGen.setMVVLVAScores(cb);
+		moveGen.setMVVLVAScores();
 		moveGen.sort();
 
 		while (moveGen.hasNext()) {
@@ -44,7 +46,12 @@ public class QuiescenceUtil {
 			}
 
 			// skip under promotions
-			if (MoveUtil.isPromotion(move) && MoveUtil.getMoveType(move) != MoveUtil.TYPE_PROMOTION_Q) {
+			if (MoveUtil.isPromotion(move)) {
+				if (MoveUtil.getMoveType(move) != MoveUtil.TYPE_PROMOTION_Q) {
+					continue;
+				}
+			} else if (score + FUTILITY_MARGIN + EvalConstants.MATERIAL[MoveUtil.getAttackedPieceIndex(move)] < alpha) {
+				// futility pruning
 				continue;
 			}
 

@@ -2,20 +2,20 @@ package nl.s22k.chess.texel;
 
 import nl.s22k.chess.ChessConstants;
 
-public class PsqtTuningObject extends TuningObject {
+public class PsqtTuning extends Tuning {
 
 	public int[][] psqtValues;
 
-	public PsqtTuningObject(int[][] psqtValues, int step, String name) {
-		super(psqtValues[ChessConstants.WHITE], step, name, true, false);
+	public PsqtTuning(int[][] psqtValues, int step, String name) {
+		super(psqtValues[ChessConstants.WHITE], step, name, true);
 		this.psqtValues = psqtValues;
 		this.tunedValues = 32;
 		orgValues = new int[64];
 		System.arraycopy(psqtValues[ChessConstants.WHITE], 0, orgValues, 0, 64);
 	}
 
-	public PsqtTuningObject(int[][] psqtValues, int step, String name, boolean pawnPsqt) {
-		super(psqtValues[ChessConstants.WHITE], step, name, true, false, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60, 61, 62, 63);
+	public PsqtTuning(int[][] psqtValues, int step, String name, boolean pawnPsqt) {
+		super(psqtValues[ChessConstants.WHITE], step, name, true, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60, 61, 62, 63);
 		this.psqtValues = psqtValues;
 		this.tunedValues = 24;
 		orgValues = new int[64];

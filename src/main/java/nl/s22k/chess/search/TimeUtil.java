@@ -1,6 +1,7 @@
 package nl.s22k.chess.search;
 
 import nl.s22k.chess.Statistics;
+import nl.s22k.chess.engine.MainEngine;
 
 public class TimeUtil {
 
@@ -14,6 +15,7 @@ public class TimeUtil {
 	private static boolean isTTHit;
 	private static boolean isLosing;
 	private static long maxTimeMs;
+	private static int increment;
 
 	public static void setInfiniteWindow() {
 		timeWindowNs = Long.MAX_VALUE;
@@ -30,12 +32,13 @@ public class TimeUtil {
 		}
 
 		if (movesToGo == -1) {
-			if (moveCount <= 50) {
-				// first 50 moves get 50% of the total time
-				timeWindowNs = 1_000_000 * totalTimeLeftMs / (100 - moveCount);
+			int incrementWindow = increment < totalTimeLeftMs / 2 ? increment / 2 : 0;
+			if (moveCount <= 40) {
+				// first 40 moves get 50% of the total time
+				timeWindowNs = 1_000_000 * (totalTimeLeftMs / (80 - moveCount) + incrementWindow);
 			} else {
 				// every next move gets less and less time
-				timeWindowNs = 1_000_000 * totalTimeLeftMs / 50;
+				timeWindowNs = 1_000_000 * (totalTimeLeftMs / 50 + incrementWindow / 2);
 			}
 		} else {
 			// safety margin for last move (sometimes we take more time than our time slot)
@@ -80,6 +83,9 @@ public class TimeUtil {
 		if (isExactMoveTime) {
 			return true;
 		}
+		if (MainEngine.pondering) {
+			return true;
+		}
 		return System.nanoTime() - Statistics.startTime < timeWindowNs;
 	}
 
@@ -88,6 +94,7 @@ public class TimeUtil {
 		movesToGo = -1;
 		totalTimeLeftMs = Integer.MAX_VALUE;
 		isLosing = false;
+		increment = 0;
 	}
 
 	public static void setMovesToGo(int movesToGo) {
@@ -108,6 +115,10 @@ public class TimeUtil {
 
 	public static void setLosing(boolean isLosing) {
 		TimeUtil.isLosing = isLosing;
+	}
+
+	public static void setIncrement(int increment) {
+		TimeUtil.increment = increment;
 	}
 
 }

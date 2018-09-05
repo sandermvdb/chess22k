@@ -22,27 +22,19 @@ import nl.s22k.chess.move.MoveWrapper;
 
 public final class NegamaxUtil {
 
-	public static final int MODE_STOP = 0;
-	public static final int MODE_STOP_SLAVES = 1;
-	public static final int MODE_START = 2;
-	public static final int MODE_ANY_SLAVE_READY = 3;
-
-	public static final int PHASE_TT = 0;
-	public static final int PHASE_ATTACKING = 1;
-	public static final int PHASE_KILLER_1 = 2;
-	public static final int PHASE_KILLER_2 = 3;
-	public static final int PHASE_QUIET = 4;
+	private static final int PHASE_TT = 0;
+	private static final int PHASE_ATTACKING = 1;
+	private static final int PHASE_KILLER_1 = 2;
+	private static final int PHASE_KILLER_2 = 3;
+	private static final int PHASE_QUIET = 4;
 
 	// Margins shamelessly stolen from Laser
 	private static final int[] STATIC_NULLMOVE_MARGIN = { 0, 60, 130, 210, 300, 400, 510 };
 	private static final int[] RAZORING_MARGIN = { 0, 240, 280, 300 };
 	private static final int[] FUTILITY_MARGIN = { 0, 80, 170, 270, 380, 500, 630 };
 
-	public static long totalMoveCount;
-	public static int maxDepth = EngineConstants.MAX_PLIES;
-
 	public static AtomicInteger nrOfActiveSlaveThreads = new AtomicInteger(0);
-	public static AtomicInteger mode = new AtomicInteger(MODE_STOP);
+	public static AtomicInteger mode = new AtomicInteger(Mode.STOP);
 
 	private static MoveGenerator[] moveGens = new MoveGenerator[EngineConstants.MAX_THREADS];
 	static {
@@ -54,7 +46,7 @@ public final class NegamaxUtil {
 	public static int calculateBestMove(final ChessBoard cb, final MoveGenerator moveGen, final int ply, int depth, int alpha, int beta,
 			final int nullMoveCounter) {
 
-		if (mode.get() != MODE_START) {
+		if (mode.get() != Mode.START) {
 			return 0;
 		}
 
@@ -114,7 +106,7 @@ public final class NegamaxUtil {
 		final boolean isPv = beta - alpha != 1;
 		if (!isPv && cb.checkingPieces == 0) {
 
-			eval = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.getScore(cb);
+			eval = EvalUtil.getScore(cb);
 
 			/* use tt value as eval */
 			if (ttValue != 0) {
@@ -153,7 +145,7 @@ public final class NegamaxUtil {
 
 			/* null-move */
 			if (EngineConstants.ENABLE_NULL_MOVE) {
-				if (nullMoveCounter < 2 && MaterialUtil.hasMajorPieces(cb.materialKey, cb.colorToMove)) {
+				if (nullMoveCounter < 2 && MaterialUtil.hasNonPawnPieces(cb.materialKey, cb.colorToMove)) {
 					cb.doNullMove();
 					// TODO less reduction if stm (other side) has only 1 major piece
 					final int reduction = 2 + depth / 3;
@@ -217,7 +209,7 @@ public final class NegamaxUtil {
 			case PHASE_ATTACKING:
 				// TODO no ordering at ALL-nodes?
 				moveGen.generateAttacks(cb);
-				moveGen.setMVVLVAScores(cb);
+				moveGen.setMVVLVAScores();
 				moveGen.sort();
 				break;
 			case PHASE_KILLER_1:
@@ -234,7 +226,7 @@ public final class NegamaxUtil {
 				break;
 			case PHASE_QUIET:
 				moveGen.generateMoves(cb);
-				moveGen.setHHScores(cb);
+				moveGen.setHHScores(cb.colorToMove);
 				moveGen.sort();
 			}
 
@@ -254,46 +246,50 @@ public final class NegamaxUtil {
 				}
 
 				// pruning allowed?
-				if (!isPv && cb.checkingPieces == 0 && MoveUtil.isQuiet(move) && movesPerformed > 0 && moveScore < 100
-						&& (cb.discoveredPieces & Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)]) == 0) {
+				if (!isPv && cb.checkingPieces == 0 && movesPerformed > 0 && moveScore < 100 && !cb.isDiscoveredMove(MoveUtil.getFromIndex(move))) {
 
-					/* late move pruning */
-					if (EngineConstants.ENABLE_LMP) {
-						if (depth <= 4 && movesPerformed >= depth * 3 + 3) {
-							if (Statistics.ENABLED) {
-								Statistics.lmped[depth]++;
+					if (MoveUtil.isQuiet(move)) {
+
+						/* late move pruning */
+						if (EngineConstants.ENABLE_LMP) {
+							if (depth <= 4 && movesPerformed >= depth * 3 + 3) {
+								if (Statistics.ENABLED) {
+									Statistics.lmped[depth]++;
+								}
+								continue;
 							}
-							continue;
+						}
+
+						/* futility pruning */
+						if (EngineConstants.ENABLE_FUTILITY_PRUNING) {
+							if (!MoveUtil.isPawnPush78(move)) {
+								if (depth < FUTILITY_MARGIN.length) {
+									if (eval == Util.SHORT_MIN) {
+										eval = EvalUtil.getScore(cb);
+									}
+									final int futilityValue = eval + FUTILITY_MARGIN[depth];
+									if (futilityValue <= alpha) {
+										if (Statistics.ENABLED) {
+											Statistics.futile[depth]++;
+										}
+										if (futilityValue > bestScore) {
+											bestScore = futilityValue;
+										}
+										continue;
+									}
+								}
+							}
 						}
 					}
 
-					/* futility pruning */
-					if (EngineConstants.ENABLE_FUTILITY_PRUNING) {
-						if (!MoveUtil.isPawnPush78(move)) {
-							if (depth < FUTILITY_MARGIN.length) {
-								if (eval == Util.SHORT_MIN) {
-									eval = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.getScore(cb);
-								}
-								final int futilityValue = eval + FUTILITY_MARGIN[depth];
-								if (futilityValue <= alpha) {
-									if (Statistics.ENABLED) {
-										Statistics.futile[depth]++;
-									}
-									if (futilityValue > bestScore) {
-										bestScore = futilityValue;
-									}
-									continue;
-								}
-							}
-						}
+					/* SEE Pruning */
+					else if (depth <= 6 && phase == PHASE_ATTACKING && SEEUtil.getSeeCaptureScore(cb, move) < -20 * depth * depth) {
+						continue;
 					}
 				}
 
 				cb.doMove(move);
 				movesPerformed++;
-				if (ply == 0) {
-					MainEngine.sendMoveInfo(move, movesPerformed);
-				}
 
 				/* draw check */
 				if (cb.isRepetition() || cb.isDrawByMaterial()) {
@@ -307,7 +303,6 @@ public final class NegamaxUtil {
 						cb.changeSideToMove();
 					}
 
-					// TODO create constant for LMR_DEPTH
 					if (EngineConstants.ENABLE_LMR && moveScore < 40 && movesPerformed > 2 && depth > 3 && MoveUtil.isQuiet(move) && cb.checkingPieces == 0
 							&& !wasInCheck && !MoveUtil.isPawnPush678(move, cb.colorToMoveInverse)) {
 						/* LMR */
@@ -332,7 +327,6 @@ public final class NegamaxUtil {
 							}
 						}
 					}
-					// TODO score < beta?
 					if (score > alpha) {
 						score = -calculateBestMove(cb, moveGen, ply + 1, depth - 1, -beta, -alpha, 0);
 					}
@@ -340,7 +334,7 @@ public final class NegamaxUtil {
 				}
 				cb.undoMove(move);
 
-				if (mode.get() != MODE_START) {
+				if (mode.get() != Mode.START) {
 					moveGen.endPly();
 					return 0;
 				}
@@ -359,7 +353,7 @@ public final class NegamaxUtil {
 					/* killer and history */
 					if (MoveUtil.isQuiet(move)) {
 						moveGen.addKillerMove(move, ply);
-						moveGen.addHHValue(cb.colorToMove, MoveUtil.getFromToIndex(move), depth);
+						moveGen.addHHValue(cb.colorToMove, move, depth);
 					}
 
 					phase += 10;
@@ -367,7 +361,7 @@ public final class NegamaxUtil {
 				}
 
 				if (MoveUtil.isQuiet(move)) {
-					moveGen.addBFValue(cb.colorToMove, MoveUtil.getFromToIndex(move), depth);
+					moveGen.addBFValue(cb.colorToMove, move, depth);
 				}
 			}
 			phase++;
@@ -482,43 +476,38 @@ public final class NegamaxUtil {
 		start(cb, 1);
 	}
 
-	public static void start(ChessBoard chessBoard, final int nrOfThreads) {
+	public static void start(final ChessBoard chessBoard, final int nrOfThreads) {
 
 		try {
 
-			if (mode.get() != MODE_STOP) {
-				throw new RuntimeException("Already calculating!");
-			}
-
-			mode.set(MODE_START);
-
+			mode.set(Mode.START);
 			chessBoard.moveCount = 0;
 			moveGens[0].clearHeuristicTables();
 			if (nrOfThreads > 1) {
-				ChessBoard.initTuningInstances(nrOfThreads - 1);
+				ChessBoard.initInstances(nrOfThreads - 1);
 				for (int i = 0; i < nrOfThreads - 1; i++) {
-					ChessBoardUtil.copy(chessBoard, ChessBoard.getTuningInstance(i));
+					ChessBoardUtil.copy(chessBoard, ChessBoard.getInstance(i));
 					moveGens[i + 1].clearHeuristicTables();
 				}
 			}
 
 			TTUtil.init(false);
 
-			int depth = 1;
+			int depth = 0;
 			int alpha = Util.SHORT_MIN;
 			int beta = Util.SHORT_MAX;
 			int score = Util.SHORT_MIN;
 			boolean panic = false;
 
-			while (depth != maxDepth + 1) {
+			while (depth != MainEngine.maxDepth + 1 && mode.get() != Mode.STOP) {
 
+				depth++;
 				Statistics.depth = depth;
 
 				int delta = EngineConstants.ASPIRATION_WINDOW_DELTA;
 
-				while (true) {
+				while (mode.get() != Mode.STOP) {
 
-					totalMoveCount = 0;
 					// stop if depth!=1 and no time is left
 					if (depth != 1 && !TimeUtil.isTimeLeft()) {
 						if (panic) {
@@ -529,46 +518,46 @@ public final class NegamaxUtil {
 					}
 
 					final int previousScore = score;
-					if (nrOfThreads == 1 || depth < 10) {
+					if (nrOfThreads == 1 || depth < 8) {
 						score = calculateBestMove(chessBoard, moveGens[0], 0, depth, alpha, beta, 0);
 					} else {
 						// start slave threads
 						for (int i = 1; i < nrOfThreads; i++) {
+							if (mode.get() == Mode.ANY_SLAVE_READY) {
+								break;
+							}
 							NegamaxUtil.nrOfActiveSlaveThreads.incrementAndGet();
-							new SearchThread(ChessBoard.getTuningInstance(i - 1), moveGens[i], depth + (i % 2), alpha, beta).start();
+							new SearchThread(ChessBoard.getInstance(i - 1), moveGens[i], depth + (i % 2), alpha, beta).start();
 						}
 						// long now = System.currentTimeMillis();
-						Thread.sleep(10);
-						while (nrOfActiveSlaveThreads.get() != nrOfThreads - 1 && mode.get() != MODE_ANY_SLAVE_READY && mode.get() != MODE_STOP) {
+						Thread.sleep(1);
+						while (nrOfActiveSlaveThreads.get() != nrOfThreads - 1 && mode.get() != Mode.ANY_SLAVE_READY && mode.get() != Mode.STOP) {
 							// System.out.println("Wait till all slave threads have started or any slave is ready.
 							// Mode=" + mode.get());
-							Thread.sleep(10);
+							Thread.yield();
 						}
 						// System.out.println((System.currentTimeMillis() - now) + " starting slaves time");
 
 						// start main thread
-						score = calculateBestMove(chessBoard, moveGens[0], 0, depth, alpha, beta, 0);
+						if (mode.get() == Mode.START) {
+							score = calculateBestMove(chessBoard, moveGens[0], 0, depth, alpha, beta, 0);
+							mode.compareAndSet(Mode.START, Mode.STOP_SLAVES);
+						}
 
 						// wait for all slave threads to be ready
-						mode.compareAndSet(MODE_START, MODE_STOP_SLAVES);
 						// now = System.currentTimeMillis();
 						while (nrOfActiveSlaveThreads.get() != 0) {
 							// System.out.println("Wait till all slave threads have stopped");
-							Thread.sleep(5);
+							Thread.yield();
 						}
-						mode.compareAndSet(MODE_STOP_SLAVES, MODE_START);
 						// System.out.println((System.currentTimeMillis() - now) + " stopping slaves time");
+						mode.compareAndSet(Mode.STOP_SLAVES, Mode.START);
 
 						// use slave score if finished sooner
-						if (mode.compareAndSet(MODE_ANY_SLAVE_READY, MODE_START)) {
+						if (mode.compareAndSet(Mode.ANY_SLAVE_READY, Mode.START)) {
 							// System.out.println("Slave threads already finished");
 							score = TTUtil.getScore(TTUtil.getTTValue(chessBoard.zobristKey), 0);
 						}
-					}
-
-					totalMoveCount += chessBoard.moveCount;
-					for (int i = 0; i < nrOfThreads - 1; i++) {
-						totalMoveCount += ChessBoard.getTuningInstance(i).moveCount;
 					}
 
 					if (depth > 8 && score + 100 < previousScore && Math.abs(score) < EvalConstants.SCORE_MATE_BOUND) {
@@ -601,7 +590,7 @@ public final class NegamaxUtil {
 						} else {
 							beta = Math.min(beta + delta, Util.SHORT_MAX);
 						}
-						delta += delta / 2;
+						delta *= 2;
 						TTUtil.setBestMoveInStatistics(chessBoard, ScoreType.BETA);
 						MainEngine.sendPlyInfo();
 					} else {
@@ -618,23 +607,22 @@ public final class NegamaxUtil {
 						MainEngine.sendPlyInfo();
 						break;
 					}
-
-					if (mode.get() == MODE_STOP) {
-						break;
-					}
 				}
-				if (mode.get() == MODE_STOP) {
-					break;
-				}
-
-				depth++;
 			}
 
-			mode.set(MODE_STOP);
+			mode.set(Mode.STOP);
 
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
+	}
+
+	public static long getTotalMoveCount() {
+		long totalMoveCount = ChessBoard.getInstance().moveCount;
+		for (int i = 0; i < MainEngine.nrOfThreads - 1; i++) {
+			totalMoveCount += ChessBoard.getInstance(i).moveCount;
+		}
+		return totalMoveCount;
 	}
 
 }

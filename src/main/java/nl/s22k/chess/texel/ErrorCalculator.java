@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
+import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.eval.EvalUtil;
 
 public class ErrorCalculator implements Callable<Double> {
@@ -29,11 +30,7 @@ public class ErrorCalculator implements Callable<Double> {
 		for (Entry<String, Double> entry : fens.entrySet()) {
 			ChessBoardUtil.setFenValues(entry.getKey(), cb);
 			ChessBoardUtil.init(cb);
-			// error += Math.pow(entry.getValue()
-			// - calculateSigmoid(ChessConstants.COLOR_FACTOR[cb.colorToMove] * QuiescenceUtil.calculateBestMove(cb, 0,
-			// Util.SHORT_MIN, Util.SHORT_MAX)),
-			// 2);
-			totalError += Math.pow(entry.getValue() - calculateSigmoid(EvalUtil.calculateScore(cb)), 2);
+			totalError += Math.pow(entry.getValue() - calculateSigmoid(ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateScore(cb)), 2);
 		}
 		totalError /= fens.size();
 		return totalError;

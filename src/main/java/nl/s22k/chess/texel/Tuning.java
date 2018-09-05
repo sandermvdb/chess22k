@@ -1,10 +1,9 @@
 package nl.s22k.chess.texel;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class TuningObject {
+public class Tuning {
 
 	public int[] values;
 	public int[] orgValues;
@@ -13,29 +12,19 @@ public class TuningObject {
 	public List<Integer> skipValues;
 	public int tunedValues;
 	public boolean showAverage;
-	public boolean allScoresAboveZero;
-	public int maxValue = Integer.MAX_VALUE;
 
-	public TuningObject(int[] values, int step, String name) {
-		this.values = values;
-		this.step = step;
-		this.showAverage = false;
-		this.allScoresAboveZero = false;
-		while (name.length() < 20) {
-			name += " ";
-		}
-		this.name = name;
-		this.skipValues = new ArrayList<>();
-		tunedValues = values.length - this.skipValues.size();
-		orgValues = new int[values.length];
-		System.arraycopy(values, 0, orgValues, 0, values.length);
+	public Tuning(int[] values, int step, String name) {
+		this(values, step, name, false, -1);
 	}
 
-	public TuningObject(int[] values, int step, String name, boolean showAverage, boolean allScoresAboveZero, Integer... skipValues) {
+	public Tuning(int[] values, int step, String name, Integer... skipValues) {
+		this(values, step, name, false, skipValues);
+	}
+
+	public Tuning(int[] values, int step, String name, boolean showAverage, Integer... skipValues) {
 		this.values = values;
 		this.step = step;
 		this.showAverage = showAverage;
-		this.allScoresAboveZero = allScoresAboveZero;
 		while (name.length() < 20) {
 			name += " ";
 		}
@@ -46,11 +35,6 @@ public class TuningObject {
 		System.arraycopy(values, 0, orgValues, 0, values.length);
 	}
 
-	public TuningObject(int[] values, int step, int maxValue, String name, boolean showAverage, boolean allScoresAboveZero, Integer... skipValues) {
-		this(values, step, name, showAverage, allScoresAboveZero, skipValues);
-		this.maxValue = maxValue;
-	}
-
 	public void printNewValues() {
 		System.out.println(toString());
 	}
@@ -58,13 +42,17 @@ public class TuningObject {
 	@Override
 	public String toString() {
 		if (showAverage) {
-			int sum = 0;
-			for (int i = 0; i < values.length; i++) {
-				sum += values[i];
-			}
-			return name + ": " + Arrays.toString(values) + " (" + sum / values.length + ")";
+			return name + ": " + Arrays.toString(values) + " (" + getAverage() + ")";
 		}
 		return name + ": " + Arrays.toString(values);
+	}
+
+	public int getAverage() {
+		int sum = 0;
+		for (int i = 0; i < values.length; i++) {
+			sum += values[i];
+		}
+		return sum / values.length;
 	}
 
 	public void addStep(int i) {
@@ -85,10 +73,6 @@ public class TuningObject {
 
 	public boolean scoreIsZero(int i) {
 		return values[i] == 0;
-	}
-
-	public boolean isMaxReached(int i) {
-		return values[i] >= maxValue;
 	}
 
 	public boolean isUpdated() {
