@@ -35,8 +35,6 @@ public final class MagicUtil {
 	private static final long[][] bishopMagicMoves = new long[64][];
 	private static final int[] rookShifts = new int[64];
 	private static final int[] bishopShifts = new int[64];
-	public static final long[] rookMovesEmptyBoard = new long[64];
-	public static final long[] bishopMovesEmptyBoard = new long[64];
 
 	public static long getRookMoves(final int fromIndex, final long allPieces) {
 		return rookMagicMoves[fromIndex][(int) ((allPieces & rookMovementMasks[fromIndex]) * rookMagicNumbers[fromIndex] >>> rookShifts[fromIndex])];
@@ -51,7 +49,19 @@ public final class MagicUtil {
 				| bishopMagicMoves[fromIndex][(int) ((allPieces & bishopMovementMasks[fromIndex]) * bishopMagicNumbers[fromIndex] >>> bishopShifts[fromIndex])];
 	}
 
-	public static void init() {
+	public static long getRookMovesEmptyBoard(final int fromIndex) {
+		return rookMagicMoves[fromIndex][0];
+	}
+
+	public static long getBishopMovesEmptyBoard(final int fromIndex) {
+		return bishopMagicMoves[fromIndex][0];
+	}
+
+	public static long getQueenMovesEmptyBoard(final int fromIndex) {
+		return bishopMagicMoves[fromIndex][0] | rookMagicMoves[fromIndex][0];
+	}
+
+	static {
 		calculateBishopMovementMasks();
 		calculateRookMovementMasks();
 		generateShiftArrys();
@@ -59,15 +69,6 @@ public final class MagicUtil {
 		long[][] rookOccupancyVariations = calculateVariations(rookMovementMasks);
 		generateBishopMoveDatabase(bishopOccupancyVariations);
 		generateRookMoveDatabase(rookOccupancyVariations);
-		fillSlidingMovesEmptyBoard();
-	}
-
-	private static void fillSlidingMovesEmptyBoard() {
-		for (int i = 0; i < 64; i++) {
-			bishopMovesEmptyBoard[i] = getBishopMoves(i, 0);
-			rookMovesEmptyBoard[i] = getRookMoves(i, 0);
-		}
-
 	}
 
 	private static void generateShiftArrys() {

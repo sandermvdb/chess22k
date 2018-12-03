@@ -22,32 +22,16 @@ public class ChessConstants {
 	public static final int WHITE = 0;
 	public static final int BLACK = 1;
 
+	public static final int SCORE_NOT_RUNNING = 7777;
+
 	public static final int[] COLOR_FACTOR = { 1, -1 };
 	public static final int[] COLOR_FACTOR_8 = { 8, -8 };
 
 	public static final long[][] KING_AREA = new long[2][64];
 
-	public static final long[][] PASSED_PAWN_MASKS = new long[2][64];
-
 	public static final long[][] IN_BETWEEN = new long[64][64];
 	/** pinned-piece index, king index */
 	public static final long[][] PINNED_MOVEMENT = new long[64][64];
-
-	public static final long[] MASK_ADJACENT_FILE_UP = new long[64];
-	public static final long[] MASK_ADJACENT_FILE_DOWN = new long[64];
-	static {
-		for (int i = 0; i < 64; i++) {
-			long adjacentFile = Bitboard.FILES_ADJACENT[i % 8];
-			while (adjacentFile != 0) {
-				if (Long.numberOfTrailingZeros(adjacentFile) > i + 1) {
-					MASK_ADJACENT_FILE_UP[i] |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(adjacentFile)];
-				} else if (Long.numberOfTrailingZeros(adjacentFile) < i - 1) {
-					MASK_ADJACENT_FILE_DOWN[i] |= Util.POWER_LOOKUP[Long.numberOfTrailingZeros(adjacentFile)];
-				}
-				adjacentFile &= adjacentFile - 1;
-			}
-		}
-	}
 
 	static {
 		int i;
@@ -171,14 +155,6 @@ public class ChessConstants {
 	}
 
 	static {
-		// fill passed-pawn-masks
-		for (int i = 0; i < 64; i++) {
-			PASSED_PAWN_MASKS[WHITE][i] = ((Bitboard.FILES[i & 7] | Bitboard.FILES_ADJACENT[i & 7]) & ~Bitboard.RANKS[i / 8]) >>> i << i;
-			PASSED_PAWN_MASKS[BLACK][i] = ((Bitboard.FILES[i & 7] | Bitboard.FILES_ADJACENT[i & 7]) & ~Bitboard.RANKS[i / 8]) << (63 - i) >>> (63 - i);
-		}
-	}
-
-	static {
 		// fill king-safety masks:
 		//
 		// UUU front-further
@@ -237,7 +213,7 @@ public class ChessConstants {
 	}
 
 	public enum ScoreType {
-		EXACT(" "), ALPHA(" upperbound "), BETA(" lowerbound ");
+		EXACT(" "), UPPER(" upperbound "), LOWER(" lowerbound ");
 
 		private ScoreType(String uci) {
 			this.uci = uci;

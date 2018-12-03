@@ -13,10 +13,6 @@ public class Tuning {
 	public int tunedValues;
 	public boolean showAverage;
 
-	public Tuning(int[] values, int step, String name) {
-		this(values, step, name, false, -1);
-	}
-
 	public Tuning(int[] values, int step, String name, Integer... skipValues) {
 		this(values, step, name, false, skipValues);
 	}

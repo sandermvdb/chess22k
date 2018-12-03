@@ -6,34 +6,29 @@ import java.util.stream.IntStream;
 import nl.s22k.chess.eval.EvalCache;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
-import nl.s22k.chess.move.TreeMove;
-import nl.s22k.chess.search.NegamaxUtil;
+import nl.s22k.chess.eval.SEEUtil;
+import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.search.TTUtil;
 
 public class Statistics {
 
 	public static final boolean ENABLED = false;
 
-	public static boolean panic = false;
 	public static long startTime = System.nanoTime();
 	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes, qNodes, evaluatedInCheck;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
 	public static int depth, maxDepth;
-	public static TreeMove bestMove;
 	public static int epCount, castleCount, promotionCount;
 	public static long pawnEvalCacheHits, pawnEvalCacheMisses;
-	public static int materialCacheMisses, materialCacheHits;
-	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveKiller1, bestMoveKiller2, bestMoveKillerEvasive1, bestMoveKillerEvasive2,
-			bestMoveOther, bestMovePromotion, bestMoveWinningCapture, bestMoveLosingCapture;
+	public static long materialCacheMisses, materialCacheHits;
+	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveCounter, bestMoveKiller1, bestMoveKiller2, bestMoveKillerEvasive1,
+			bestMoveKillerEvasive2, bestMoveOther, bestMovePromotion, bestMoveWinningCapture, bestMoveLosingCapture;
 	public static int repetitions, repetitionTests;
 	public static int checkExtensions, endGameExtensions;
 	public static int nullMoveHit, nullMoveMiss;
-	public static long lmrMoveHit, lmrMoveMiss;
-	public static long pvsMoveHit, pvsMoveMiss;
 	public static long evalCacheHits, evalCacheMisses;
 	public static int iidCount;
-	public static int drawByMaterialCount;
 	public static final int[] razored = new int[10];
 	public static final int[] futile = new int[10];
 	public static final int[] staticNullMoved = new int[10];
@@ -42,7 +37,7 @@ public class Statistics {
 	public static int drawishByMaterialCount;
 
 	public static long calculateNps() {
-		return NegamaxUtil.getTotalMoveCount() * 1000 / Math.max(getPassedTimeMs(), 1);
+		return ChessBoard.getTotalMoveCount() * 1000 / Math.max(getPassedTimeMs(), 1);
 	}
 
 	public static void reset() {
@@ -52,16 +47,15 @@ public class Statistics {
 		Arrays.fill(lmped, 0);
 		Arrays.fill(failHigh, 0);
 
+		bestMoveCounter = 0;
 		evaluatedInCheck = 0;
 		qNodes = 0;
 		pvNodes = 1; // so we never divide by zero
 		cutNodes = 0;
 		allNodes = 0;
 		drawishByMaterialCount = 0;
-		drawByMaterialCount = 0;
 		pawnEvalCacheMisses = 0;
 		pawnEvalCacheHits = 0;
-		bestMove = null;
 		startTime = System.nanoTime();
 		castleCount = 0;
 		epCount = 0;
@@ -78,10 +72,6 @@ public class Statistics {
 		repetitions = 0;
 		nullMoveHit = 0;
 		nullMoveMiss = 0;
-		lmrMoveHit = 0;
-		lmrMoveMiss = 0;
-		pvsMoveHit = 0;
-		pvsMoveMiss = 0;
 		bestMoveTT = 0;
 		bestMoveTTLower = 0;
 		bestMoveTTUpper = 0;
@@ -99,7 +89,6 @@ public class Statistics {
 		evalCacheHits = 0;
 		evalCacheMisses = 0;
 		iidCount = 0;
-		panic = false;
 	}
 
 	public static void print() {
@@ -107,10 +96,6 @@ public class Statistics {
 			return;
 		}
 		System.out.println("Time          " + getPassedTimeMs() + "ms");
-		if (bestMove != null) {
-			System.out.println("Bestmove      " + bestMove.toString());
-			System.out.println("Score         " + bestMove.score);
-		}
 		System.out.println("NPS           " + calculateNps() / 1000 + "k");
 		System.out.println("Depth         " + depth + "/" + maxDepth);
 		System.out.println("AB-nodes      " + abNodes);
@@ -124,14 +109,13 @@ public class Statistics {
 		System.out.println("See-nodes     " + seeNodes);
 		System.out.println("Evaluated     " + evalNodes);
 		System.out.println("Eval in check " + evaluatedInCheck);
-		System.out.println("Moves         " + NegamaxUtil.getTotalMoveCount());
+		System.out.println("Moves         " + ChessBoard.getTotalMoveCount());
 		System.out.println("IID           " + iidCount);
-		System.out.println("Panic         " + panic);
 
 		System.out.println("### Caches #######");
 		printPercentage("TT            ", ttHits, ttMisses);
 		if (TTUtil.maxEntries != 0) {
-			System.out.println("usage         " + TTUtil.usageCounter * 100 / (TTUtil.maxEntries * 2) + "%");
+			System.out.println("usage         " + TTUtil.getUsagePercentage() + "%");
 		}
 		printPercentage("Eval          ", evalCacheHits, evalCacheMisses);
 		System.out.println("usage         " + EvalCache.usageCounter * 100 / EvalCache.MAX_TABLE_ENTRIES + "%");
@@ -151,13 +135,13 @@ public class Statistics {
 		System.out.println("Killer2       " + bestMoveKiller2);
 		System.out.println("Killer1 evasi " + bestMoveKillerEvasive1);
 		System.out.println("Killer2 evasi " + bestMoveKillerEvasive2);
+		System.out.println("Counter       " + bestMoveCounter);
 		System.out.println("Other         " + bestMoveOther);
 
 		System.out.println("### Outcome #####");
 		System.out.println("Checkmate     " + mateCount);
 		System.out.println("Stalemate     " + staleMateCount);
 		System.out.println("Repetitions   " + repetitions + "(" + repetitionTests + ")");
-		System.out.println("Draw-by-mtrl  " + drawByMaterialCount);
 		System.out.println("Drawish-mtrl  " + drawishByMaterialCount);
 
 		System.out.println("### Extensions #####");
@@ -166,8 +150,6 @@ public class Statistics {
 
 		System.out.println("### Pruning #####");
 		printPercentage("Null-move     ", nullMoveHit, nullMoveMiss);
-		printPercentage("LMR           ", lmrMoveHit, lmrMoveMiss);
-		printPercentage("PVS           ", pvsMoveHit, pvsMoveMiss);
 		printDepthTotals("Static nmp    ", staticNullMoved, false);
 		printDepthTotals("Razored       ", razored, false);
 		printDepthTotals("Futile        ", futile, false);
@@ -193,6 +175,47 @@ public class Statistics {
 
 	public static long getPassedTimeMs() {
 		return (System.nanoTime() - startTime) / 1000000;
+	}
+
+	public static void setBestMove(ChessBoard cb, int bestMove, int ttMove, long ttValue, int flag, int counterMove, int killer1Move, int killer2Move) {
+		if (flag == TTUtil.FLAG_LOWER) {
+			Statistics.cutNodes++;
+		} else if (flag == TTUtil.FLAG_UPPER) {
+			Statistics.allNodes++;
+		} else {
+			Statistics.pvNodes++;
+		}
+		if (bestMove == ttMove) {
+			if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_LOWER) {
+				Statistics.bestMoveTTLower++;
+			} else if (TTUtil.getFlag(ttValue) == TTUtil.FLAG_UPPER) {
+				Statistics.bestMoveTTUpper++;
+			} else {
+				Statistics.bestMoveTT++;
+			}
+		} else if (MoveUtil.isPromotion(bestMove)) {
+			Statistics.bestMovePromotion++;
+		} else if (MoveUtil.getAttackedPieceIndex(bestMove) != 0) {
+			// slow but disabled when statistics are disabled
+			if (SEEUtil.getSeeCaptureScore(cb, bestMove) < 0) {
+				Statistics.bestMoveLosingCapture++;
+			} else {
+				Statistics.bestMoveWinningCapture++;
+			}
+		} else if (bestMove == counterMove) {
+			Statistics.bestMoveCounter++;
+		} else if (bestMove == killer1Move && cb.checkingPieces == 0) {
+			Statistics.bestMoveKiller1++;
+		} else if (bestMove == killer2Move && cb.checkingPieces == 0) {
+			Statistics.bestMoveKiller2++;
+		} else if (bestMove == killer1Move && cb.checkingPieces != 0) {
+			Statistics.bestMoveKillerEvasive1++;
+		} else if (bestMove == killer2Move && cb.checkingPieces != 0) {
+			Statistics.bestMoveKillerEvasive2++;
+		} else {
+			Statistics.bestMoveOther++;
+		}
+
 	}
 
 }

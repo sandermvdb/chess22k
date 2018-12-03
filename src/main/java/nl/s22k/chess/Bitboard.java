@@ -107,18 +107,16 @@ public class Bitboard {
 	public static final long F8_G8 = F8 | G8;
 	public static final long F8_H8 = F8 | H8;
 	public static final long G8_H8 = G8 | H8;
-	public static final long A1_B1_C1 = A1 | B1 | C1;
-	public static final long B1_C1_D1 = B1 | C1 | D1;
-	public static final long F1_G1_H1 = F1 | G1 | H1;
-	public static final long A8_B8_C8 = A8 | B8 | C8;
-	public static final long B8_C8_D8 = B8 | C8 | D8;
-	public static final long F8_G8_H8 = F8 | G8 | H8;
-	public static final long A1_B1_A2_B2 = A1 | B1 | A2 | B2;
-	public static final long D1_E1_D2_E2 = D1 | E1 | D2 | E2;
-	public static final long G1_H1_G2_H2 = G1 | H1 | G2 | H2;
-	public static final long D7_E7_D8_E8 = D7 | E7 | D8 | E8;
-	public static final long A7_B7_A8_B8 = A7 | B7 | A8 | B8;
-	public static final long G7_H7_G8_H8 = G7 | H7 | G8 | H8;
+	public static final long A1B1C1 = A1 | B1 | C1;
+	public static final long B1C1D1 = B1 | C1 | D1;
+	public static final long A8B8C8 = A8 | B8 | C8;
+	public static final long B8C8D8 = B8 | C8 | D8;
+	public static final long A1B1A2B2 = A1 | B1 | A2 | B2;
+	public static final long D1E1D2E2 = D1 | E1 | D2 | E2;
+	public static final long G1H1G2H2 = G1 | H1 | G2 | H2;
+	public static final long D7E7D8E8 = D7 | E7 | D8 | E8;
+	public static final long A7B7A8B8 = A7 | B7 | A8 | B8;
+	public static final long G7H7G8H8 = G7 | H7 | G8 | H8;
 	public static final long WHITE_SQUARES = 0xaa55aa55aa55aa55L;
 	public static final long BLACK_SQUARES = ~WHITE_SQUARES;
 	public static final long CORNER_SQUARES = A1 | H1 | A8 | H8;
@@ -153,14 +151,26 @@ public class Bitboard {
 	public static final long FILE_F = F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8;
 	public static final long FILE_G = G1 | G2 | G3 | G4 | G5 | G6 | G7 | G8;
 	public static final long FILE_H = H1 | H2 | H3 | H4 | H5 | H6 | H7 | H8;
-	public static final long FILE_D_E = FILE_D | FILE_E;
-	public static final long FILE_CDEF = FILE_C | FILE_D| FILE_E | FILE_F;
+	public static final long FILE_ABC = FILE_A | FILE_B | FILE_C;
+	public static final long FILE_FGH = FILE_F | FILE_G | FILE_H;
+	public static final long FILE_CDEF = FILE_C | FILE_D | FILE_E | FILE_F;
 	public static final long NOT_FILE_A = ~FILE_A;
 	public static final long NOT_FILE_H = ~FILE_H;
 
+	// special
+	public static final long WHITE_CORNERS = 0xf8f0e0c183070f1fL;
+	public static final long BLACK_CORNERS = 0x1f0f0783c1e0f0f8L;
+
 	public static final long RANKS[] = { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8 };
 	public static final long FILES[] = { FILE_H, FILE_G, FILE_F, FILE_E, FILE_D, FILE_C, FILE_B, FILE_A };
-	public static final long FILES_ADJACENT[] = { FILE_G, FILE_H | FILE_F, FILE_G | FILE_E, FILE_F | FILE_D, FILE_E | FILE_C, FILE_D | FILE_B, FILE_C | FILE_A,
+	public static final long FILES_ADJACENT[] = { //
+			FILE_G, //
+			FILE_H | FILE_F, //
+			FILE_G | FILE_E, //
+			FILE_F | FILE_D, //
+			FILE_E | FILE_C, //
+			FILE_D | FILE_B, //
+			FILE_C | FILE_A, //
 			FILE_B };
 
 	public static final long KING_SIDE = FILE_F | FILE_G | FILE_H;
@@ -193,6 +203,25 @@ public class Bitboard {
 		file ^= (file - 4) >>> 8;
 		rank ^= (rank - 4) >>> 8;
 		return (file + rank) & 7;
+	}
+
+	public static long getWhitePassedPawnMask(final int index) {
+		return (FILES[index & 7] | FILES_ADJACENT[index & 7]) << ((index >>> 3 << 3) + 8);
+	}
+
+	public static long getBlackPassedPawnMask(final int index) {
+		if (index < 8) {
+			return 0;
+		}
+		return (FILES[index & 7] | FILES_ADJACENT[index & 7]) >>> ((71 - index) >>> 3 << 3);
+	}
+
+	public static long getWhiteAdjacentMask(final int index) {
+		return getWhitePassedPawnMask(index) & ~FILES[index & 7];
+	}
+
+	public static long getBlackAdjacentMask(final int index) {
+		return getBlackPassedPawnMask(index) & ~FILES[index & 7];
 	}
 
 }

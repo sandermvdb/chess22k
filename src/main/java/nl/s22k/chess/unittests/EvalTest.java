@@ -1,25 +1,18 @@
 package nl.s22k.chess.unittests;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.eval.EvalUtil;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveUtil;
 
 public class EvalTest {
 
-	@BeforeClass
-	public static void init() {
-		MagicUtil.init();
-	}
-
 	@Test
 	public void test() {
-		ChessBoard cb = ChessBoardUtil.getNewCB("rn1qkbnr/pp1b3p/4ppp1/3p3Q/3p4/2PBP2P/PP3PP1/RNB2KNR w kq - 0 1 ");
+		ChessBoard cb = ChessBoardUtil.getNewCB("8/2k5/5PK1/8/8/8/8/1r6 w -");
 		EvalUtil.calculateScore(cb);
 	}
 

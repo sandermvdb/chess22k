@@ -8,8 +8,6 @@ public class MagicTest {
 
 	@Test
 	public void test() {
-		MagicUtil.init();
-
 		System.out.println("Performing board tests");
 
 		// Rival chess

@@ -1,17 +1,28 @@
-1.11 - 05-09-2018 - 3025 elo
+1.12 - 03-12-2018 - 3100 elo
+- participated in CSVN 54
+- rewritten SMP implementation (inspired by Laser, performs worse than 1.11 at the moment...)
+- added some endgame knowledge
+- implemented counter move heuristic
+- improved LMR reductions calculation (inspired by Ethereal)
+
+
+1.11 - 05-09-2018 - 3030 elo
+- participated in TCEC S14
 - implemented pondering
 - improved SMP
 - SEE pruning
-- split-up several evaluation terms in midgame and endgame
+- split-up more evaluation terms in midgame and endgame
 - better space evaluation (idea by Laser)
 
 
 1.10 - 09-07-2018 - 3000 elo
+- participated in TCEC S13
 - lazy SMP
 - several simplifications and small updates 
 
 
-1.9 - 23-04-2018 - 3000 elo
+1.9 - 23-04-2018 - 2970 elo
+- participated in CSVN 53
 - fixed some crashes
 - improved sorting efficiency
 - calculation instead of lookups for pawn move generation
@@ -56,7 +67,8 @@
 - split-up methods into smaller ones for better inlining (suggested by JITWatch)
 
 
-1.6 - 03-11-2017 - 2800 elo
+1.6 - 03-11-2017 - 2850 elo
+- participated CSVN 52 
 - more accurate SEE (pinned pieces)
 - improved king safety
 - added some eval terms
@@ -69,7 +81,7 @@
 - fixed some crashes
 
 
-1.5 - 12-08-2017 - 2700 elo
+1.5 - 12-08-2017 - 2750 elo
 - implemented tapered-eval
 - recognize drawish positions
 - added more evaluation terms to the texel-tuner
@@ -82,10 +94,9 @@
   - safe mobility for knights and rooks
   - small king-safety updates
   - small passed-pawn updates
-  - ...
 
 
-1.4 - 18-06-2017 - 2600 elo
+1.4 - 18-06-2017 - 2650 elo
 - tuned evaluation values using the Texel's tuning method
 - implemented futility pruning
 - small tweaks
@@ -102,7 +113,7 @@
 - fixed some engine crashes
 
 
-1.2 - 19-03-2017 - 2400 elo, this time for real? :P
+1.2 - 19-03-2017 - 2400 elo
 - improved passed-pawn scoring in endgames
 - added time to UCI output
 - improved time control: x moves in y minutes
@@ -112,7 +123,7 @@
 - bugs, again ;)
 
 
-1.1 - 09-02-2017 - 2400 elo
+1.1 - 09-02-2017 - 2300 elo
 - re-enabled mobility evaluation
 - knight outposts
 - implemented king safety (using Ed Schroders idea), but disabled for the moment
@@ -120,7 +131,7 @@
 - bug fixes, of course
 
 
-1.0 - 13-01-2017 - 2300 elo
+1.0 - 13-01-2017 - 2200 elo
 - (magic) bitboards
 - transposition table
 - (internal) iterative-deepening

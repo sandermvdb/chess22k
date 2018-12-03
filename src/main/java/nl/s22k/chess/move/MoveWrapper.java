@@ -18,8 +18,7 @@ public class MoveWrapper {
 	public int fromIndex;
 	public int toIndex;
 	public int move;
-	public int score;
-	
+
 	public int pieceIndex;
 	public int pieceIndexAttacked;
 
@@ -41,11 +40,9 @@ public class MoveWrapper {
 		toIndex = MoveUtil.getToIndex(move);
 		toFile = (char) (104 - toIndex % 8);
 		toRank = toIndex / 8 + 1;
-		
+
 		pieceIndex = MoveUtil.getSourcePieceIndex(move);
 		pieceIndexAttacked = MoveUtil.getAttackedPieceIndex(move);
-
-		score = MoveUtil.getScore(move);
 
 		switch (MoveUtil.getMoveType(move)) {
 		case MoveUtil.TYPE_NORMAL:

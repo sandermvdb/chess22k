@@ -1,20 +1,13 @@
 package nl.s22k.chess.unittests;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.KingSafetyEval;
-import nl.s22k.chess.move.MagicUtil;
 
 public class KingSafetyTest {
-
-	@BeforeClass
-	public static void init() {
-		MagicUtil.init();
-	}
 
 	@Test
 	public void onePieceAttackingTest() {

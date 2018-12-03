@@ -12,6 +12,9 @@ public final class CastlingUtil {
 
 	// 4 bits: white-king,white-queen,black-king,black-queen
 	public static long getCastlingIndexes(final ChessBoard cb) {
+		if (cb.castlingRights == 0) {
+			return 0;
+		}
 		if (cb.colorToMove == WHITE) {
 			switch (cb.castlingRights) {
 			case 0:
@@ -91,16 +94,16 @@ public final class CastlingUtil {
 		case 1:
 			return Bitboard.F1_G1;
 		case 5:
-			return Bitboard.B1_C1_D1;
+			return Bitboard.B1C1D1;
 		case 57:
 			return Bitboard.F8_G8;
 		case 61:
-			return Bitboard.B8_C8_D8;
+			return Bitboard.B8C8D8;
 		}
 		throw new RuntimeException("Incorrect castling-index: " + castlingIndex);
 	}
 
-	public static void uncastleRook(final ChessBoard cb, final int kingToIndex) {
+	public static void uncastleRookUpdatePsqt(final ChessBoard cb, final int kingToIndex) {
 		switch (kingToIndex) {
 		case 1:
 			// white rook from 2 to 0
@@ -108,6 +111,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.F1_H1;
 			cb.pieceIndexes[2] = EMPTY;
 			cb.pieceIndexes[0] = ROOK;
+			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][0] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][2];
 			return;
 		case 57:
 			// black rook from 58 to 56
@@ -115,6 +119,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.F8_H8;
 			cb.pieceIndexes[58] = EMPTY;
 			cb.pieceIndexes[56] = ROOK;
+			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][56] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][58];
 			return;
 		case 5:
 			// white rook from 4 to 7
@@ -122,6 +127,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.A1_D1;
 			cb.pieceIndexes[4] = EMPTY;
 			cb.pieceIndexes[7] = ROOK;
+			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][7] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][4];
 			return;
 		case 61:
 			// black rook from 60 to 63
@@ -129,6 +135,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.A8_D8;
 			cb.pieceIndexes[60] = EMPTY;
 			cb.pieceIndexes[63] = ROOK;
+			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][63] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][60];
 			return;
 		}
 		throw new RuntimeException("Incorrect king castling to-index: " + kingToIndex);
@@ -142,7 +149,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.F1_H1;
 			cb.pieceIndexes[0] = EMPTY;
 			cb.pieceIndexes[2] = ROOK;
-			cb.zobristKey ^= ChessBoard.zkPieceValues[0][WHITE][ROOK] ^ ChessBoard.zkPieceValues[2][WHITE][ROOK];
+			cb.zobristKey ^= Zobrist.piece[0][WHITE][ROOK] ^ Zobrist.piece[2][WHITE][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][2] - EvalConstants.PSQT[ROOK][cb.colorToMove][0];
 			return;
 		case 57:
@@ -151,7 +158,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.F8_H8;
 			cb.pieceIndexes[56] = EMPTY;
 			cb.pieceIndexes[58] = ROOK;
-			cb.zobristKey ^= ChessBoard.zkPieceValues[56][BLACK][ROOK] ^ ChessBoard.zkPieceValues[58][BLACK][ROOK];
+			cb.zobristKey ^= Zobrist.piece[56][BLACK][ROOK] ^ Zobrist.piece[58][BLACK][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][58] - EvalConstants.PSQT[ROOK][cb.colorToMove][56];
 			return;
 		case 5:
@@ -160,7 +167,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.A1_D1;
 			cb.pieceIndexes[7] = EMPTY;
 			cb.pieceIndexes[4] = ROOK;
-			cb.zobristKey ^= ChessBoard.zkPieceValues[7][WHITE][ROOK] ^ ChessBoard.zkPieceValues[4][WHITE][ROOK];
+			cb.zobristKey ^= Zobrist.piece[7][WHITE][ROOK] ^ Zobrist.piece[4][WHITE][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][4] - EvalConstants.PSQT[ROOK][cb.colorToMove][7];
 			return;
 		case 61:
@@ -169,7 +176,7 @@ public final class CastlingUtil {
 			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.A8_D8;
 			cb.pieceIndexes[63] = EMPTY;
 			cb.pieceIndexes[60] = ROOK;
-			cb.zobristKey ^= ChessBoard.zkPieceValues[63][BLACK][ROOK] ^ ChessBoard.zkPieceValues[60][BLACK][ROOK];
+			cb.zobristKey ^= Zobrist.piece[63][BLACK][ROOK] ^ Zobrist.piece[60][BLACK][ROOK];
 			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][60] - EvalConstants.PSQT[ROOK][cb.colorToMove][63];
 			return;
 		}

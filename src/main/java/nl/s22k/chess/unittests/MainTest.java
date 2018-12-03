@@ -3,7 +3,6 @@ package nl.s22k.chess.unittests;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.search.NegamaxUtil;
 import nl.s22k.chess.search.TimeUtil;
 
@@ -30,8 +29,6 @@ public class MainTest {
 	public static final String FEN_FUTILITY_2 = "rnb1kq1r/1p1n1pp1/p3p1P1/3pP3/3p3N/2NQ4/PPP2P2/2KR1B1R w kq - 0 15 ";
 
 	public static void main(String[] args) {
-
-		MagicUtil.init();
 
 		ChessBoard cb = ChessBoardUtil.getNewCB(FEN_STANDARD_OPENING);
 		TimeUtil.setSimpleTimeWindow(5000);

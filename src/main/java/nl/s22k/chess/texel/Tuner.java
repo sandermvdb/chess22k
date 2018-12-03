@@ -20,7 +20,6 @@ import nl.s22k.chess.Statistics;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveGenerator;
 
 public class Tuner {
@@ -59,6 +58,7 @@ public class Tuner {
 		// tunings.add(new Tuning(EvalConstants.ROOK_TRAPPED, STEP, "Rook trapped"));
 		// tunings.add(new Tuning(EvalConstants.ONLY_MAJOR_DEFENDERS, STEP, "Only major defenders", 0));
 		// tunings.add(new Tuning(EvalConstants.NIGHT_PAWN, STEP, "Night pawn"));
+		// tunings.add(new Tuning(EvalConstants.ROOK_PAWN, STEP, "Rook pawn"));
 		// tunings.add(new Tuning(EvalConstants.BISHOP_PAWN, STEP, "Bishop pawn"));
 		// tunings.add(new Tuning(EvalConstants.SPACE, 1, "Space", 0, 1, 2, 3, 4));
 		//
@@ -123,9 +123,6 @@ public class Tuner {
 	}
 
 	public static void main(String[] args) {
-		// setup
-		MagicUtil.init();
-
 		// read all fens, including score
 		Map<String, Double> fens = loadFens("d:\\backup\\chess\\epds\\quiet-labeled.epd", true, false);
 		System.out.println("Fens found : " + fens.size());

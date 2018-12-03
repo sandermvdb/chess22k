@@ -8,8 +8,8 @@ import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.engine.MainEngine;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveWrapper;
+import nl.s22k.chess.move.PV;
 import nl.s22k.chess.search.NegamaxUtil;
 import nl.s22k.chess.search.TimeUtil;
 
@@ -21,7 +21,6 @@ public class BestMoveTest {
 
 	@BeforeClass
 	public static void init() {
-		MagicUtil.init();
 		MainEngine.noOutput = true;
 	}
 
@@ -36,7 +35,7 @@ public class BestMoveTest {
 			TimeUtil.setSimpleTimeWindow(5000);
 			NegamaxUtil.start(cb);
 
-			MoveWrapper bestMove = new MoveWrapper(Statistics.bestMove.move);
+			MoveWrapper bestMove = new MoveWrapper(PV.getBestMove());
 			if (epd.isBestMove()) {
 				if (epd.moveEquals(bestMove)) {
 					System.out.println(epd.getId() + " BM OK");

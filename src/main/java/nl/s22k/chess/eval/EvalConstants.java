@@ -23,7 +23,7 @@ public class EvalConstants {
 	public static final int SCORE_MATE_BOUND 				= 30000;
 	
 	// other
-	public static final int[] OTHER_SCORES = {-8, 12, 18, 8, 18, 12, 150, 12};
+	public static final int[] OTHER_SCORES = {-8, 12, 18, 8, 18, 12, 150, 12, 56};
 	public static final int IX_ROOK_FILE_SEMI_OPEN	 		= 0;
 	public static final int IX_ROOK_FILE_SEMI_OPEN_ISOLATED = 1;
 	public static final int IX_ROOK_FILE_OPEN 				= 2;
@@ -32,6 +32,7 @@ public class EvalConstants {
 	public static final int IX_BISHOP_LONG 					= 5;
 	public static final int IX_BISHOP_PRISON 				= 6;
 	public static final int IX_SPACE 						= 7;
+	public static final int IX_DRAWISH 						= 8;
 	
 	// threats
 	public static final int[] THREATS_MG = {38, 68, 100, 16, 56, 144, 66, 52, 8, 16, -6};
@@ -50,10 +51,11 @@ public class EvalConstants {
 	public static final int IX_PAWN_ATTACKED 				= 10;
 	
 	// pawn
-	public static final int[] PAWN_SCORES = {6, 10, 12};
+	public static final int[] PAWN_SCORES = {6, 10, 12, 6};
 	public static final int IX_PAWN_DOUBLE 					= 0;
 	public static final int IX_PAWN_ISOLATED 				= 1;
 	public static final int IX_PAWN_BACKWARD 				= 2;
+	public static final int IX_PAWN_INVERSE					= 3;
 	
 	// imbalance
 	public static final int[] IMBALANCE_SCORES = {32, 54, 16};
@@ -75,6 +77,7 @@ public class EvalConstants {
 	public static final int[] ROOK_TRAPPED 				= {64, 62, 28};
 	public static final int[] ONLY_MAJOR_DEFENDERS 		= {0, 6, 14, 24, 4, 10, 0};
 	public static final int[] NIGHT_PAWN				= {68, -14, -2, 2, 8, 12, 20, 30, 36};
+	public static final int[] ROOK_PAWN					= {48, -4, -4, -4, -4, 0, 0, 0, 0};
 	public static final int[] BISHOP_PAWN 				= {-20, -8, -6, 0, 6, 12, 22, 32, 46};
 	public static final int[] SPACE 					= {0, 0, 0, 0, 0, -6, -6, -8, -7, -4, -4, -2, 0, -1, 0, 3, 7};
 	
@@ -95,9 +98,9 @@ public class EvalConstants {
 	public static final int[] PASSED_SCORE_MG			= {0, -4, -2, 0, 18, 22, -6};
 	public static final int[] PASSED_SCORE_EG			= {0, 18, 18, 38, 62, 136, 262};
 	
-	public static final int[] PASSED_CANDIDATE			= {0, -2, 2, 12, 14, 32};
+	public static final int[] PASSED_CANDIDATE			= {0, 2, 2, 8, 14, 40};
 	
-	public static final float[] PASSED_KING_MULTI 		= {0, 1.4f, 1.3f, 1.1f, 1.1f, 1.0f, 0.8f, 0.8f};
+	public static final float[] PASSED_KING_MULTI 		= {0, 1.4f, 1.3f, 1.1f, 1.1f, 1.0f, 0.8f, 0.8f};														
 	public static final float[] PASSED_MULTIPLIERS	= {
 			0.5f,	// blocked
 			1.2f,	// next square attacked
@@ -295,14 +298,14 @@ public class EvalConstants {
 	}
 	
 	public static final long[] ROOK_PRISON = { 
-			0, Bitboard.A8, Bitboard.A8_B8, Bitboard.A8_B8_C8, 0, Bitboard.G8_H8, Bitboard.H8, 0, 
+			0, Bitboard.A8, Bitboard.A8_B8, Bitboard.A8B8C8, 0, Bitboard.G8_H8, Bitboard.H8, 0, 
 			0, 0, 0, 0, 0, 0, 0, 0, 
 			0, 0, 0, 0, 0, 0, 0, 0, 
 			0, 0, 0, 0, 0, 0, 0, 0, 
 			0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 0, 
 			0, 0, 0, 0, 0, 0, 0, 0, 
-			0, Bitboard.A1, Bitboard.A1_B1, Bitboard.A1_B1_C1, 0, Bitboard.G1_H1, Bitboard.H1, 0 
+			0, Bitboard.A1, Bitboard.A1_B1, Bitboard.A1B1C1, 0, Bitboard.G1_H1, Bitboard.H1, 0 
 	};
 	
 	public static final long[] BISHOP_PRISON = { 
@@ -325,6 +328,7 @@ public class EvalConstants {
 			MATERIAL[ChessConstants.ROOK] 	- MATERIAL[ChessConstants.PAWN],
 			MATERIAL[ChessConstants.QUEEN] 	- MATERIAL[ChessConstants.PAWN],
 	};
+	
 	
 	public static void initMgEg() {
 		initMgEg(MOBILITY_KNIGHT,	MOBILITY_KNIGHT_MG,	MOBILITY_KNIGHT_EG);
@@ -351,19 +355,33 @@ public class EvalConstants {
 		}
 	}
 	
+	public static final int[] MIRRORED_LEFT_RIGHT = new int[64];
+	static {
+		for (int i = 0; i < 64; i++) {
+			MIRRORED_LEFT_RIGHT[i] = (i / 8) * 8 + 7 - (i & 7);
+		}
+	}
+
+	public static final int[] MIRRORED_UP_DOWN = new int[64];
+	static {
+		for (int i = 0; i < 64; i++) {
+			MIRRORED_UP_DOWN[i] = (7 - i / 8) * 8 + (i & 7);
+		}
+	}
+	
 	static {
 		
 		// fix white arrays
-		for(int piece = ChessConstants.PAWN; piece<=ChessConstants.KING; piece++){
+		for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++){
 			Util.reverse(PSQT_MG[piece][ChessConstants.WHITE]);
 			Util.reverse(PSQT_EG[piece][ChessConstants.WHITE]);
 		}
 
 		// create black arrays
-		for(int piece=ChessConstants.PAWN; piece<=ChessConstants.KING; piece++){
+		for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++){
 			for (int i = 0; i < 64; i++) {
-				PSQT_MG[piece][BLACK][i] = -PSQT_MG[piece][WHITE][63 - i];
-				PSQT_EG[piece][BLACK][i] = -PSQT_EG[piece][WHITE][63 - i];
+				PSQT_MG[piece][BLACK][i] = -PSQT_MG[piece][WHITE][MIRRORED_UP_DOWN[i]];
+				PSQT_EG[piece][BLACK][i] = -PSQT_EG[piece][WHITE][MIRRORED_UP_DOWN[i]];
 			}
 		}
 		

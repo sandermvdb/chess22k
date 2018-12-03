@@ -4,7 +4,6 @@ import org.junit.Test;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveWrapper;
 import nl.s22k.chess.search.NegamaxUtil;
 import nl.s22k.chess.search.TimeUtil;
@@ -14,8 +13,6 @@ public class CoverageTest {
 
 	@Test
 	public void doTest() {
-		MagicUtil.init();
-
 		ChessBoard cb = ChessBoardUtil.getNewCB(MainTest.FEN_STANDARD_MIDDLEGAME);
 
 		/* time-managed */
@@ -25,7 +22,6 @@ public class CoverageTest {
 
 	// @Test
 	public void doTestMovesPerformed() {
-		MagicUtil.init();
 		ChessBoard cb = ChessBoardUtil.getNewCB();
 
 		final String moves = "d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 d5c4 a2a4 b8a6 e2e3 c8g4 f1c4 e7e6 h2h3 g4h5 "

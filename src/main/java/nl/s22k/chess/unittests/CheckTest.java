@@ -1,21 +1,14 @@
 package nl.s22k.chess.unittests;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveUtil;
 
 public class CheckTest {
-
-	@BeforeClass
-	public static void init() {
-		MagicUtil.init();
-	}
 
 	// @Test
 	// public void mateInOneTest() {

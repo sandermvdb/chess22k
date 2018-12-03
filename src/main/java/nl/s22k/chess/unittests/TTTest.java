@@ -8,7 +8,6 @@ import org.junit.Test;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.search.TTUtil;
 
@@ -17,7 +16,6 @@ public class TTTest {
 	@BeforeClass
 	public static void init() {
 		TTUtil.init(true);
-		MagicUtil.init();
 	}
 
 	@Test
@@ -36,7 +34,6 @@ public class TTTest {
 		System.out.println("depth: " + TTUtil.getDepth(value));
 		System.out.println("flag: " + TTUtil.getFlag(value));
 		System.out.println("move: " + TTUtil.getMove(value));
-		System.out.println("counter: " + TTUtil.getHalfMoveCounter(value));
 
 		Random r = new Random();
 		long zk = r.nextLong();
@@ -47,7 +44,6 @@ public class TTTest {
 		System.out.println("depth: " + TTUtil.getDepth(ttValue));
 		System.out.println("flag: " + TTUtil.getFlag(ttValue));
 		System.out.println("move: " + TTUtil.getMove(ttValue));
-		System.out.println("counter: " + TTUtil.getHalfMoveCounter(value));
 	}
 
 	@Test

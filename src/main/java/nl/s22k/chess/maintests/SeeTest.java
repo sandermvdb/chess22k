@@ -9,7 +9,6 @@ import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.SEEUtil;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.texel.Tuner;
@@ -23,9 +22,6 @@ public class SeeTest {
 	private static MoveGenerator moveGen = new MoveGenerator();
 
 	public static void main(String[] args) {
-
-		// setup
-		MagicUtil.init();
 
 		// read all fens, including score
 		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\epds\\violent.epd", false, true);

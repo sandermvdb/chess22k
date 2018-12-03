@@ -42,7 +42,7 @@ public class KingSafetyEval {
 			counter += checks(cb, kingColor);
 
 			counter += EvalConstants.KS_DOUBLE_ATTACKS[Long
-					.bitCount(StaticMoves.KING_MOVES[cb.kingIndex[kingColor]] & cb.doubleAttacks[1 - kingColor] & ~cb.attacks[kingColor][PAWN])];
+					.bitCount(StaticMoves.KING_MOVES[cb.kingIndex[kingColor]] & cb.doubleAttacks[enemyColor] & ~cb.attacks[kingColor][PAWN])];
 
 			if ((cb.checkingPieces & cb.friendlyPieces[enemyColor]) != 0) {
 				counter++;
@@ -105,17 +105,17 @@ public class KingSafetyEval {
 		final long possibleSquares = ~cb.friendlyPieces[enemyColor]
 				& (~StaticMoves.KING_MOVES[kingIndex] | StaticMoves.KING_MOVES[kingIndex] & cb.doubleAttacks[enemyColor] & ~cb.doubleAttacks[kingColor]);
 
-		int counter = checkNight(cb, kingColor, StaticMoves.KNIGHT_MOVES[kingIndex] & possibleSquares & cb.attacks[1 - kingColor][NIGHT]);
+		int counter = checkNight(cb, kingColor, StaticMoves.KNIGHT_MOVES[kingIndex] & possibleSquares & cb.attacks[enemyColor][NIGHT]);
 
 		long moves;
 		long queenMoves = 0;
 		if ((cb.pieces[enemyColor][QUEEN] | cb.pieces[enemyColor][BISHOP]) != 0) {
-			moves = MagicUtil.getBishopMoves(kingIndex, cb.allPieces) & possibleSquares;
+			moves = MagicUtil.getBishopMoves(kingIndex, cb.allPieces ^ cb.pieces[kingColor][QUEEN]) & possibleSquares;
 			queenMoves = moves;
 			counter += checkBishop(cb, kingColor, moves & cb.attacks[enemyColor][BISHOP]);
 		}
 		if ((cb.pieces[enemyColor][QUEEN] | cb.pieces[enemyColor][ROOK]) != 0) {
-			moves = MagicUtil.getRookMoves(kingIndex, cb.allPieces) & possibleSquares;
+			moves = MagicUtil.getRookMoves(kingIndex, cb.allPieces ^ cb.pieces[kingColor][QUEEN]) & possibleSquares;
 			queenMoves |= moves;
 			counter += checkRook(cb, kingColor, moves & cb.attacks[enemyColor][ROOK]);
 		}
@@ -141,8 +141,7 @@ public class KingSafetyEval {
 	}
 
 	private static int safeCheckQueen(final ChessBoard cb, final int kingColor, final long safeQueenMoves) {
-
-		if ((safeQueenMoves) != 0) {
+		if (safeQueenMoves != 0) {
 			return EvalConstants.KS_CHECK_QUEEN[Long.bitCount(cb.friendlyPieces[kingColor])];
 		}
 
@@ -150,8 +149,7 @@ public class KingSafetyEval {
 	}
 
 	private static int checkRook(final ChessBoard cb, final int kingColor, final long rookMoves) {
-
-		if ((rookMoves) == 0) {
+		if (rookMoves == 0) {
 			return 0;
 		}
 
@@ -172,8 +170,7 @@ public class KingSafetyEval {
 	}
 
 	private static int checkBishop(final ChessBoard cb, final int kingColor, final long bishopMoves) {
-
-		if ((bishopMoves) != 0) {
+		if (bishopMoves != 0) {
 			if ((bishopMoves & ~cb.attacksAll[kingColor]) != 0) {
 				return EvalConstants.KS_CHECK[BISHOP];
 			} else {
@@ -184,7 +181,7 @@ public class KingSafetyEval {
 	}
 
 	private static int checkNight(final ChessBoard cb, final int kingColor, final long nightMoves) {
-		if ((nightMoves) != 0) {
+		if (nightMoves != 0) {
 			if ((nightMoves & ~cb.attacksAll[kingColor]) != 0) {
 				return EvalConstants.KS_CHECK[NIGHT];
 			} else {

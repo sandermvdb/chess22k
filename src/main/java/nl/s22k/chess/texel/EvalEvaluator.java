@@ -13,7 +13,6 @@ import java.util.concurrent.Future;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
-import nl.s22k.chess.move.MagicUtil;
 
 public class EvalEvaluator {
 
@@ -22,8 +21,6 @@ public class EvalEvaluator {
 	private static ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
 
 	public static void main(String[] args) {
-		// setup
-		MagicUtil.init();
 
 		// read all fens, including score
 		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\epds\\quiet-labeled.epd", true, false);

@@ -1,11 +1,10 @@
 package nl.s22k.chess.move;
 
-import nl.s22k.chess.Assert;
 import nl.s22k.chess.ChessConstants;
-import nl.s22k.chess.engine.EngineConstants;
 
 public class MoveUtil {
 
+	// move types
 	public static final int TYPE_NORMAL = 0;
 	public static final int TYPE_EP = 1;
 	public static final int TYPE_PROMOTION_N = ChessConstants.NIGHT;
@@ -14,32 +13,22 @@ public class MoveUtil {
 	public static final int TYPE_PROMOTION_Q = ChessConstants.QUEEN;
 	public static final int TYPE_CASTLING = 6;
 
+	// shifts
 	// ///////////////////// FROM //6 bits
 	private static final int SHIFT_TO = 6; // 6
 	private static final int SHIFT_SOURCE = 12; // 3
 	private static final int SHIFT_ATTACK = 15; // 3
 	private static final int SHIFT_MOVE_TYPE = 18; // 3
 	private static final int SHIFT_PROMOTION = 21; // 1
-	private static final int SHIFT_SCORE = 22; // 10 or 11
 
+	// masks
 	private static final int MASK_3_BITS = 7; // 6
 	private static final int MASK_6_BITS = 0x3f; // 6
 	private static final int MASK_12_BITS = 0xfff;
 
-	private static final int MASK_FROM = 0x3f; // 6
-	private static final int MASK_TO = 0x3f << 6; // 6
-	private static final int MASK_SOURCE = 7 << 12; // 3
 	private static final int MASK_ATTACK = 7 << 15; // 3
-	private static final int MASK_TYPE = 7 << 18; // 3
 	private static final int MASK_PROMOTION = 1 << 21; // 1
-	private static final int MASK_SCORE = 1 << 22; // 10 or 11
-
-	public static final int MASK_QUIET = MASK_PROMOTION | MASK_ATTACK;
-	public static final int SEE_CAPTURE_DIVIDER = 6;
-
-	public static final int SCORE_MAX = 511;
-
-	private static final int CLEAN_MOVE_MASK = (1 << SHIFT_SCORE) - 1;
+	private static final int MASK_QUIET = MASK_PROMOTION | MASK_ATTACK;
 
 	public static int getFromIndex(final int move) {
 		return move & MASK_6_BITS;
@@ -53,21 +42,12 @@ public class MoveUtil {
 		return move & MASK_12_BITS;
 	}
 
-	public static int getCleanMove(final int move) {
-		return move & CLEAN_MOVE_MASK;
-	}
-
 	public static int getAttackedPieceIndex(final int move) {
 		return move >>> SHIFT_ATTACK & MASK_3_BITS;
 	}
 
 	public static int getSourcePieceIndex(final int move) {
 		return move >>> SHIFT_SOURCE & MASK_3_BITS;
-	}
-
-	public static int getScore(final int move) {
-		// arithmetic shift!
-		return move >> SHIFT_SCORE;
 	}
 
 	public static int getMoveType(final int move) {
@@ -102,8 +82,8 @@ public class MoveUtil {
 		return attackedPieceIndex << SHIFT_ATTACK | sourcePieceIndex << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
 	}
 
-	public static int createSeeAttackMove(final int fromIndex, final int sourcePieceIndex) {
-		return sourcePieceIndex << SHIFT_SOURCE | fromIndex;
+	public static int createSeeAttackMove(final long fromSquare, final int sourcePieceIndex) {
+		return sourcePieceIndex << SHIFT_SOURCE | Long.numberOfTrailingZeros(fromSquare);
 	}
 
 	public static int createPromotionAttack(final int promotionPiece, final int fromIndex, final int toIndex, final int attackedPieceIndex) {
@@ -140,14 +120,6 @@ public class MoveUtil {
 	 */
 	public static boolean isQuiet(final int move) {
 		return (move & MASK_QUIET) == 0;
-	}
-
-	public static int setScoredMove(final int move, final int score) {
-		if (EngineConstants.ASSERT) {
-			Assert.isTrue(move == getCleanMove(move));
-			Assert.isTrue(score == getScore(move | score << SHIFT_SCORE));
-		}
-		return move | score << SHIFT_SCORE;
 	}
 
 	public static boolean isNormalMove(final int move) {

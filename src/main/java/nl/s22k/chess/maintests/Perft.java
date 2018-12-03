@@ -7,7 +7,6 @@ import nl.s22k.chess.Assert;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.engine.EngineConstants;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveWrapper;
 
@@ -17,7 +16,6 @@ public class Perft {
 
 	@BeforeClass
 	public static void init() {
-		MagicUtil.init();
 		if (!EngineConstants.GENERATE_BR_PROMOTIONS) {
 			throw new RuntimeException("Generation of underpromotions must be enabled");
 		}

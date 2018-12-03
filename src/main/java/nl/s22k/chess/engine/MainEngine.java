@@ -13,10 +13,9 @@ import nl.s22k.chess.eval.KingSafetyEval;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PassedPawnEval;
 import nl.s22k.chess.eval.PawnEvalCache;
-import nl.s22k.chess.move.MagicUtil;
+import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveWrapper;
-import nl.s22k.chess.move.TreeMove;
-import nl.s22k.chess.search.Mode;
+import nl.s22k.chess.move.PV;
 import nl.s22k.chess.search.NegamaxUtil;
 import nl.s22k.chess.search.TTUtil;
 import nl.s22k.chess.search.TimeUtil;
@@ -31,7 +30,7 @@ public class MainEngine {
 	private static boolean maxTimeExceeded = false;
 
 	public static int maxDepth = EngineConstants.MAX_PLIES;
-	public static int nrOfThreads = EngineConstants.THREADS_DEFAULT;
+	public static int nrOfThreads = 1;
 	public static boolean pondering = false;
 
 	private static Object synchronizedObject = new Object();
@@ -52,7 +51,7 @@ public class MainEngine {
 						}
 
 						maxTimeExceeded = false;
-						NegamaxUtil.start(cb, nrOfThreads);
+						NegamaxUtil.start(cb);
 
 						// calculation ready
 						calculating = false;
@@ -86,8 +85,8 @@ public class MainEngine {
 						Thread.sleep(TimeUtil.getMaxTimeMs());
 						if (pondering) {
 							maxTimeExceeded = true;
-						} else if (Statistics.bestMove != null) {
-							NegamaxUtil.mode.set(Mode.STOP);
+						} else if (PV.getBestMove() != 0) {
+							NegamaxUtil.isRunning = false;
 						}
 
 					} catch (InterruptedException e) {
@@ -123,7 +122,6 @@ public class MainEngine {
 	}
 
 	public static void main(String[] args) {
-		MagicUtil.init();
 		cb = ChessBoardUtil.getNewCB();
 		searchThread.start();
 		maxTimeThread.start();
@@ -140,8 +138,8 @@ public class MainEngine {
 				if (tokens[0].equals("uci")) {
 					System.out.println("id name chess22k " + getVersion());
 					System.out.println("id author Sander MvdB");
-					System.out.println("option name Hash type spin default 128 min 1 max 4096");
-					System.out.println("option name Threads type spin default 1 min 1 max 16");
+					System.out.println("option name Hash type spin default 128 min 1 max 16384");
+					System.out.println("option name Threads type spin default 1 min 1 max " + EngineConstants.MAX_THREADS);
 					if (EngineConstants.ENABLE_PONDERING) {
 						System.out.println("option name Ponder type check default false");
 					}
@@ -161,7 +159,7 @@ public class MainEngine {
 				} else if (tokens[0].equals("ponderhit")) {
 					pondering = false;
 					if (maxTimeExceeded) {
-						NegamaxUtil.mode.set(Mode.STOP);
+						NegamaxUtil.isRunning = false;
 					}
 				} else if (tokens[0].equals("eval")) {
 					eval();
@@ -171,7 +169,7 @@ public class MainEngine {
 					sc.close();
 					System.exit(0);
 				} else if (tokens[0].equals("stop")) {
-					NegamaxUtil.mode.set(Mode.STOP);
+					NegamaxUtil.isRunning = false;
 				} else {
 					System.out.println("Unknown command: " + tokens[0]);
 				}
@@ -217,39 +215,11 @@ public class MainEngine {
 		// setoption name Hash value 128
 		if (optionName.toLowerCase().equals("hash")) {
 			int value = Integer.parseInt(optionValue);
-			switch (value) {
-			case 1:
-			case 2:
-			case 4:
-			case 8:
-			case 16:
-			case 32:
-			case 64:
-			case 128:
-			case 256:
-			case 512:
-			case 1024:
-			case 2048:
-			case 4096:
-			case 8192:
-			case 16384:
-				int power2Entries = (int) (Math.log(value) / Math.log(2) + 16);
-				if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
-					EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
-					TTUtil.init(true);
-				}
-				break;
-			default:
-				System.out.println("Hash-size must be between 1-4096 and a multiple of 2. Setting default size of 128mb");
-				power2Entries = (int) (Math.log(128) / Math.log(2) + 16);
-				if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
-					EngineConstants.POWER_2_TT_ENTRIES = power2Entries;
-					TTUtil.init(true);
-				}
-			}
-
+			TTUtil.setSizeMB(value);
 		} else if (optionName.toLowerCase().equals("threads")) {
 			nrOfThreads = Integer.parseInt(optionValue);
+			ChessBoard.initInstances(nrOfThreads);
+			MoveGenerator.initInstances(nrOfThreads);
 		} else if (optionName.toLowerCase().equals("ponder")) {
 			ponder = Boolean.parseBoolean(optionValue);
 		} else {
@@ -261,8 +231,7 @@ public class MainEngine {
 		// go movestogo 30 wtime 3600000 btime 3600000
 		// go wtime 40847 btime 48019 winc 0 binc 0 movestogo 20
 
-		TreeMove bestMove = Statistics.bestMove;
-		if (bestMove != null && bestMove.score < -50) {
+		if (PV.getBestMove() != 0 && PV.getScore() < -50) {
 			TimeUtil.setLosing(true);
 		}
 
@@ -353,11 +322,10 @@ public class MainEngine {
 		}
 
 		Statistics.print();
-		TreeMove bestMove = Statistics.bestMove;
-		if (ponder && bestMove.nextMove != null) {
-			System.out.println("bestmove " + new MoveWrapper(bestMove.move) + " ponder " + new MoveWrapper(bestMove.nextMove.move));
+		if (ponder && PV.getPonderMove() != 0) {
+			System.out.println("bestmove " + new MoveWrapper(PV.getBestMove()) + " ponder " + new MoveWrapper(PV.getPonderMove()));
 		} else {
-			System.out.println("bestmove " + new MoveWrapper(bestMove.move));
+			System.out.println("bestmove " + new MoveWrapper(PV.getBestMove()));
 		}
 	}
 
@@ -365,8 +333,7 @@ public class MainEngine {
 		if (noOutput) {
 			return;
 		}
-		System.out.println("info nodes " + NegamaxUtil.getTotalMoveCount() + " nps " + Statistics.calculateNps() + " hashfull "
-				+ TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2));
+		System.out.println("info nodes " + ChessBoard.getTotalMoveCount() + " nps " + Statistics.calculateNps() + " hashfull " + TTUtil.getUsagePercentage());
 	}
 
 	public static void sendPlyInfo() {
@@ -377,14 +344,13 @@ public class MainEngine {
 		// restart info thread
 		infoThread.interrupt();
 
-		final String hashInfo = TTUtil.usageCounter == 0 ? "" : " hashfull " + TTUtil.usageCounter * 1000 / (TTUtil.maxEntries * 2);
+		final String hashInfo = TTUtil.getUsagePercentage() == 0 ? "" : " hashfull " + TTUtil.getUsagePercentage();
 
 		// info depth 1 seldepth 2 score cp 50 pv d2d4 d7d5 e2e3 hashfull 0 nps 1000 nodes 22
 		// info depth 4 seldepth 10 score cp 40 upperbound pv d2d4 d7d5 e2e3 hashfull 0 nps 30000 nodes 1422
-		TreeMove bestMove = Statistics.bestMove;
-		System.out.println(
-				"info depth " + Statistics.depth + " seldepth " + Statistics.maxDepth + " time " + Statistics.getPassedTimeMs() + " score cp " + bestMove.score
-						+ bestMove.scoreType + "nps " + Statistics.calculateNps() + " nodes " + NegamaxUtil.getTotalMoveCount() + hashInfo + " pv " + bestMove);
+		System.out.println("info depth " + Statistics.depth + " seldepth " + Statistics.maxDepth + " time " + Statistics.getPassedTimeMs() + " score cp "
+				+ PV.getScore() + PV.getScoreType() + "nps " + Statistics.calculateNps() + " nodes " + ChessBoard.getTotalMoveCount() + hashInfo + " pv "
+				+ PV.asString());
 	}
 
 	public static String getVersion() {

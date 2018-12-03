@@ -6,7 +6,6 @@ import org.junit.Test;
 import nl.s22k.chess.Assert;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
-import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveWrapper;
 
@@ -16,7 +15,6 @@ public class QPerft {
 
 	@BeforeClass
 	public static void init() {
-		MagicUtil.init();
 		System.out.println("Do not forget to enable bishop- and rook-promotions!");
 	}
 

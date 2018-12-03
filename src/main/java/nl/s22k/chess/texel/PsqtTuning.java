@@ -1,6 +1,7 @@
 package nl.s22k.chess.texel;
 
 import nl.s22k.chess.ChessConstants;
+import nl.s22k.chess.eval.EvalConstants;
 
 public class PsqtTuning extends Tuning {
 
@@ -52,13 +53,13 @@ public class PsqtTuning extends Tuning {
 		psqtValues[ChessConstants.WHITE][i] += step;
 
 		// add to white mirrored
-		psqtValues[ChessConstants.WHITE][TexelConstants.MIRRORED_LEFT_RIGHT[i]] += step;
+		psqtValues[ChessConstants.WHITE][EvalConstants.MIRRORED_LEFT_RIGHT[i]] += step;
 
 		// add to black
-		psqtValues[ChessConstants.BLACK][TexelConstants.MIRRORED_UP_DOWN[i]] -= step;
+		psqtValues[ChessConstants.BLACK][EvalConstants.MIRRORED_UP_DOWN[i]] -= step;
 
 		// add to black mirrored
-		psqtValues[ChessConstants.BLACK][TexelConstants.MIRRORED_LEFT_RIGHT[TexelConstants.MIRRORED_UP_DOWN[i]]] -= step;
+		psqtValues[ChessConstants.BLACK][EvalConstants.MIRRORED_LEFT_RIGHT[EvalConstants.MIRRORED_UP_DOWN[i]]] -= step;
 	}
 
 	public void removeStep(int i) {
@@ -66,13 +67,13 @@ public class PsqtTuning extends Tuning {
 		psqtValues[ChessConstants.WHITE][i] -= step;
 
 		// remove from white mirrored
-		psqtValues[ChessConstants.WHITE][TexelConstants.MIRRORED_LEFT_RIGHT[i]] -= step;
+		psqtValues[ChessConstants.WHITE][EvalConstants.MIRRORED_LEFT_RIGHT[i]] -= step;
 
 		// remove from black
-		psqtValues[ChessConstants.BLACK][TexelConstants.MIRRORED_UP_DOWN[i]] += step;
+		psqtValues[ChessConstants.BLACK][EvalConstants.MIRRORED_UP_DOWN[i]] += step;
 
 		// remove from black mirrored
-		psqtValues[ChessConstants.BLACK][TexelConstants.MIRRORED_LEFT_RIGHT[TexelConstants.MIRRORED_UP_DOWN[i]]] += step;
+		psqtValues[ChessConstants.BLACK][EvalConstants.MIRRORED_LEFT_RIGHT[EvalConstants.MIRRORED_UP_DOWN[i]]] += step;
 	}
 
 	public boolean scoreIsZero(int i) {
@@ -84,14 +85,14 @@ public class PsqtTuning extends Tuning {
 	}
 
 	public boolean skip(int i) {
-		return skipValues.contains(i) || (i & 7) > 3;
+		return skipValues.contains(i);
 	}
 
 	public static String getArrayFriendlyFormatted(int[] values) {
 		StringBuilder sb = new StringBuilder("\n");
 		for (int i = 7; i >= 0; i--) {
 			sb.append(" ");
-			for (int j = 0; j < 8; j++) {
+			for (int j = 7; j >= 0; j--) {
 				sb.append(String.format("%3s", values[i * 8 + j])).append(",");
 			}
 			sb.append("\n");

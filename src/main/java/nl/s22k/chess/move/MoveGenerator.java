@@ -2,6 +2,7 @@ package nl.s22k.chess.move;
 
 import static nl.s22k.chess.ChessConstants.BISHOP;
 import static nl.s22k.chess.ChessConstants.BLACK;
+import static nl.s22k.chess.ChessConstants.KING;
 import static nl.s22k.chess.ChessConstants.NIGHT;
 import static nl.s22k.chess.ChessConstants.PAWN;
 import static nl.s22k.chess.ChessConstants.QUEEN;
@@ -16,13 +17,22 @@ import nl.s22k.chess.CastlingUtil;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.engine.EngineConstants;
+import nl.s22k.chess.engine.MainEngine;
 
 public final class MoveGenerator {
 
+	private static MoveGenerator[] instances;
+	static {
+		initInstances(MainEngine.nrOfThreads);
+	}
+
 	private final int[] moves = new int[1500];
+	private final int[] moveScores = new int[1500];
 	private final int[] nextToGenerate = new int[EngineConstants.MAX_PLIES * 2];
 	private final int[] nextToMove = new int[EngineConstants.MAX_PLIES * 2];
 	private int currentPly;
+
+	private final int[][][] COUNTER_MOVES = new int[2][7][64];
 
 	private final int[] KILLER_MOVE_1 = new int[EngineConstants.MAX_PLIES * 2];
 	private final int[] KILLER_MOVE_2 = new int[EngineConstants.MAX_PLIES * 2];
@@ -30,19 +40,26 @@ public final class MoveGenerator {
 	private final int[][] HH_MOVES = new int[2][64 * 64];
 	private final int[][] BF_MOVES = new int[2][64 * 64];
 
-	public MoveGenerator() {
-		clearHeuristicTables();
+	public static MoveGenerator getInstance(int instanceNumber) {
+		return instances[instanceNumber];
 	}
 
-	public void clearHeuristicTables() {
+	public static void initInstances(int nrOfInstances) {
+		instances = new MoveGenerator[nrOfInstances];
+		for (int i = 0; i < instances.length; i++) {
+			instances[i] = new MoveGenerator();
+		}
+	}
 
-		Arrays.fill(KILLER_MOVE_1, 0);
-		Arrays.fill(KILLER_MOVE_2, 0);
+	public MoveGenerator() {
+		clearHistoryHeuristics();
+	}
 
-		Arrays.fill(HH_MOVES[ChessConstants.WHITE], 0);
-		Arrays.fill(HH_MOVES[ChessConstants.BLACK], 0);
-		Arrays.fill(BF_MOVES[ChessConstants.WHITE], 1);
-		Arrays.fill(BF_MOVES[ChessConstants.BLACK], 1);
+	public void clearHistoryHeuristics() {
+		Arrays.fill(HH_MOVES[WHITE], 0);
+		Arrays.fill(HH_MOVES[BLACK], 0);
+		Arrays.fill(BF_MOVES[WHITE], 1);
+		Arrays.fill(BF_MOVES[BLACK], 1);
 	}
 
 	public void addHHValue(final int color, final int move, final int depth) {
@@ -63,19 +80,26 @@ public final class MoveGenerator {
 		if (!EngineConstants.ENABLE_HISTORY_HEURISTIC) {
 			return 1;
 		}
-		return Math.min(MoveUtil.SCORE_MAX, 100 * HH_MOVES[color][fromToIndex] / BF_MOVES[color][fromToIndex]);
+		return 100 * HH_MOVES[color][fromToIndex] / BF_MOVES[color][fromToIndex];
 	}
 
 	public void addKillerMove(final int move, final int ply) {
-		if (EngineConstants.ASSERT) {
-			Assert.isTrue(move == MoveUtil.getCleanMove(move));
-		}
 		if (EngineConstants.ENABLE_KILLER_MOVES) {
 			if (KILLER_MOVE_1[ply] != move) {
 				KILLER_MOVE_2[ply] = KILLER_MOVE_1[ply];
 				KILLER_MOVE_1[ply] = move;
 			}
 		}
+	}
+
+	public void addCounterMove(final int color, final int parentMove, final int counterMove) {
+		if (EngineConstants.ENABLE_COUNTER_MOVES) {
+			COUNTER_MOVES[color][MoveUtil.getSourcePieceIndex(parentMove)][MoveUtil.getToIndex(parentMove)] = counterMove;
+		}
+	}
+
+	public int getCounter(final int color, final int parentMove) {
+		return COUNTER_MOVES[color][MoveUtil.getSourcePieceIndex(parentMove)][MoveUtil.getToIndex(parentMove)];
 	}
 
 	public int getKiller1(final int ply) {
@@ -100,8 +124,8 @@ public final class MoveGenerator {
 		return moves[nextToMove[currentPly]++];
 	}
 
-	public int getNextScore() {
-		return MoveUtil.getScore(moves[nextToMove[currentPly]]);
+	public int getScore() {
+		return moveScores[nextToMove[currentPly] - 1];
 	}
 
 	public int previous() {
@@ -113,37 +137,35 @@ public final class MoveGenerator {
 	}
 
 	public void addMove(final int move) {
-
-		if (EngineConstants.ASSERT) {
-			Assert.isTrue(MoveUtil.getCleanMove(move) == move);
-		}
-
 		moves[nextToGenerate[currentPly]++] = move;
 	}
 
 	public void setMVVLVAScores() {
 		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
-			moves[j] = MoveUtil.setScoredMove(moves[j], MoveUtil.getAttackedPieceIndex(moves[j]) * 6 - MoveUtil.getSourcePieceIndex(moves[j]));
+			moveScores[j] = MoveUtil.getAttackedPieceIndex(moves[j]) * 6 - MoveUtil.getSourcePieceIndex(moves[j]);
 		}
 	}
 
 	public void setHHScores(final int colorToMove) {
 		for (int j = nextToMove[currentPly]; j < nextToGenerate[currentPly]; j++) {
-			moves[j] = MoveUtil.setScoredMove(moves[j], getHHScore(colorToMove, MoveUtil.getFromToIndex(moves[j])));
+			moveScores[j] = getHHScore(colorToMove, MoveUtil.getFromToIndex(moves[j]));
 		}
 	}
 
 	public void sort() {
 		final int left = nextToMove[currentPly];
 		for (int i = left, j = i; i < nextToGenerate[currentPly] - 1; j = ++i) {
-			final int ai = moves[i + 1];
-			while (ai > moves[j]) {
+			final int score = moveScores[i + 1];
+			final int move = moves[i + 1];
+			while (score > moveScores[j]) {
+				moveScores[j + 1] = moveScores[j];
 				moves[j + 1] = moves[j];
 				if (j-- == left) {
 					break;
 				}
 			}
-			moves[j + 1] = ai;
+			moveScores[j + 1] = score;
+			moves[j + 1] = move;
 		}
 	}
 
@@ -238,12 +260,14 @@ public final class MoveGenerator {
 
 		// move king or block sliding piece
 		final long inBetween = ChessConstants.IN_BETWEEN[cb.kingIndex[cb.colorToMove]][Long.numberOfTrailingZeros(cb.checkingPieces)];
+		if (inBetween != 0) {
+			addNightMoves(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, inBetween);
+			addBishopMoves(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb.allPieces, inBetween);
+			addRookMoves(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb.allPieces, inBetween);
+			addQueenMoves(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb.allPieces, inBetween);
+			addPawnMoves(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, inBetween);
+		}
 
-		addNightMoves(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, inBetween);
-		addBishopMoves(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb.allPieces, inBetween);
-		addRookMoves(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb.allPieces, inBetween);
-		addQueenMoves(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb.allPieces, inBetween);
-		addPawnMoves(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, inBetween);
 		addKingMoves(cb);
 	}
 
@@ -305,7 +329,7 @@ public final class MoveGenerator {
 		if (cb.colorToMove == WHITE) {
 
 			// non-promoting
-			long piece = pawns & Bitboard.RANK_NON_PROMOTION[WHITE] & Bitboard.getBlackPawnAttacks(cb.friendlyPieces[BLACK]);
+			long piece = pawns & Bitboard.RANK_NON_PROMOTION[WHITE] & Bitboard.getBlackPawnAttacks(enemies);
 			while (piece != 0) {
 				final int fromIndex = Long.numberOfTrailingZeros(piece);
 				long moves = StaticMoves.PAWN_ATTACKS[WHITE][fromIndex] & enemies;
@@ -334,7 +358,7 @@ public final class MoveGenerator {
 			}
 		} else {
 			// non-promoting
-			long piece = pawns & Bitboard.RANK_NON_PROMOTION[BLACK] & Bitboard.getWhitePawnAttacks(cb.friendlyPieces[WHITE]);
+			long piece = pawns & Bitboard.RANK_NON_PROMOTION[BLACK] & Bitboard.getWhitePawnAttacks(enemies);
 			while (piece != 0) {
 				final int fromIndex = Long.numberOfTrailingZeros(piece);
 				long moves = StaticMoves.PAWN_ATTACKS[BLACK][fromIndex] & enemies;
@@ -496,7 +520,7 @@ public final class MoveGenerator {
 		final int fromIndex = cb.kingIndex[cb.colorToMove];
 		long moves = StaticMoves.KING_MOVES[fromIndex] & cb.emptySpaces;
 		while (moves != 0) {
-			addMove(MoveUtil.createMove(fromIndex, Long.numberOfTrailingZeros(moves), ChessConstants.KING));
+			addMove(MoveUtil.createMove(fromIndex, Long.numberOfTrailingZeros(moves), KING));
 			moves &= moves - 1;
 		}
 
@@ -519,7 +543,7 @@ public final class MoveGenerator {
 		long moves = StaticMoves.KING_MOVES[fromIndex] & cb.friendlyPieces[cb.colorToMoveInverse];
 		while (moves != 0) {
 			final int toIndex = Long.numberOfTrailingZeros(moves);
-			addMove(MoveUtil.createAttackMove(fromIndex, toIndex, ChessConstants.KING, cb.pieceIndexes[toIndex]));
+			addMove(MoveUtil.createAttackMove(fromIndex, toIndex, KING, cb.pieceIndexes[toIndex]));
 			moves &= moves - 1;
 		}
 	}
@@ -569,4 +593,5 @@ public final class MoveGenerator {
 			moves &= moves - 1;
 		}
 	}
+
 }

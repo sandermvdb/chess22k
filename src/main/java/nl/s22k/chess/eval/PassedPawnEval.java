@@ -142,7 +142,7 @@ public class PassedPawnEval {
 			}
 
 			// check if own king is defending the promotion square (including square just below)
-			if ((StaticMoves.KING_MOVES[cb.kingIndex[BLACK]] & ChessConstants.PASSED_PAWN_MASKS[BLACK][index] & Bitboard.RANK_12) != 0) {
+			if ((StaticMoves.KING_MOVES[cb.kingIndex[BLACK]] & ChessConstants.KING_AREA[BLACK][index] & Bitboard.RANK_12) != 0) {
 				promotionDistance--;
 			}
 
@@ -194,7 +194,7 @@ public class PassedPawnEval {
 
 			// TODO maybe the enemy king can capture the pawn!!
 			// check if own king is defending the promotion square (including square just below)
-			if ((StaticMoves.KING_MOVES[cb.kingIndex[WHITE]] & ChessConstants.PASSED_PAWN_MASKS[WHITE][index] & Bitboard.RANK_78) != 0) {
+			if ((StaticMoves.KING_MOVES[cb.kingIndex[WHITE]] & ChessConstants.KING_AREA[WHITE][index] & Bitboard.RANK_78) != 0) {
 				promotionDistance--;
 			}
 

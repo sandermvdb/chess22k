@@ -50,4 +50,9 @@ public class Util {
 		return Math.max(Math.abs((index1 >>> 3) - (index2 >>> 3)), Math.abs((index1 & 7) - (index2 & 7)));
 	}
 
+	public static int getDistance(final long sq1, final long sq2) {
+		return Math.max(Math.abs((Long.numberOfTrailingZeros(sq1) >>> 3) - (Long.numberOfTrailingZeros(sq2) >>> 3)),
+				Math.abs((Long.numberOfTrailingZeros(sq1) & 7) - (Long.numberOfTrailingZeros(sq2) & 7)));
+	}
+
 }

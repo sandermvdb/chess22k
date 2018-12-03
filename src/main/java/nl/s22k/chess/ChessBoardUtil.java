@@ -23,7 +23,6 @@ public class ChessBoardUtil {
 
 	public static ChessBoard getNewCB(String fen) {
 		ChessBoard cb = ChessBoard.getInstance();
-		cb.clearHistoryValues();
 		setFenValues(fen, cb);
 		init(cb);
 		return cb;
@@ -100,17 +99,17 @@ public class ChessBoardUtil {
 			for (int piece = PAWN; piece <= KING; piece++) {
 				long pieces = cb.pieces[color][piece];
 				while (pieces != 0) {
-					cb.zobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][color][piece];
+					cb.zobristKey ^= Zobrist.piece[Long.numberOfTrailingZeros(pieces)][color][piece];
 					pieces &= pieces - 1;
 				}
 			}
 		}
 
-		cb.zobristKey ^= ChessBoard.zkCastling[cb.castlingRights];
+		cb.zobristKey ^= Zobrist.castling[cb.castlingRights];
 		if (cb.colorToMove == WHITE) {
-			cb.zobristKey ^= ChessBoard.zkWhiteToMove;
+			cb.zobristKey ^= Zobrist.sideToMove;
 		}
-		cb.zobristKey ^= ChessBoard.zkEPIndex[cb.epIndex];
+		cb.zobristKey ^= Zobrist.epIndex[cb.epIndex];
 	}
 
 	public static void calculatePawnZobristKeys(ChessBoard cb) {
@@ -118,12 +117,12 @@ public class ChessBoardUtil {
 
 		long pieces = cb.pieces[WHITE][PAWN];
 		while (pieces != 0) {
-			cb.pawnZobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][WHITE][PAWN];
+			cb.pawnZobristKey ^= Zobrist.piece[Long.numberOfTrailingZeros(pieces)][WHITE][PAWN];
 			pieces &= pieces - 1;
 		}
 		pieces = cb.pieces[BLACK][PAWN];
 		while (pieces != 0) {
-			cb.pawnZobristKey ^= ChessBoard.zkPieceValues[Long.numberOfTrailingZeros(pieces)][BLACK][PAWN];
+			cb.pawnZobristKey ^= Zobrist.piece[Long.numberOfTrailingZeros(pieces)][BLACK][PAWN];
 			pieces &= pieces - 1;
 		}
 	}
@@ -225,13 +224,7 @@ public class ChessBoardUtil {
 
 		// large arrays
 		System.arraycopy(source.pieceIndexes, 0, target.pieceIndexes, 0, source.pieceIndexes.length);
-		System.arraycopy(source.psqtScoreHistory, 0, target.psqtScoreHistory, 0, source.psqtScoreHistory.length);
-		System.arraycopy(source.castlingHistory, 0, target.castlingHistory, 0, source.castlingHistory.length);
-		System.arraycopy(source.epIndexHistory, 0, target.epIndexHistory, 0, source.epIndexHistory.length);
 		System.arraycopy(source.zobristKeyHistory, 0, target.zobristKeyHistory, 0, source.zobristKeyHistory.length);
-		System.arraycopy(source.checkingPiecesHistory, 0, target.checkingPiecesHistory, 0, source.checkingPiecesHistory.length);
-		System.arraycopy(source.pinnedPiecesHistory, 0, target.pinnedPiecesHistory, 0, source.pinnedPiecesHistory.length);
-		System.arraycopy(source.discoveredPiecesHistory, 0, target.discoveredPiecesHistory, 0, source.discoveredPiecesHistory.length);
 
 		// multi-dimensional arrays
 		System.arraycopy(source.pieces[WHITE], 0, target.pieces[WHITE], 0, source.pieces[WHITE].length);

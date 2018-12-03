@@ -6,7 +6,6 @@ import java.util.Map.Entry;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.eval.EvalUtil;
-import nl.s22k.chess.move.MagicUtil;
 
 public class LargestErrorCalculator {
 
@@ -14,9 +13,6 @@ public class LargestErrorCalculator {
 	private static String[] largestErrorFen = new String[100];
 
 	public static void main(String[] args) {
-
-		// setup
-		MagicUtil.init();
 
 		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\epds\\quiet-labeled.epd", true, false);
 		System.out.println(fens.size() + " fens found");

@@ -30,20 +30,20 @@ public class SEEUtil {
 		// pawn non-promotion attacks
 		attackMove = StaticMoves.PAWN_ATTACKS[1 - colorToMove][toIndex] & pieces[PAWN] & allPieces & Bitboard.RANK_NON_PROMOTION[colorToMove];
 		if (attackMove != 0) {
-			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), PAWN);
+			return MoveUtil.createSeeAttackMove(attackMove, PAWN);
 		}
 
 		// knight attacks
 		attackMove = pieces[NIGHT] & StaticMoves.KNIGHT_MOVES[toIndex] & allPieces;
 		if (attackMove != 0) {
-			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), NIGHT);
+			return MoveUtil.createSeeAttackMove(attackMove, NIGHT);
 		}
 
 		// bishop attacks
 		if ((pieces[BISHOP] & slidingMask) != 0) {
 			attackMove = pieces[BISHOP] & MagicUtil.getBishopMoves(toIndex, allPieces) & allPieces;
 			if (attackMove != 0) {
-				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), BISHOP);
+				return MoveUtil.createSeeAttackMove(attackMove, BISHOP);
 			}
 		}
 
@@ -51,7 +51,7 @@ public class SEEUtil {
 		if ((pieces[ROOK] & slidingMask) != 0) {
 			attackMove = pieces[ROOK] & MagicUtil.getRookMoves(toIndex, allPieces) & allPieces;
 			if (attackMove != 0) {
-				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), ROOK);
+				return MoveUtil.createSeeAttackMove(attackMove, ROOK);
 			}
 		}
 
@@ -59,7 +59,7 @@ public class SEEUtil {
 		if ((pieces[QUEEN] & slidingMask) != 0) {
 			attackMove = pieces[QUEEN] & MagicUtil.getQueenMoves(toIndex, allPieces) & allPieces;
 			if (attackMove != 0) {
-				return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), QUEEN);
+				return MoveUtil.createSeeAttackMove(attackMove, QUEEN);
 			}
 		}
 
@@ -74,7 +74,7 @@ public class SEEUtil {
 		// king attacks
 		attackMove = pieces[KING] & StaticMoves.KING_MOVES[toIndex];
 		if (attackMove != 0) {
-			return MoveUtil.createSeeAttackMove(Long.numberOfTrailingZeros(attackMove), KING);
+			return MoveUtil.createSeeAttackMove(attackMove, KING);
 		}
 
 		return 0;
@@ -125,7 +125,7 @@ public class SEEUtil {
 
 		final int index = MoveUtil.getToIndex(move);
 		final long allPieces = cb.allPieces & ~Util.POWER_LOOKUP[MoveUtil.getFromIndex(move)];
-		final long slidingMask = (MagicUtil.bishopMovesEmptyBoard[index] | MagicUtil.rookMovesEmptyBoard[index]) & allPieces;
+		final long slidingMask = MagicUtil.getQueenMovesEmptyBoard(index) & allPieces;
 
 		// add score when promotion
 		if (MoveUtil.isPromotion(move)) {
