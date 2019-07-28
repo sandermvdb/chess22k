@@ -56,8 +56,8 @@ public final class MoveGenerator {
 	}
 
 	public void clearHistoryHeuristics() {
-		Arrays.fill(HH_MOVES[WHITE], 0);
-		Arrays.fill(HH_MOVES[BLACK], 0);
+		Arrays.fill(HH_MOVES[WHITE], 1);
+		Arrays.fill(HH_MOVES[BLACK], 1);
 		Arrays.fill(BF_MOVES[WHITE], 1);
 		Arrays.fill(BF_MOVES[BLACK], 1);
 	}
@@ -178,42 +178,26 @@ public final class MoveGenerator {
 	}
 
 	public void generateMoves(final ChessBoard cb) {
-
-		switch (Long.bitCount(cb.checkingPieces)) {
-		case 0:
-			// not in-check
+		if (cb.checkingPieces == 0) {
 			generateNotInCheckMoves(cb);
-			break;
-		case 1:
-			// in-check
-			switch (cb.pieceIndexes[Long.numberOfTrailingZeros(cb.checkingPieces)]) {
-			case PAWN:
-				// fall-through
-			case NIGHT:
-				// move king
+		} else if (Long.bitCount(cb.checkingPieces) == 1) {
+			if (cb.pieceIndexes[Long.numberOfTrailingZeros(cb.checkingPieces)] <= NIGHT) {
 				addKingMoves(cb);
-				break;
-			default:
+			} else {
 				generateOutOfSlidingCheckMoves(cb);
 			}
-			break;
-		default:
+		} else {
 			// double check, only the king can move
 			addKingMoves(cb);
 		}
 	}
 
 	public void generateAttacks(final ChessBoard cb) {
-
-		switch (Long.bitCount(cb.checkingPieces)) {
-		case 0:
-			// not in-check
+		if (cb.checkingPieces == 0) {
 			generateNotInCheckAttacks(cb);
-			break;
-		case 1:
+		} else if (Long.bitCount(cb.checkingPieces) == 1) {
 			generateOutOfCheckAttacks(cb);
-			break;
-		default:
+		} else {
 			// double check, only the king can attack
 			addKingAttacks(cb);
 		}
@@ -222,12 +206,14 @@ public final class MoveGenerator {
 	private void generateNotInCheckMoves(final ChessBoard cb) {
 
 		// non pinned pieces
+		final long nonPinned = ~cb.pinnedPieces;
+		final long[] pieces = cb.pieces[cb.colorToMove];
+		addNightMoves(pieces[NIGHT] & nonPinned, cb.emptySpaces);
+		addBishopMoves(pieces[BISHOP] & nonPinned, cb.allPieces, cb.emptySpaces);
+		addRookMoves(pieces[ROOK] & nonPinned, cb.allPieces, cb.emptySpaces);
+		addQueenMoves(pieces[QUEEN] & nonPinned, cb.allPieces, cb.emptySpaces);
+		addPawnMoves(pieces[PAWN] & nonPinned, cb, cb.emptySpaces);
 		addKingMoves(cb);
-		addQueenMoves(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb.allPieces, cb.emptySpaces);
-		addRookMoves(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb.allPieces, cb.emptySpaces);
-		addBishopMoves(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb.allPieces, cb.emptySpaces);
-		addNightMoves(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb.emptySpaces);
-		addPawnMoves(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.emptySpaces);
 
 		// pinned pieces
 		long piece = cb.friendlyPieces[cb.colorToMove] & cb.pinnedPieces;
@@ -261,11 +247,13 @@ public final class MoveGenerator {
 		// move king or block sliding piece
 		final long inBetween = ChessConstants.IN_BETWEEN[cb.kingIndex[cb.colorToMove]][Long.numberOfTrailingZeros(cb.checkingPieces)];
 		if (inBetween != 0) {
-			addNightMoves(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, inBetween);
-			addBishopMoves(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb.allPieces, inBetween);
-			addRookMoves(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb.allPieces, inBetween);
-			addQueenMoves(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb.allPieces, inBetween);
-			addPawnMoves(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, inBetween);
+			final long nonPinned = ~cb.pinnedPieces;
+			final long[] pieces = cb.pieces[cb.colorToMove];
+			addPawnMoves(pieces[PAWN] & nonPinned, cb, inBetween);
+			addNightMoves(pieces[NIGHT] & nonPinned, inBetween);
+			addBishopMoves(pieces[BISHOP] & nonPinned, cb.allPieces, inBetween);
+			addRookMoves(pieces[ROOK] & nonPinned, cb.allPieces, inBetween);
+			addQueenMoves(pieces[QUEEN] & nonPinned, cb.allPieces, inBetween);
 		}
 
 		addKingMoves(cb);
@@ -273,15 +261,16 @@ public final class MoveGenerator {
 
 	private void generateNotInCheckAttacks(final ChessBoard cb) {
 
-		final long enemies = cb.friendlyPieces[cb.colorToMoveInverse];
-
 		// non pinned pieces
 		addEpAttacks(cb);
-		addPawnAttacksAndPromotions(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, enemies, cb.emptySpaces);
-		addNightAttacks(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb.pieceIndexes, enemies);
-		addRookAttacks(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, enemies);
-		addBishopAttacks(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, enemies);
-		addQueenAttacks(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb, enemies);
+		final long nonPinned = ~cb.pinnedPieces;
+		final long enemies = cb.friendlyPieces[cb.colorToMoveInverse];
+		final long[] pieces = cb.pieces[cb.colorToMove];
+		addPawnAttacksAndPromotions(pieces[PAWN] & nonPinned, cb, enemies, cb.emptySpaces);
+		addNightAttacks(pieces[NIGHT] & nonPinned, cb.pieceIndexes, enemies);
+		addBishopAttacks(pieces[BISHOP] & nonPinned, cb, enemies);
+		addRookAttacks(pieces[ROOK] & nonPinned, cb, enemies);
+		addQueenAttacks(pieces[QUEEN] & nonPinned, cb, enemies);
 		addKingAttacks(cb);
 
 		// pinned pieces
@@ -311,12 +300,15 @@ public final class MoveGenerator {
 
 	private void generateOutOfCheckAttacks(final ChessBoard cb) {
 		// attack attacker
+		final long nonPinned = ~cb.pinnedPieces;
+		final long[] pieces = cb.pieces[cb.colorToMove];
 		addEpAttacks(cb);
-		addPawnAttacksAndPromotions(cb.pieces[cb.colorToMove][PAWN] & ~cb.pinnedPieces, cb, cb.checkingPieces, cb.emptySpaces);
-		addNightAttacks(cb.pieces[cb.colorToMove][NIGHT] & ~cb.pinnedPieces, cb.pieceIndexes, cb.checkingPieces);
-		addBishopAttacks(cb.pieces[cb.colorToMove][BISHOP] & ~cb.pinnedPieces, cb, cb.checkingPieces);
-		addRookAttacks(cb.pieces[cb.colorToMove][ROOK] & ~cb.pinnedPieces, cb, cb.checkingPieces);
-		addQueenAttacks(cb.pieces[cb.colorToMove][QUEEN] & ~cb.pinnedPieces, cb, cb.checkingPieces);
+		addPawnAttacksAndPromotions(pieces[PAWN] & nonPinned, cb, cb.checkingPieces,
+				ChessConstants.IN_BETWEEN[cb.kingIndex[cb.colorToMove]][Long.numberOfTrailingZeros(cb.checkingPieces)]);
+		addNightAttacks(pieces[NIGHT] & nonPinned, cb.pieceIndexes, cb.checkingPieces);
+		addBishopAttacks(pieces[BISHOP] & nonPinned, cb, cb.checkingPieces);
+		addRookAttacks(pieces[ROOK] & nonPinned, cb, cb.checkingPieces);
+		addQueenAttacks(pieces[QUEEN] & nonPinned, cb, cb.checkingPieces);
 		addKingAttacks(cb);
 	}
 
@@ -567,7 +559,9 @@ public final class MoveGenerator {
 		}
 		long piece = cb.pieces[cb.colorToMove][PAWN] & StaticMoves.PAWN_ATTACKS[cb.colorToMoveInverse][cb.epIndex];
 		while (piece != 0) {
-			addMove(MoveUtil.createEPMove(Long.numberOfTrailingZeros(piece), cb.epIndex));
+			if (cb.isLegalEPMove(Long.numberOfTrailingZeros(piece))) {
+				addMove(MoveUtil.createEPMove(Long.numberOfTrailingZeros(piece), cb.epIndex));
+			}
 			piece &= piece - 1;
 		}
 	}

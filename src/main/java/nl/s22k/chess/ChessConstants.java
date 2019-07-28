@@ -57,23 +57,6 @@ public class ChessConstants {
 						i -= 8;
 					}
 				}
-			}
-		}
-
-		// fill from->to where to < from
-		for (int from = 0; from < 64; from++) {
-			for (int to = 0; to < from; to++) {
-				IN_BETWEEN[from][to] = IN_BETWEEN[to][from];
-			}
-		}
-	}
-
-	static {
-		int i;
-
-		// fill from->to where to > from
-		for (int from = 0; from < 64; from++) {
-			for (int to = from + 1; to < 64; to++) {
 
 				// diagonal \
 				if ((to - from) % 9 == 0 && to % 8 > from % 8) {

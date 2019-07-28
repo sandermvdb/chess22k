@@ -16,11 +16,11 @@ import java.util.concurrent.Future;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
-import nl.s22k.chess.Statistics;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.move.MoveGenerator;
+import nl.s22k.chess.search.TimeUtil;
 
 public class Tuner {
 
@@ -48,22 +48,14 @@ public class Tuner {
 
 		// tunings.add(new Tuning(EvalConstants.MATERIAL, STEP, "Material", 0, 1, 6));
 		// tunings.add(new Tuning(EvalConstants.PINNED, STEP, "Pinned", 0));
-		// tunings.add(new Tuning(EvalConstants.PINNED_ATTACKED, STEP, "Pinned att", 0));
 		// tunings.add(new Tuning(EvalConstants.DISCOVERED, STEP, "Discovered", 0));
-		// tunings.add(new Tuning(EvalConstants.KNIGHT_OUTPOST, STEP, "Knight outpost", 0, 1));
-		// tunings.add(new Tuning(EvalConstants.BISHOP_OUTPOST, STEP, "Bishop outpost", 0, 1));
 		// tunings.add(new Tuning(EvalConstants.DOUBLE_ATTACKED, STEP, "Double attacked"));
-		// tunings.add(new Tuning(EvalConstants.HANGING, STEP, "Hanging pieces", 0));
-		// tunings.add(new Tuning(EvalConstants.HANGING_2, STEP, "Hanging pieces 2", 0));
-		// tunings.add(new Tuning(EvalConstants.ROOK_TRAPPED, STEP, "Rook trapped"));
-		// tunings.add(new Tuning(EvalConstants.ONLY_MAJOR_DEFENDERS, STEP, "Only major defenders", 0));
 		// tunings.add(new Tuning(EvalConstants.NIGHT_PAWN, STEP, "Night pawn"));
 		// tunings.add(new Tuning(EvalConstants.ROOK_PAWN, STEP, "Rook pawn"));
 		// tunings.add(new Tuning(EvalConstants.BISHOP_PAWN, STEP, "Bishop pawn"));
 		// tunings.add(new Tuning(EvalConstants.SPACE, 1, "Space", 0, 1, 2, 3, 4));
 		//
 		// /* pawns */
-		// tunings.add(new Tuning(EvalConstants.PASSED_SCORE_MG, STEP, "Passed score mg", 0));
 		// tunings.add(new Tuning(EvalConstants.PASSED_SCORE_EG, STEP, "Passed score eg", 0));
 		// tunings.add(new MultiTuning(EvalConstants.PASSED_MULTIPLIERS, "Passed multi"));
 		// tunings.add(new MultiTuning(EvalConstants.PASSED_KING_MULTI, "Passed king multi"));
@@ -83,10 +75,7 @@ public class Tuner {
 		// /* king-safety */
 		// tunings.add(new Tuning(EvalConstants.KS_SCORES, 10, "KS"));
 		// tunings.add(new Tuning(EvalConstants.KS_QUEEN_TROPISM, 1, "KS queen", 0, 1));
-		// tunings.add(new Tuning(EvalConstants.KS_RANK, 1, "KS rank"));
-		// tunings.add(new Tuning(EvalConstants.KS_CHECK, 1, "KS check", 0, 1));
 		// tunings.add(new Tuning(EvalConstants.KS_CHECK_QUEEN, 1, "KS check q", 0, 1, 2, 3));
-		// tunings.add(new Tuning(EvalConstants.KS_UCHECK, 1, "KS ucheck", 0, 1));
 		// tunings.add(new Tuning(EvalConstants.KS_NO_FRIENDS, 1, "KS no friends"));
 		// tunings.add(new Tuning(EvalConstants.KS_ATTACKS, 1, "KS attacks"));
 		// tunings.add(new Tuning(EvalConstants.KS_DOUBLE_ATTACKS, 1, "KS double attacks"));
@@ -212,7 +201,7 @@ public class Tuner {
 	}
 
 	private static void printInfo(List<Tuning> tuningObjects) {
-		Statistics.reset();
+		TimeUtil.reset();
 		System.out.println("\nNumber of threads: " + numberOfThreads);
 		System.out.println("\nValues that are being tuned:");
 
@@ -225,7 +214,7 @@ public class Tuner {
 			}
 			totalValues += tuningObject.tunedValues;
 		}
-		System.out.println(String.format("\nInitial error: %s (%s ms)", calculateErrorMultiThreaded(), Statistics.getPassedTimeMs()));
+		System.out.println(String.format("\nInitial error: %s (%s ms)", calculateErrorMultiThreaded(), TimeUtil.getPassedTimeMs()));
 		System.out.println("Total values to be tuned: " + totalValues + "\n");
 	}
 

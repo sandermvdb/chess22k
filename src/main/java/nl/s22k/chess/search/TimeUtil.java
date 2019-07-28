@@ -1,24 +1,35 @@
 package nl.s22k.chess.search;
 
-import nl.s22k.chess.Statistics;
 import nl.s22k.chess.engine.MainEngine;
 
 public class TimeUtil {
 
 	private static final int MOVE_MARGIN = 1;
 
-	private static boolean isExactMoveTime = false;
-	private static int movesToGo = -1;
-	private static int moveCount;
-	private static long timeWindowNs;
-	private static long totalTimeLeftMs = Long.MAX_VALUE;
-	private static boolean isTTHit;
-	private static boolean isLosing;
-	private static long maxTimeMs;
-	private static int increment;
+	public static long startTime = System.nanoTime();
 
-	public static void setInfiniteWindow() {
+	private static int movesToGo;
+	private static int moveCount;
+	private static int increment;
+	private static long timeWindowNs;
+	private static long totalTimeLeftMs;
+	private static long maxTimeMs;
+	private static boolean isTTHit;
+	private static boolean isExactMoveTime;
+
+	static {
+		reset();
+	}
+
+	public static void reset() {
+		startTime = System.nanoTime();
+		isExactMoveTime = false;
+		movesToGo = -1;
+		totalTimeLeftMs = Integer.MAX_VALUE;
+		maxTimeMs = Long.MAX_VALUE;
 		timeWindowNs = Long.MAX_VALUE;
+		increment = 0;
+		isTTHit = false;
 	}
 
 	public static void start() {
@@ -52,7 +63,7 @@ public class TimeUtil {
 			maxTimeMs = Math.max(50, totalTimeLeftMs - 200);
 		} else {
 			// increase timewindow if we don't have a TT hit
-			if (isTTHit && !isLosing) {
+			if (isTTHit) {
 				// max time is 3 times the window
 				maxTimeMs = timeWindowNs / 1_000_000 * 3;
 			} else {
@@ -65,7 +76,6 @@ public class TimeUtil {
 	}
 
 	public static long getMaxTimeMs() {
-		// we have a maximum of 3 times the calculated window
 		return maxTimeMs;
 	}
 
@@ -86,15 +96,11 @@ public class TimeUtil {
 		if (MainEngine.pondering) {
 			return true;
 		}
-		return System.nanoTime() - Statistics.startTime < timeWindowNs;
+		return System.nanoTime() - startTime < timeWindowNs;
 	}
 
-	public static void reset() {
-		isExactMoveTime = false;
-		movesToGo = -1;
-		totalTimeLeftMs = Integer.MAX_VALUE;
-		isLosing = false;
-		increment = 0;
+	public static long getPassedTimeMs() {
+		return (System.nanoTime() - startTime) / 1000000;
 	}
 
 	public static void setMovesToGo(int movesToGo) {
@@ -109,12 +115,8 @@ public class TimeUtil {
 		TimeUtil.moveCount = moveCount;
 	}
 
-	public static void setTTHit(boolean isTTHit) {
-		TimeUtil.isTTHit = isTTHit;
-	}
-
-	public static void setLosing(boolean isLosing) {
-		TimeUtil.isLosing = isLosing;
+	public static void setTTHit() {
+		TimeUtil.isTTHit = true;
 	}
 
 	public static void setIncrement(int increment) {

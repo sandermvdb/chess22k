@@ -99,7 +99,7 @@ public class ChessBoardUtil {
 			for (int piece = PAWN; piece <= KING; piece++) {
 				long pieces = cb.pieces[color][piece];
 				while (pieces != 0) {
-					cb.zobristKey ^= Zobrist.piece[Long.numberOfTrailingZeros(pieces)][color][piece];
+					cb.zobristKey ^= Zobrist.piece[color][piece][Long.numberOfTrailingZeros(pieces)];
 					pieces &= pieces - 1;
 				}
 			}
@@ -117,12 +117,12 @@ public class ChessBoardUtil {
 
 		long pieces = cb.pieces[WHITE][PAWN];
 		while (pieces != 0) {
-			cb.pawnZobristKey ^= Zobrist.piece[Long.numberOfTrailingZeros(pieces)][WHITE][PAWN];
+			cb.pawnZobristKey ^= Zobrist.piece[WHITE][PAWN][Long.numberOfTrailingZeros(pieces)];
 			pieces &= pieces - 1;
 		}
 		pieces = cb.pieces[BLACK][PAWN];
 		while (pieces != 0) {
-			cb.pawnZobristKey ^= Zobrist.piece[Long.numberOfTrailingZeros(pieces)][BLACK][PAWN];
+			cb.pawnZobristKey ^= Zobrist.piece[BLACK][PAWN][Long.numberOfTrailingZeros(pieces)];
 			pieces &= pieces - 1;
 		}
 	}
@@ -215,8 +215,6 @@ public class ChessBoardUtil {
 		target.moveCount = source.moveCount;
 
 		// small arrays
-		target.kingArea[WHITE] = source.kingArea[WHITE];
-		target.kingArea[BLACK] = source.kingArea[BLACK];
 		target.kingIndex[WHITE] = source.kingIndex[WHITE];
 		target.kingIndex[BLACK] = source.kingIndex[BLACK];
 		target.friendlyPieces[WHITE] = source.friendlyPieces[WHITE];
@@ -235,8 +233,8 @@ public class ChessBoardUtil {
 
 		calculateMaterialZobrist(cb);
 
-		cb.updateKingValues(WHITE, Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]));
-		cb.updateKingValues(BLACK, Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]));
+		cb.kingIndex[WHITE] = Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]);
+		cb.kingIndex[BLACK] = Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]);
 
 		cb.colorToMoveInverse = 1 - cb.colorToMove;
 		cb.friendlyPieces[WHITE] = cb.pieces[WHITE][PAWN] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][KING] | cb.pieces[WHITE][ROOK]
@@ -313,6 +311,14 @@ public class ChessBoardUtil {
 			if ((cb.castlingRights & 1) != 0) { // 0001
 				sb.append("q");
 			}
+		}
+
+		// en passant
+		sb.append(" ");
+		if (cb.epIndex == 0) {
+			sb.append("-");
+		} else {
+			sb.append(Character.toString(104 - cb.epIndex % 8) + (cb.epIndex / 8 + 1));
 		}
 
 		String fen = sb.toString();

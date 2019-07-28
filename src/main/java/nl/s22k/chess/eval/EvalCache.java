@@ -11,26 +11,24 @@ import nl.s22k.chess.engine.EngineConstants;
 public class EvalCache {
 
 	private static final int POWER_2_TABLE_SHIFTS = 64 - EngineConstants.POWER_2_EVAL_ENTRIES;
-	public static final int MAX_TABLE_ENTRIES = 1 << EngineConstants.POWER_2_EVAL_ENTRIES;
 
-	private static final long[] keys = new long[MAX_TABLE_ENTRIES];
-	private static final int[] scores = new int[MAX_TABLE_ENTRIES];
-	public static int usageCounter;
+	// keys, scores
+	private static final long[] keys = new long[(1 << EngineConstants.POWER_2_EVAL_ENTRIES) * 2];
 
 	public static void clearValues() {
 		Arrays.fill(keys, 0);
-		Arrays.fill(scores, 0);
-		usageCounter = 0;
 	}
 
 	public static int getScore(final long key) {
-		final int score = scores[getIndex(key)];
+		final int index = getIndex(key);
+		final long storedKey = keys[index];
+		final long score = keys[index + 1];
 
-		if ((keys[getIndex(key)] ^ score) == key) {
+		if ((storedKey ^ score) == key) {
 			if (Statistics.ENABLED) {
 				Statistics.evalCacheHits++;
 			}
-			return score;
+			return (int) score;
 		}
 
 		if (Statistics.ENABLED) {
@@ -48,19 +46,17 @@ public class EvalCache {
 			Assert.isTrue(score >= Util.SHORT_MIN);
 		}
 
-		final int ttIndex = getIndex(key);
-
-		if (Statistics.ENABLED) {
-			if (keys[ttIndex] == 0) {
-				usageCounter++;
-			}
-		}
-		keys[ttIndex] = key ^ score;
-		scores[ttIndex] = score;
+		final int index = getIndex(key);
+		keys[index] = key ^ score;
+		keys[index + 1] = score;
 	}
 
 	private static int getIndex(final long key) {
-		return (int) (key >>> POWER_2_TABLE_SHIFTS);
+		return (int) (key >>> POWER_2_TABLE_SHIFTS) << 1;
+	}
+
+	public static int getUsage() {
+		return Util.getUsagePercentage(keys);
 	}
 
 }

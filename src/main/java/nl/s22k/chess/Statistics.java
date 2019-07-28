@@ -3,22 +3,23 @@ package nl.s22k.chess;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
+import nl.s22k.chess.engine.MainEngine;
 import nl.s22k.chess.eval.EvalCache;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.search.TTUtil;
+import nl.s22k.chess.search.TimeUtil;
 
 public class Statistics {
 
 	public static final boolean ENABLED = false;
 
-	public static long startTime = System.nanoTime();
-	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes, qNodes, evaluatedInCheck;
+	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes, qNodes;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
-	public static int depth, maxDepth;
+	public static int depth;
 	public static int epCount, castleCount, promotionCount;
 	public static long pawnEvalCacheHits, pawnEvalCacheMisses;
 	public static long materialCacheMisses, materialCacheHits;
@@ -36,11 +37,11 @@ public class Statistics {
 	public static final int[] failHigh = new int[64];
 	public static int drawishByMaterialCount;
 
-	public static long calculateNps() {
-		return ChessBoard.getTotalMoveCount() * 1000 / Math.max(getPassedTimeMs(), 1);
-	}
-
 	public static void reset() {
+
+		if (!ENABLED) {
+			return;
+		}
 		Arrays.fill(razored, 0);
 		Arrays.fill(futile, 0);
 		Arrays.fill(staticNullMoved, 0);
@@ -48,7 +49,6 @@ public class Statistics {
 		Arrays.fill(failHigh, 0);
 
 		bestMoveCounter = 0;
-		evaluatedInCheck = 0;
 		qNodes = 0;
 		pvNodes = 1; // so we never divide by zero
 		cutNodes = 0;
@@ -56,7 +56,6 @@ public class Statistics {
 		drawishByMaterialCount = 0;
 		pawnEvalCacheMisses = 0;
 		pawnEvalCacheHits = 0;
-		startTime = System.nanoTime();
 		castleCount = 0;
 		epCount = 0;
 		evalNodes = 0;
@@ -65,7 +64,6 @@ public class Statistics {
 		staleMateCount = 0;
 		mateCount = 0;
 		depth = 0;
-		maxDepth = 0;
 		abNodes = 0;
 		promotionCount = 0;
 		seeNodes = 0;
@@ -92,12 +90,12 @@ public class Statistics {
 	}
 
 	public static void print() {
-		if (!Statistics.ENABLED) {
+		if (!ENABLED) {
 			return;
 		}
-		System.out.println("Time          " + getPassedTimeMs() + "ms");
-		System.out.println("NPS           " + calculateNps() / 1000 + "k");
-		System.out.println("Depth         " + depth + "/" + maxDepth);
+		System.out.println("Time          " + TimeUtil.getPassedTimeMs() + "ms");
+		System.out.println("NPS           " + MainEngine.calculateNps() / 1000 + "k");
+		System.out.println("Depth         " + depth);
 		System.out.println("AB-nodes      " + abNodes);
 		System.out.println("PV-nodes      " + pvNodes + " = 1/" + (pvNodes + cutNodes + allNodes) / pvNodes);
 		System.out.println("Cut-nodes     " + cutNodes);
@@ -108,21 +106,19 @@ public class Statistics {
 		System.out.println("Q-nodes       " + qNodes);
 		System.out.println("See-nodes     " + seeNodes);
 		System.out.println("Evaluated     " + evalNodes);
-		System.out.println("Eval in check " + evaluatedInCheck);
-		System.out.println("Moves         " + ChessBoard.getTotalMoveCount());
+		ChessBoard.calculateTotalMoveCount();
+		System.out.println("Moves         " + ChessBoard.totalMoveCount);
 		System.out.println("IID           " + iidCount);
 
 		System.out.println("### Caches #######");
 		printPercentage("TT            ", ttHits, ttMisses);
-		if (TTUtil.maxEntries != 0) {
-			System.out.println("usage         " + TTUtil.getUsagePercentage() + "%");
-		}
+		System.out.println("usage         " + TTUtil.getUsagePercentage() / 10 + "%");
 		printPercentage("Eval          ", evalCacheHits, evalCacheMisses);
-		System.out.println("usage         " + EvalCache.usageCounter * 100 / EvalCache.MAX_TABLE_ENTRIES + "%");
+		System.out.println("usage         " + EvalCache.getUsage() + "%");
 		printPercentage("Pawn eval     ", pawnEvalCacheHits, pawnEvalCacheMisses);
-		System.out.println("usage         " + PawnEvalCache.usageCounter * 100 / PawnEvalCache.MAX_TABLE_ENTRIES + "%");
+		System.out.println("usage         " + PawnEvalCache.getUsage() + "%");
 		printPercentage("Material      ", materialCacheHits, materialCacheMisses);
-		System.out.println("usage         " + PawnEvalCache.usageCounter * 100 / MaterialCache.MAX_TABLE_ENTRIES + "%");
+		System.out.println("usage         " + MaterialCache.getUsage() + "%");
 
 		System.out.println("## Best moves #####");
 		System.out.println("TT            " + bestMoveTT);
@@ -171,10 +167,6 @@ public class Statistics {
 		if (hitCount != 0 && failCount != 0) {
 			System.out.println(message + hitCount + "/" + (failCount + hitCount) + " (" + hitCount * 100 / (hitCount + failCount) + "%)");
 		}
-	}
-
-	public static long getPassedTimeMs() {
-		return (System.nanoTime() - startTime) / 1000000;
 	}
 
 	public static void setBestMove(ChessBoard cb, int bestMove, int ttMove, long ttValue, int flag, int counterMove, int killer1Move, int killer2Move) {

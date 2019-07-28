@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.MaterialCache;
 import nl.s22k.chess.eval.PawnEvalCache;
 
@@ -55,6 +56,7 @@ public class EvalEvaluator {
 		System.out.println(String.format("%f - org", bestError));
 		for (Tuning tuningObject : tuningObjects) {
 			tuningObject.clearValues();
+			EvalConstants.initMgEg();
 			PawnEvalCache.clearValues();
 			MaterialCache.clearValues();
 			final double newError = calculateErrorMultiThreaded();

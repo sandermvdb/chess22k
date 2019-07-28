@@ -231,20 +231,17 @@ public class MainEngine {
 		// go movestogo 30 wtime 3600000 btime 3600000
 		// go wtime 40847 btime 48019 winc 0 binc 0 movestogo 20
 
-		if (PV.getBestMove() != 0 && PV.getScore() < -50) {
-			TimeUtil.setLosing(true);
-		}
-
 		Statistics.reset();
 		TimeUtil.reset();
 		TimeUtil.setMoveCount(moveCount);
 		maxDepth = EngineConstants.MAX_PLIES;
-		TimeUtil.setInfiniteWindow();
 		pondering = false;
 
 		TTUtil.init(false);
-		final long ttValue = TTUtil.getTTValue(cb.zobristKey);
-		TimeUtil.setTTHit(ttValue != 0 && TTUtil.getFlag(ttValue) == TTUtil.FLAG_EXACT);
+		final long ttValue = TTUtil.getValue(cb.zobristKey);
+		if (ttValue != 0 && TTUtil.getFlag(ttValue) == TTUtil.FLAG_EXACT) {
+			TimeUtil.setTTHit();
+		}
 
 		// go
 		// go infinite
@@ -257,7 +254,6 @@ public class MainEngine {
 					PawnEvalCache.clearValues();
 					EvalCache.clearValues();
 					MaterialCache.clearValues();
-					TimeUtil.setInfiniteWindow();
 				} else if (goCommandTokens[i].equals("ponder")) {
 					pondering = true;
 				} else if (goCommandTokens[i].equals("movetime")) {
@@ -297,14 +293,14 @@ public class MainEngine {
 	}
 
 	private static void eval() {
-		final int mobilityScore = EvalUtil.calculateMobilityScoresAndSetAttackBoards(cb);
+		final int mobilityScore = EvalUtil.calculateMobilityScoresAndSetAttacks(cb);
 		System.out.println(" Material imbalance: " + EvalUtil.getImbalances(cb));
 		System.out.println("          Position : " + getMgEgString(cb.psqtScore));
 		System.out.println("          Mobility : " + getMgEgString(mobilityScore));
 		System.out.println("              Pawn : " + EvalUtil.getPawnScores(cb));
-		System.out.println("       Pawn-passed : " + getMgEgString(PassedPawnEval.calculatePassedPawnScores(cb)));
+		System.out.println("       Pawn-passed : " + getMgEgString(PassedPawnEval.calculateScores(cb)));
 		System.out.println("       Pawn shield : " + getMgEgString(EvalUtil.calculatePawnShieldBonus(cb)));
-		System.out.println("       King-safety : " + KingSafetyEval.calculateKingSafetyScores(cb));
+		System.out.println("       King-safety : " + KingSafetyEval.calculateScores(cb));
 		System.out.println("           Threats : " + getMgEgString(EvalUtil.calculateThreats(cb)));
 		System.out.println("             Other : " + EvalUtil.calculateOthers(cb));
 		System.out.println("             Space : " + EvalUtil.calculateSpace(cb));
@@ -333,7 +329,8 @@ public class MainEngine {
 		if (noOutput) {
 			return;
 		}
-		System.out.println("info nodes " + ChessBoard.getTotalMoveCount() + " nps " + Statistics.calculateNps() + " hashfull " + TTUtil.getUsagePercentage());
+		ChessBoard.calculateTotalMoveCount();
+		System.out.println("info nodes " + ChessBoard.totalMoveCount + " nps " + calculateNps() + " hashfull " + TTUtil.getUsagePercentage());
 	}
 
 	public static void sendPlyInfo() {
@@ -344,13 +341,16 @@ public class MainEngine {
 		// restart info thread
 		infoThread.interrupt();
 
-		final String hashInfo = TTUtil.getUsagePercentage() == 0 ? "" : " hashfull " + TTUtil.getUsagePercentage();
+		ChessBoard.calculateTotalMoveCount();
 
 		// info depth 1 seldepth 2 score cp 50 pv d2d4 d7d5 e2e3 hashfull 0 nps 1000 nodes 22
 		// info depth 4 seldepth 10 score cp 40 upperbound pv d2d4 d7d5 e2e3 hashfull 0 nps 30000 nodes 1422
-		System.out.println("info depth " + Statistics.depth + " seldepth " + Statistics.maxDepth + " time " + Statistics.getPassedTimeMs() + " score cp "
-				+ PV.getScore() + PV.getScoreType() + "nps " + Statistics.calculateNps() + " nodes " + ChessBoard.getTotalMoveCount() + hashInfo + " pv "
-				+ PV.asString());
+		System.out.println("info depth " + Statistics.depth + " time " + TimeUtil.getPassedTimeMs() + " score cp " + PV.getScore() + PV.getScoreType() + "nps "
+				+ calculateNps() + " nodes " + ChessBoard.totalMoveCount + " hashfull " + TTUtil.getUsagePercentage() + " pv " + PV.asString());
+	}
+
+	public static long calculateNps() {
+		return ChessBoard.totalMoveCount * 1000 / Math.max(TimeUtil.getPassedTimeMs(), 1);
 	}
 
 	public static String getVersion() {

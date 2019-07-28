@@ -14,12 +14,9 @@ import nl.s22k.chess.move.MoveWrapper;
 public class TTUtil {
 
 	private static int keyShifts;
-	public static int maxEntries;
 
+	// key, value
 	private static long[] keys;
-	private static long[] values;
-
-	private static long usageCounter;
 
 	public static final int FLAG_EXACT = 0;
 	public static final int FLAG_UPPER = 1;
@@ -27,9 +24,11 @@ public class TTUtil {
 
 	public static long halfMoveCounter = 0;
 
-	// ///////////////////// DEPTH //12 bits
-	private static final int FLAG = 12; // 2
-	private static final int MOVE = 14; // 22
+	private static final int BUCKET_SIZE = 4;
+
+	// ///////////////////// DEPTH //10 bits
+	private static final int FLAG = 10; // 2
+	private static final int MOVE = 12; // 22
 	private static final int SCORE = 48; // 16
 
 	public static boolean isInitialized = false;
@@ -37,32 +36,26 @@ public class TTUtil {
 	public static void init(final boolean force) {
 		if (force || !isInitialized) {
 			keyShifts = 64 - EngineConstants.POWER_2_TT_ENTRIES;
-			maxEntries = (int) Util.POWER_LOOKUP[EngineConstants.POWER_2_TT_ENTRIES] + 3;
+			int maxEntries = (int) (Util.POWER_LOOKUP[EngineConstants.POWER_2_TT_ENTRIES] + BUCKET_SIZE - 1) * 2;
 
 			keys = new long[maxEntries];
-			values = new long[maxEntries];
-			usageCounter = 0;
 
 			isInitialized = true;
 		}
 	}
 
 	public static void clearValues() {
-		if (!isInitialized) {
-			return;
-		}
 		Arrays.fill(keys, 0);
-		Arrays.fill(values, 0);
-		usageCounter = 0;
 	}
 
-	public static long getTTValue(final long key) {
+	public static long getValue(final long key) {
 
 		final int index = getIndex(key);
 
-		for (int i = 0; i < 4; i++) {
-			long value = values[index + i];
-			if ((keys[index + i] ^ value) == key) {
+		for (int i = index; i < index + BUCKET_SIZE * 2; i += 2) {
+			long xorKey = keys[i];
+			long value = keys[i + 1];
+			if ((xorKey ^ value) == key) {
 				if (Statistics.ENABLED) {
 					Statistics.ttHits++;
 				}
@@ -77,7 +70,7 @@ public class TTUtil {
 	}
 
 	private static int getIndex(final long key) {
-		return (int) (key >>> keyShifts);
+		return (int) (key >>> keyShifts) << 1;
 	}
 
 	public static void addValue(final long key, int score, final int ply, final int depth, final int flag, final int move) {
@@ -91,50 +84,46 @@ public class TTUtil {
 		}
 
 		final int index = getIndex(key);
-		int replacedDepth = Integer.MAX_VALUE;
-		int replacedIndex = index;
-		for (int i = index; i < index + 4; i++) {
+		long replacedDepth = Integer.MAX_VALUE;
+		int replaceIndex = index;
+		for (int i = index; i < index + BUCKET_SIZE * 2; i += 2) {
 
-			if (keys[i] == 0) {
-				if (Statistics.ENABLED) {
-					usageCounter++;
-				}
-				replacedIndex = i;
+			long xorKey = keys[i];
+			if (xorKey == 0) {
+				replaceIndex = i;
 				break;
 			}
 
-			long currentValue = values[i];
+			long currentValue = keys[i + 1];
 			int currentDepth = getDepth(currentValue);
-			if ((keys[i] ^ currentValue) == key) {
+			if ((xorKey ^ currentValue) == key) {
 				if (currentDepth > depth && flag != FLAG_EXACT) {
 					return;
 				}
-				replacedIndex = i;
+				replaceIndex = i;
 				break;
 			}
 
 			// replace the lowest depth
 			if (currentDepth < replacedDepth) {
-				replacedIndex = i;
+				replaceIndex = i;
 				replacedDepth = currentDepth;
 			}
 		}
 
 		// correct mate-score
 		if (score > EvalConstants.SCORE_MATE_BOUND) {
-			// Math.min because of qsearch
-			score = Math.min(score + ply, Util.SHORT_MAX);
+			score = score + ply;
 		} else if (score < -EvalConstants.SCORE_MATE_BOUND) {
-			// Math.max because of qsearch
-			score = Math.max(score - ply, Util.SHORT_MIN);
+			score = score - ply;
 		}
 		if (EngineConstants.ASSERT) {
 			Assert.isTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
 		}
 
 		final long value = createValue(score, move, flag, depth);
-		keys[replacedIndex] = key ^ value;
-		values[replacedIndex] = value;
+		keys[replaceIndex] = key ^ value;
+		keys[replaceIndex + 1] = value;
 	}
 
 	public static int getScore(final long value, final int ply) {
@@ -155,7 +144,7 @@ public class TTUtil {
 	}
 
 	public static int getDepth(final long value) {
-		return (int) ((value & 0xff) - halfMoveCounter);
+		return (int) ((value & 0x3ff) - halfMoveCounter);
 	}
 
 	public static int getFlag(final long value) {
@@ -209,6 +198,21 @@ public class TTUtil {
 	}
 
 	public static long getUsagePercentage() {
-		return usageCounter * 1000 / TTUtil.maxEntries;
+		int usage = 0;
+		for (int i = 0; i < 1000; i++) {
+			if (keys[i] != 0) {
+				usage++;
+			}
+		}
+		return usage;
+	}
+
+	public static boolean canRefineEval(final long ttValue, final int eval, final int score) {
+		if (ttValue != 0) {
+			if (getFlag(ttValue) == FLAG_EXACT || getFlag(ttValue) == FLAG_UPPER && score < eval || getFlag(ttValue) == FLAG_LOWER && score > eval) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

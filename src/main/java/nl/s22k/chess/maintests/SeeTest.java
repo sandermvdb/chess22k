@@ -50,7 +50,6 @@ public class SeeTest {
 				// seeScore = SEEUtil.getSeeCaptureScore(cb, move);
 				// qScore = ChessConstants.COLOR_FACTOR[cb.colorToMoveInverse] * materialScore - calculateQScore(cb,
 				// move, true);
-				// System.out.println();
 				// }
 			}
 			moveGen.endPly();

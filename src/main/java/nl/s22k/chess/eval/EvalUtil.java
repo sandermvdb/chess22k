@@ -45,32 +45,46 @@ public class EvalUtil {
 	public static int calculateScore(final ChessBoard cb) {
 
 		int score = 0;
-		if (!MaterialUtil.isDrawByMaterial(cb)) {
-			score = taperedEval(cb);
-		}
-
-		// TODO check if material score has one side leading
-
-		/* draw-by-material */
-		if (score > 25) {
-			if (!MaterialUtil.hasMatingMaterial(cb, WHITE)) {
-				score = EvalConstants.SCORE_DRAW;
-			} else if (cb.isDrawishByMaterial(WHITE)) {
-				if (Statistics.ENABLED) {
-					Statistics.drawishByMaterialCount++;
+		if (MaterialUtil.isDrawByMaterial(cb)) {
+			// do nothing
+		} else if (Long.bitCount(cb.allPieces) == 4 && MaterialUtil.hasEvaluator(cb.materialKey)) {
+			if (MaterialUtil.isKBNK(cb.materialKey)) {
+				score = EndGameEvaluator.calculateKBNKScore(cb);
+			} else if (MaterialUtil.isKRKN(cb.materialKey)) {
+				score = EndGameEvaluator.calculateKRKNScore(cb);
+			} else if (MaterialUtil.isKRKB(cb.materialKey)) {
+				score = EndGameEvaluator.calculateKRKBScore(cb);
+			} else if (MaterialUtil.isKQKP(cb.materialKey)) {
+				if (EndGameEvaluator.isKQKPDrawish(cb)) {
+					score = cb.pieces[WHITE][QUEEN] == 0 ? -50 : 50;
+				} else {
+					score = taperedEval(cb);
 				}
-				// drive king in the corner
-				score = EndGameEvaluator.getDrawishScore(cb, WHITE);
 			}
-		} else if (score < -25) {
-			if (!MaterialUtil.hasMatingMaterial(cb, BLACK)) {
-				score = EvalConstants.SCORE_DRAW;
-			} else if (cb.isDrawishByMaterial(BLACK)) {
-				if (Statistics.ENABLED) {
-					Statistics.drawishByMaterialCount++;
+		} else {
+			score = taperedEval(cb);
+
+			/* draw-by-material */
+			if (score > 25) {
+				if (!MaterialUtil.hasMatingMaterial(cb, WHITE)) {
+					score = EvalConstants.SCORE_DRAW;
+				} else if (isDrawishByMaterial(cb, WHITE)) {
+					if (Statistics.ENABLED) {
+						Statistics.drawishByMaterialCount++;
+					}
+					// drive king in the corner
+					score = EndGameEvaluator.getDrawishScore(cb, WHITE);
 				}
-				// drive king in the corner
-				score = -EndGameEvaluator.getDrawishScore(cb, BLACK);
+			} else if (score < -25) {
+				if (!MaterialUtil.hasMatingMaterial(cb, BLACK)) {
+					score = EvalConstants.SCORE_DRAW;
+				} else if (isDrawishByMaterial(cb, BLACK)) {
+					if (Statistics.ENABLED) {
+						Statistics.drawishByMaterialCount++;
+					}
+					// drive king in the corner
+					score = -EndGameEvaluator.getDrawishScore(cb, BLACK);
+				}
 			}
 		}
 
@@ -87,32 +101,35 @@ public class EvalUtil {
 		EvalCache.addValue(cb.zobristKey, score);
 
 		if (EngineConstants.TEST_EVAL_VALUES) {
-			ChessBoard testCb = ChessBoardTestUtil.getHorizontalMirroredCb(cb);
-			compareScores(cb, testCb, 1);
-
-			testCb = ChessBoardTestUtil.getVerticalMirroredCb(cb);
-			compareScores(cb, testCb, -1);
+			ChessBoardTestUtil.compareScores(cb);
 		}
 
 		return score;
 	}
 
-	private static int taperedEval(final ChessBoard cb) {
-
-		if (MaterialUtil.isKBNK(cb.materialKey)) {
-			return EndGameEvaluator.calculateKBKNScore(cb);
-		} else if (MaterialUtil.isKRKP(cb.materialKey)) {
-			// return EndGameEvaluator.isKRKPDraw(cb);
+	private static boolean isDrawishByMaterial(final ChessBoard cb, final int color) {
+		// no pawns or queens
+		if (MaterialUtil.hasPawnsOrQueens(cb.materialKey, color)) {
+			return false;
 		}
 
+		if (Long.bitCount(cb.friendlyPieces[color]) > 3) {
+			return false;
+		}
+
+		// material difference bigger than bishop + 50
+		// TODO do not include pawn score (why...?)
+		return getImbalances(cb) * ChessConstants.COLOR_FACTOR[color] < EvalConstants.MATERIAL[BISHOP] + EvalConstants.OTHER_SCORES[EvalConstants.IX_DRAWISH];
+	}
+
+	private static int taperedEval(final ChessBoard cb) {
 		final int pawnScore = getPawnScores(cb);
-		final int mgEgScore = calculateMobilityScoresAndSetAttackBoards(cb) + PassedPawnEval.calculatePassedPawnScores(cb) + calculateThreats(cb)
-				+ calculatePawnShieldBonus(cb);
+		final int mgEgScore = calculateMobilityScoresAndSetAttacks(cb) + calculateThreats(cb) + calculatePawnShieldBonus(cb);
 		final int phaseIndependentScore = calculateOthers(cb) + getImbalances(cb);
 
 		final int scoreMg = cb.phase == PHASE_TOTAL ? 0
-				: getMgScore(mgEgScore + cb.psqtScore) + pawnScore + KingSafetyEval.calculateKingSafetyScores(cb) + calculateSpace(cb) + phaseIndependentScore;
-		final int scoreEg = getEgScore(mgEgScore + cb.psqtScore) + pawnScore + phaseIndependentScore;
+				: getMgScore(mgEgScore + cb.psqtScore) + pawnScore + KingSafetyEval.calculateScores(cb) + calculateSpace(cb) + phaseIndependentScore;
+		final int scoreEg = getEgScore(mgEgScore + cb.psqtScore) + pawnScore + PassedPawnEval.calculateScores(cb) + phaseIndependentScore;
 
 		return ((scoreMg * (PHASE_TOTAL - cb.phase)) + scoreEg * cb.phase) / PHASE_TOTAL / calculateScaleFactor(cb);
 	}
@@ -139,34 +156,11 @@ public class EvalUtil {
 		return 1;
 	}
 
-	private static void compareScores(final ChessBoard cb1, final ChessBoard cb2, final int factor) {
-
-		calculateMobilityScoresAndSetAttackBoards(cb1);
-		calculateMobilityScoresAndSetAttackBoards(cb2);
-
-		if (KingSafetyEval.calculateKingSafetyScores(cb2) != KingSafetyEval.calculateKingSafetyScores(cb1) * factor) {
-			System.out.println(
-					"Unequal king-safety: " + KingSafetyEval.calculateKingSafetyScores(cb1) + " " + KingSafetyEval.calculateKingSafetyScores(cb2) * factor);
-		}
-		if (calculatePositionScores(cb1) != calculatePositionScores(cb2) * factor) {
-			System.out.println("Unequal position score: " + calculatePositionScores(cb1) + " " + calculatePositionScores(cb2) * factor);
-		}
-		if (calculatePawnScores(cb1) != calculatePawnScores(cb2) * factor) {
-			System.out.println("Unequal pawns: " + calculatePawnScores(cb1) + " " + calculatePawnScores(cb2) * factor);
-		}
-		if (calculateImbalances(cb1) != calculateImbalances(cb2) * factor) {
-			System.out.println("Unequal imbalances: " + calculateImbalances(cb1) + " " + calculateImbalances(cb2) * factor);
-		}
-		if (calculateOthers(cb2) != calculateOthers(cb1) * factor) {
-			System.out.println("Unequal others: " + calculateOthers(cb1) + " " + calculateOthers(cb2) * factor);
-		}
-		if (PassedPawnEval.calculatePassedPawnScores(cb1) != PassedPawnEval.calculatePassedPawnScores(cb2) * factor) {
-			System.out.println(
-					"Unequal passed-pawns: " + PassedPawnEval.calculatePassedPawnScores(cb1) + " " + PassedPawnEval.calculatePassedPawnScores(cb2) * factor);
-		}
-	}
-
 	public static int calculateSpace(final ChessBoard cb) {
+
+		if (!MaterialUtil.hasPawns(cb.materialKey)) {
+			return 0;
+		}
 
 		int score = 0;
 
@@ -367,15 +361,15 @@ public class EvalUtil {
 		// material
 		score += calculateMaterialScore(cb);
 
-		// knight bonus if there are a lot of pawns
+		// knights and pawns
 		score += Long.bitCount(cb.pieces[WHITE][NIGHT]) * EvalConstants.NIGHT_PAWN[Long.bitCount(cb.pieces[WHITE][PAWN])];
 		score -= Long.bitCount(cb.pieces[BLACK][NIGHT]) * EvalConstants.NIGHT_PAWN[Long.bitCount(cb.pieces[BLACK][PAWN])];
 
-		// rook bonus if there are no pawns
+		// rooks and pawns
 		score += Long.bitCount(cb.pieces[WHITE][ROOK]) * EvalConstants.ROOK_PAWN[Long.bitCount(cb.pieces[WHITE][PAWN])];
 		score -= Long.bitCount(cb.pieces[BLACK][ROOK]) * EvalConstants.ROOK_PAWN[Long.bitCount(cb.pieces[BLACK][PAWN])];
 
-		// double bishop bonus
+		// double bishop
 		if (Long.bitCount(cb.pieces[WHITE][BISHOP]) == 2) {
 			score += EvalConstants.IMBALANCE_SCORES[EvalConstants.IX_BISHOP_DOUBLE];
 		}
@@ -393,10 +387,10 @@ public class EvalUtil {
 
 		// rook pair
 		if (Long.bitCount(cb.pieces[WHITE][ROOK]) > 1) {
-			score -= EvalConstants.IMBALANCE_SCORES[EvalConstants.IX_ROOK_PAIR];
+			score += EvalConstants.IMBALANCE_SCORES[EvalConstants.IX_ROOK_PAIR];
 		}
 		if (Long.bitCount(cb.pieces[BLACK][ROOK]) > 1) {
-			score += EvalConstants.IMBALANCE_SCORES[EvalConstants.IX_ROOK_PAIR];
+			score -= EvalConstants.IMBALANCE_SCORES[EvalConstants.IX_ROOK_PAIR];
 		}
 
 		if (EngineConstants.TEST_EVAL_CACHES) {
@@ -438,89 +432,61 @@ public class EvalUtil {
 			piece &= piece - 1;
 		}
 
-		// unused outposts
-		score += Long.bitCount(cb.passedPawnsAndOutposts & cb.emptySpaces & whiteMinorAttacks & whitePawnAttacks)
-				* EvalConstants.THREATS[EvalConstants.IX_UNUSED_OUTPOST];
-		score -= Long.bitCount(cb.passedPawnsAndOutposts & cb.emptySpaces & blackMinorAttacks & blackPawnAttacks)
-				* EvalConstants.THREATS[EvalConstants.IX_UNUSED_OUTPOST];
+		if (MaterialUtil.hasPawns(cb.materialKey)) {
 
-		// pawn push threat
-		piece = (whitePawns << 8) & cb.emptySpaces & ~blackAttacks;
-		score += Long.bitCount(Bitboard.getWhitePawnAttacks(piece) & blacks) * EvalConstants.THREATS[EvalConstants.IX_PAWN_PUSH_THREAT];
-		piece = (blackPawns >>> 8) & cb.emptySpaces & ~whiteAttacks;
-		score -= Long.bitCount(Bitboard.getBlackPawnAttacks(piece) & whites) * EvalConstants.THREATS[EvalConstants.IX_PAWN_PUSH_THREAT];
+			// unused outposts
+			score += Long.bitCount(cb.passedPawnsAndOutposts & cb.emptySpaces & whiteMinorAttacks & whitePawnAttacks)
+					* EvalConstants.THREATS[EvalConstants.IX_UNUSED_OUTPOST];
+			score -= Long.bitCount(cb.passedPawnsAndOutposts & cb.emptySpaces & blackMinorAttacks & blackPawnAttacks)
+					* EvalConstants.THREATS[EvalConstants.IX_UNUSED_OUTPOST];
 
-		// piece is attacked by a pawn
-		score += Long.bitCount(whitePawnAttacks & blacks & ~blackPawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKS];
-		score -= Long.bitCount(blackPawnAttacks & whites & ~whitePawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKS];
+			// pawn push threat
+			piece = (whitePawns << 8) & cb.emptySpaces & ~blackAttacks;
+			score += Long.bitCount(Bitboard.getWhitePawnAttacks(piece) & blacks) * EvalConstants.THREATS[EvalConstants.IX_PAWN_PUSH_THREAT];
+			piece = (blackPawns >>> 8) & cb.emptySpaces & ~whiteAttacks;
+			score -= Long.bitCount(Bitboard.getBlackPawnAttacks(piece) & whites) * EvalConstants.THREATS[EvalConstants.IX_PAWN_PUSH_THREAT];
 
-		// multiple pawn attacks possible
-		if (Long.bitCount(whitePawnAttacks & blacks) > 1) {
-			score += EvalConstants.THREATS[EvalConstants.IX_MULTIPLE_PAWN_ATTACKS];
+			// piece attacked by pawn
+			score += Long.bitCount(whitePawnAttacks & blacks & ~blackPawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKS];
+			score -= Long.bitCount(blackPawnAttacks & whites & ~whitePawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKS];
+
+			// multiple pawn attacks possible
+			if (Long.bitCount(whitePawnAttacks & blacks) > 1) {
+				score += EvalConstants.THREATS[EvalConstants.IX_MULTIPLE_PAWN_ATTACKS];
+			}
+			if (Long.bitCount(blackPawnAttacks & whites) > 1) {
+				score -= EvalConstants.THREATS[EvalConstants.IX_MULTIPLE_PAWN_ATTACKS];
+			}
+
+			// pawn attacked
+			score += Long.bitCount(whiteAttacks & blackPawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKED];
+			score -= Long.bitCount(blackAttacks & whitePawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKED];
+
 		}
-		if (Long.bitCount(blackPawnAttacks & whites) > 1) {
-			score -= EvalConstants.THREATS[EvalConstants.IX_MULTIPLE_PAWN_ATTACKS];
-		}
 
-		// minors under attack and not defended by a pawn
+		// minors attacked and not defended by a pawn
 		score += Long.bitCount(whiteAttacks & (cb.pieces[BLACK][NIGHT] | cb.pieces[BLACK][BISHOP] & ~blackAttacks))
 				* EvalConstants.THREATS[EvalConstants.IX_MAJOR_ATTACKED];
 		score -= Long.bitCount(blackAttacks & (cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][BISHOP] & ~whiteAttacks))
 				* EvalConstants.THREATS[EvalConstants.IX_MAJOR_ATTACKED];
 
-		// pawn attacked
-		score += Long.bitCount(whiteAttacks & blackPawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKED];
-		score -= Long.bitCount(blackAttacks & whitePawns) * EvalConstants.THREATS[EvalConstants.IX_PAWN_ATTACKED];
-
 		if (cb.pieces[BLACK][QUEEN] != 0) {
-			// queen under attack by rook
+			// queen attacked by rook
 			score += Long.bitCount(cb.attacks[WHITE][ROOK] & cb.pieces[BLACK][QUEEN]) * EvalConstants.THREATS[EvalConstants.IX_QUEEN_ATTACKED];
-			// queen under attack by minors
+			// queen attacked by minors
 			score += Long.bitCount(whiteMinorAttacks & cb.pieces[BLACK][QUEEN]) * EvalConstants.THREATS[EvalConstants.IX_QUEEN_ATTACKED_MINOR];
 		}
 
 		if (cb.pieces[WHITE][QUEEN] != 0) {
-			// queen under attack by rook
+			// queen attacked by rook
 			score -= Long.bitCount(cb.attacks[BLACK][ROOK] & cb.pieces[WHITE][QUEEN]) * EvalConstants.THREATS[EvalConstants.IX_QUEEN_ATTACKED];
-			// queen under attack by minors
+			// queen attacked by minors
 			score -= Long.bitCount(blackMinorAttacks & cb.pieces[WHITE][QUEEN]) * EvalConstants.THREATS[EvalConstants.IX_QUEEN_ATTACKED_MINOR];
 		}
 
-		// rook under attack by minors
+		// rook attacked by minors
 		score += Long.bitCount(whiteMinorAttacks & cb.pieces[BLACK][ROOK]) * EvalConstants.THREATS[EvalConstants.IX_ROOK_ATTACKED];
 		score -= Long.bitCount(blackMinorAttacks & cb.pieces[WHITE][ROOK]) * EvalConstants.THREATS[EvalConstants.IX_ROOK_ATTACKED];
-
-		// knight fork
-		// skip when testing eval values because we break the loop if any fork has been found
-		if (!EngineConstants.TEST_EVAL_VALUES) {
-			long forked;
-			piece = cb.attacks[WHITE][NIGHT] & ~blackAttacks & cb.emptySpaces;
-			while (piece != 0) {
-				forked = blacks & ~blackPawns & StaticMoves.KNIGHT_MOVES[Long.numberOfTrailingZeros(piece)];
-				if (Long.bitCount(forked) > 1) {
-					if ((cb.pieces[BLACK][KING] & forked) == 0) {
-						score += EvalConstants.THREATS[EvalConstants.IX_NIGHT_FORK];
-					} else {
-						score += EvalConstants.THREATS[EvalConstants.IX_NIGHT_FORK_KING];
-					}
-					break;
-				}
-				piece &= piece - 1;
-			}
-			piece = cb.attacks[BLACK][NIGHT] & ~whiteAttacks & cb.emptySpaces;
-			while (piece != 0) {
-				forked = whites & ~whitePawns & StaticMoves.KNIGHT_MOVES[Long.numberOfTrailingZeros(piece)];
-				if (Long.bitCount(forked) > 1) {
-					if ((cb.pieces[WHITE][KING] & forked) == 0) {
-						score -= EvalConstants.THREATS[EvalConstants.IX_NIGHT_FORK];
-					} else {
-						score -= EvalConstants.THREATS[EvalConstants.IX_NIGHT_FORK_KING];
-					}
-					break;
-				}
-				piece &= piece - 1;
-			}
-		}
 
 		return score;
 	}
@@ -538,49 +504,17 @@ public class EvalUtil {
 		final long whites = cb.friendlyPieces[WHITE];
 		final long blacks = cb.friendlyPieces[BLACK];
 
-		// bonus for side to move
+		// side to move
 		score += ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalConstants.SIDE_TO_MOVE_BONUS;
 
 		// piece attacked and only defended by a rook or queen
 		piece = whites & blackAttacks & whiteAttacks & ~(whitePawnAttacks | cb.attacks[WHITE][NIGHT] | cb.attacks[WHITE][BISHOP]);
-		while (piece != 0) {
-			score -= EvalConstants.ONLY_MAJOR_DEFENDERS[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
-			piece &= piece - 1;
+		if (piece != 0) {
+			score += Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_ONLY_MAJOR_DEFENDERS];
 		}
 		piece = blacks & whiteAttacks & blackAttacks & ~(blackPawnAttacks | cb.attacks[BLACK][NIGHT] | cb.attacks[BLACK][BISHOP]);
-		while (piece != 0) {
-			score += EvalConstants.ONLY_MAJOR_DEFENDERS[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
-			piece &= piece - 1;
-		}
-
-		// hanging pieces
-		piece = whiteAttacks & blacks & ~blackAttacks;
-		int hangingIndex;
 		if (piece != 0) {
-			if (Long.bitCount(piece) > 1) {
-				hangingIndex = ChessConstants.QUEEN;
-				while (piece != 0) {
-					hangingIndex = Math.min(hangingIndex, cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]);
-					piece &= piece - 1;
-				}
-
-				score += EvalConstants.HANGING_2[hangingIndex];
-			} else {
-				score += EvalConstants.HANGING[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
-			}
-		}
-		piece = blackAttacks & whites & ~whiteAttacks;
-		if (piece != 0) {
-			if (Long.bitCount(piece) > 1) {
-				hangingIndex = ChessConstants.QUEEN;
-				while (piece != 0) {
-					hangingIndex = Math.min(hangingIndex, cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]);
-					piece &= piece - 1;
-				}
-				score -= EvalConstants.HANGING_2[hangingIndex];
-			} else {
-				score -= EvalConstants.HANGING[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
-			}
+			score -= Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_ONLY_MAJOR_DEFENDERS];
 		}
 
 		// WHITE ROOK
@@ -596,22 +530,24 @@ public class EvalUtil {
 			}
 
 			// rook on 7th, king on 8th
-			if (cb.kingIndex[BLACK] >= 56) {
+			if (cb.kingIndex[BLACK] >= 56 && (piece & Bitboard.RANK_7) != 0) {
 				score += Long.bitCount(piece & Bitboard.RANK_7) * EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_7TH_RANK];
 			}
 
 			// prison
-			final long trapped = piece & EvalConstants.ROOK_PRISON[cb.kingIndex[WHITE]];
-			if (trapped != 0) {
-				for (int i = 8; i <= 24; i += 8) {
-					if ((trapped << i & whitePawns) != 0) {
-						score -= EvalConstants.ROOK_TRAPPED[(i / 8) - 1];
-						break;
+			if ((piece & Bitboard.RANK_1) != 0) {
+				final long trapped = piece & EvalConstants.ROOK_PRISON[cb.kingIndex[WHITE]];
+				if (trapped != 0) {
+					for (int i = 8; i <= 24; i += 8) {
+						if ((trapped << i & whitePawns) != 0) {
+							score += EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_TRAPPED];
+							break;
+						}
 					}
 				}
 			}
 
-			// bonus for rook on open-file (no pawns) and semi-open-file (no friendly pawns)
+			// rook on open-file (no pawns) and semi-open-file (no friendly pawns)
 			while (piece != 0) {
 				if ((whitePawns & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
 					if ((blackPawns & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
@@ -640,22 +576,24 @@ public class EvalUtil {
 			}
 
 			// rook on 2nd, king on 1st
-			if (cb.kingIndex[WHITE] <= 7) {
+			if (cb.kingIndex[WHITE] <= 7 && (piece & Bitboard.RANK_2) != 0) {
 				score -= Long.bitCount(piece & Bitboard.RANK_2) * EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_7TH_RANK];
 			}
 
 			// prison
-			final long trapped = piece & EvalConstants.ROOK_PRISON[cb.kingIndex[BLACK]];
-			if (trapped != 0) {
-				for (int i = 8; i <= 24; i += 8) {
-					if ((trapped >>> i & blackPawns) != 0) {
-						score += EvalConstants.ROOK_TRAPPED[(i / 8) - 1];
-						break;
+			if ((piece & Bitboard.RANK_8) != 0) {
+				final long trapped = piece & EvalConstants.ROOK_PRISON[cb.kingIndex[BLACK]];
+				if (trapped != 0) {
+					for (int i = 8; i <= 24; i += 8) {
+						if ((trapped >>> i & blackPawns) != 0) {
+							score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_TRAPPED];
+							break;
+						}
 					}
 				}
 			}
 
-			// bonus for rook on open-file (no pawns) and semi-open-file (no friendly pawns)
+			// rook on open-file (no pawns) and semi-open-file (no friendly pawns)
 			while (piece != 0) {
 				// TODO JITWatch unpredictable branch
 				if ((blackPawns & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
@@ -677,33 +615,37 @@ public class EvalUtil {
 
 			// bishop outpost: protected by a pawn, cannot be attacked by enemy pawns
 			piece = cb.pieces[WHITE][BISHOP] & cb.passedPawnsAndOutposts & whitePawnAttacks;
-			while (piece != 0) {
-				score += EvalConstants.BISHOP_OUTPOST[Long.numberOfTrailingZeros(piece) >>> 3];
-				piece &= piece - 1;
+			if (piece != 0) {
+				score += Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_OUTPOST];
+			}
+
+			piece = cb.pieces[WHITE][BISHOP];
+			if ((piece & Bitboard.WHITE_SQUARES) != 0) {
+				// pawns on same color as bishop
+				score += EvalConstants.BISHOP_PAWN[Long.bitCount(whitePawns & Bitboard.WHITE_SQUARES)];
+
+				// attacking center squares
+				if (Long.bitCount(cb.attacks[WHITE][BISHOP] & Bitboard.E4_D5) == 2) {
+					score += EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
+				}
+			}
+			if ((piece & Bitboard.BLACK_SQUARES) != 0) {
+				// pawns on same color as bishop
+				score += EvalConstants.BISHOP_PAWN[Long.bitCount(whitePawns & Bitboard.BLACK_SQUARES)];
+
+				// attacking center squares
+				if (Long.bitCount(cb.attacks[WHITE][BISHOP] & Bitboard.D4_E5) == 2) {
+					score += EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
+				}
 			}
 
 			// prison
-			piece = cb.pieces[WHITE][BISHOP];
+			piece &= Bitboard.RANK_2;
 			while (piece != 0) {
 				if (Long.bitCount((EvalConstants.BISHOP_PRISON[Long.numberOfTrailingZeros(piece)]) & blackPawns) == 2) {
-					score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_PRISON];
+					score += EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_PRISON];
 				}
 				piece &= piece - 1;
-			}
-
-			if ((cb.pieces[WHITE][BISHOP] & Bitboard.WHITE_SQUARES) != 0) {
-				// penalty for many pawns on same color as bishop
-				score -= EvalConstants.BISHOP_PAWN[Long.bitCount(whitePawns & Bitboard.WHITE_SQUARES)];
-
-				// bonus for attacking center squares
-				score += Long.bitCount(cb.attacks[WHITE][BISHOP] & Bitboard.E4_D5) / 2 * EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
-			}
-			if ((cb.pieces[WHITE][BISHOP] & Bitboard.BLACK_SQUARES) != 0) {
-				// penalty for many pawns on same color as bishop
-				score -= EvalConstants.BISHOP_PAWN[Long.bitCount(whitePawns & Bitboard.BLACK_SQUARES)];
-
-				// bonus for attacking center squares
-				score += Long.bitCount(cb.attacks[WHITE][BISHOP] & Bitboard.D4_E5) / 2 * EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
 			}
 
 		}
@@ -713,34 +655,39 @@ public class EvalUtil {
 
 			// bishop outpost: protected by a pawn, cannot be attacked by enemy pawns
 			piece = cb.pieces[BLACK][BISHOP] & cb.passedPawnsAndOutposts & blackPawnAttacks;
-			while (piece != 0) {
-				score -= EvalConstants.BISHOP_OUTPOST[7 - Long.numberOfTrailingZeros(piece) / 8];
-				piece &= piece - 1;
+			if (piece != 0) {
+				score -= Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_OUTPOST];
+			}
+
+			piece = cb.pieces[BLACK][BISHOP];
+			if ((piece & Bitboard.WHITE_SQUARES) != 0) {
+				// penalty for many pawns on same color as bishop
+				score -= EvalConstants.BISHOP_PAWN[Long.bitCount(blackPawns & Bitboard.WHITE_SQUARES)];
+
+				// bonus for attacking center squares
+				if (Long.bitCount(cb.attacks[BLACK][BISHOP] & Bitboard.E4_D5) == 2) {
+					score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
+				}
+			}
+			if ((piece & Bitboard.BLACK_SQUARES) != 0) {
+				// penalty for many pawns on same color as bishop
+				score -= EvalConstants.BISHOP_PAWN[Long.bitCount(blackPawns & Bitboard.BLACK_SQUARES)];
+
+				// bonus for attacking center squares
+				if (Long.bitCount(cb.attacks[BLACK][BISHOP] & Bitboard.D4_E5) == 2) {
+					score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
+				}
 			}
 
 			// prison
-			piece = cb.pieces[BLACK][BISHOP];
+			piece &= Bitboard.RANK_7;
 			while (piece != 0) {
 				if (Long.bitCount((EvalConstants.BISHOP_PRISON[Long.numberOfTrailingZeros(piece)]) & whitePawns) == 2) {
-					score += EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_PRISON];
+					score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_PRISON];
 				}
 				piece &= piece - 1;
 			}
 
-			if ((cb.pieces[BLACK][BISHOP] & Bitboard.WHITE_SQUARES) != 0) {
-				// penalty for many pawns on same color as bishop
-				score += EvalConstants.BISHOP_PAWN[Long.bitCount(blackPawns & Bitboard.WHITE_SQUARES)];
-
-				// bonus for attacking center squares
-				score -= Long.bitCount(cb.attacks[BLACK][BISHOP] & Bitboard.E4_D5) / 2 * EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
-			}
-			if ((cb.pieces[BLACK][BISHOP] & Bitboard.BLACK_SQUARES) != 0) {
-				// penalty for many pawns on same color as bishop
-				score += EvalConstants.BISHOP_PAWN[Long.bitCount(blackPawns & Bitboard.BLACK_SQUARES)];
-
-				// bonus for attacking center squares
-				score -= Long.bitCount(cb.attacks[BLACK][BISHOP] & Bitboard.D4_E5) / 2 * EvalConstants.OTHER_SCORES[EvalConstants.IX_BISHOP_LONG];
-			}
 		}
 
 		// pieces supporting our pawns
@@ -757,42 +704,29 @@ public class EvalUtil {
 
 		// knight outpost: protected by a pawn, cannot be attacked by enemy pawns
 		piece = cb.pieces[WHITE][NIGHT] & cb.passedPawnsAndOutposts & whitePawnAttacks;
-		while (piece != 0) {
-			score += EvalConstants.KNIGHT_OUTPOST[Long.numberOfTrailingZeros(piece) >>> 3];
-			piece &= piece - 1;
+		if (piece != 0) {
+			score += Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_OUTPOST];
 		}
 		piece = cb.pieces[BLACK][NIGHT] & cb.passedPawnsAndOutposts & blackPawnAttacks;
-		while (piece != 0) {
-			score -= EvalConstants.KNIGHT_OUTPOST[7 - Long.numberOfTrailingZeros(piece) / 8];
-			piece &= piece - 1;
+		if (piece != 0) {
+			score -= Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_OUTPOST];
 		}
 
-		// penalty for having pinned-pieces
+		// pinned-pieces
 		if (cb.pinnedPieces != 0) {
-			piece = cb.pinnedPieces & whites & ~blackPawnAttacks;
-			while (piece != 0) {
-				score -= EvalConstants.PINNED[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
-				piece &= piece - 1;
-			}
-			piece = cb.pinnedPieces & blacks & ~whitePawnAttacks;
+			piece = cb.pinnedPieces & whites;
 			while (piece != 0) {
 				score += EvalConstants.PINNED[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
 				piece &= piece - 1;
 			}
-
-			piece = cb.pinnedPieces & whites & blackPawnAttacks;
+			piece = cb.pinnedPieces & blacks;
 			while (piece != 0) {
-				score -= EvalConstants.PINNED_ATTACKED[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
-				piece &= piece - 1;
-			}
-			piece = cb.pinnedPieces & blacks & whitePawnAttacks;
-			while (piece != 0) {
-				score += EvalConstants.PINNED_ATTACKED[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
+				score -= EvalConstants.PINNED[cb.pieceIndexes[Long.numberOfTrailingZeros(piece)]];
 				piece &= piece - 1;
 			}
 		}
 
-		// bonus for having discovered-pieces
+		// discovered-pieces
 		if (cb.discoveredPieces != 0) {
 			piece = cb.discoveredPieces & whites;
 			while (piece != 0) {
@@ -806,12 +740,9 @@ public class EvalUtil {
 			}
 		}
 
-		// quiescence search could leave one side in check
-		if (cb.checkingPieces != 0) {
-			if (Statistics.ENABLED) {
-				Statistics.evaluatedInCheck++;
-			}
-			score += ChessConstants.COLOR_FACTOR[cb.colorToMoveInverse] * EvalConstants.IN_CHECK;
+		if (cb.castlingRights != 0) {
+			score += Long.bitCount(cb.castlingRights & 12) * EvalConstants.OTHER_SCORES[EvalConstants.IX_CASTLING];
+			score -= Long.bitCount(cb.castlingRights & 3) * EvalConstants.OTHER_SCORES[EvalConstants.IX_CASTLING];
 		}
 
 		return score;
@@ -819,10 +750,14 @@ public class EvalUtil {
 
 	public static int calculatePawnShieldBonus(final ChessBoard cb) {
 
+		if (!MaterialUtil.hasPawns(cb.materialKey)) {
+			return 0;
+		}
+
 		int file;
 
 		int whiteScore = 0;
-		long piece = cb.pieces[WHITE][PAWN] & cb.kingArea[WHITE] & ~cb.attacks[BLACK][PAWN];
+		long piece = cb.pieces[WHITE][PAWN] & ChessConstants.KING_AREA[WHITE][cb.kingIndex[WHITE]] & ~cb.attacks[BLACK][PAWN];
 		while (piece != 0) {
 			file = Long.numberOfTrailingZeros(piece) & 7;
 			whiteScore += EvalConstants.SHIELD_BONUS[Math.min(7 - file, file)][Long.numberOfTrailingZeros(piece) >>> 3];
@@ -833,7 +768,7 @@ public class EvalUtil {
 		}
 
 		int blackScore = 0;
-		piece = cb.pieces[BLACK][PAWN] & cb.kingArea[BLACK] & ~cb.attacks[WHITE][PAWN];
+		piece = cb.pieces[BLACK][PAWN] & ChessConstants.KING_AREA[BLACK][cb.kingIndex[BLACK]] & ~cb.attacks[WHITE][PAWN];
 		while (piece != 0) {
 			file = (63 - Long.numberOfLeadingZeros(piece)) & 7;
 			blackScore += EvalConstants.SHIELD_BONUS[Math.min(7 - file, file)][7 - (63 - Long.numberOfLeadingZeros(piece)) / 8];
@@ -846,56 +781,25 @@ public class EvalUtil {
 		return whiteScore - blackScore;
 	}
 
-	public static int calculateMobilityScoresAndSetAttackBoards(final ChessBoard cb) {
+	public static int calculateMobilityScoresAndSetAttacks(final ChessBoard cb) {
 
-		// clear values
 		cb.clearEvalAttacks();
-
-		long moves;
-
-		// white pawns
-		cb.attacks[WHITE][PAWN] = Bitboard.getWhitePawnAttacks(cb.pieces[WHITE][PAWN] & ~cb.pinnedPieces);
-		if ((cb.attacks[WHITE][PAWN] & cb.kingArea[BLACK]) != 0) {
-			cb.kingAttackersFlag[WHITE] = SchroderUtil.FLAG_PAWN;
-		}
-		long pinned = cb.pieces[WHITE][PAWN] & cb.pinnedPieces;
-		while (pinned != 0) {
-			cb.attacks[WHITE][PAWN] |= StaticMoves.PAWN_ATTACKS[WHITE][Long.numberOfTrailingZeros(pinned)]
-					& ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(pinned)][cb.kingIndex[WHITE]];
-			pinned &= pinned - 1;
-		}
-		cb.attacksAll[WHITE] = cb.attacks[WHITE][PAWN];
-		// black pawns
-		cb.attacks[BLACK][PAWN] = Bitboard.getBlackPawnAttacks(cb.pieces[BLACK][PAWN] & ~cb.pinnedPieces);
-		if ((cb.attacks[BLACK][PAWN] & cb.kingArea[WHITE]) != 0) {
-			cb.kingAttackersFlag[BLACK] = SchroderUtil.FLAG_PAWN;
-		}
-		pinned = cb.pieces[BLACK][PAWN] & cb.pinnedPieces;
-		while (pinned != 0) {
-			cb.attacks[BLACK][PAWN] |= StaticMoves.PAWN_ATTACKS[BLACK][Long.numberOfTrailingZeros(pinned)]
-					& ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(pinned)][cb.kingIndex[BLACK]];
-			pinned &= pinned - 1;
-		}
-		cb.attacksAll[BLACK] = cb.attacks[BLACK][PAWN];
+		cb.updatePawnAttacks();
 
 		int score = 0;
+		long moves;
 		for (int color = WHITE; color <= BLACK; color++) {
 
 			int tempScore = 0;
 
-			final long kingArea = cb.kingArea[1 - color];
+			final long kingArea = ChessConstants.KING_AREA[1 - color][cb.kingIndex[1 - color]];
 			final long safeMoves = ~cb.friendlyPieces[color] & ~cb.attacks[1 - color][PAWN];
 
 			// knights
 			long piece = cb.pieces[color][NIGHT] & ~cb.pinnedPieces;
 			while (piece != 0) {
 				moves = StaticMoves.KNIGHT_MOVES[Long.numberOfTrailingZeros(piece)];
-				if ((moves & kingArea) != 0) {
-					cb.kingAttackersFlag[color] |= SchroderUtil.FLAG_NIGHT;
-				}
-				cb.doubleAttacks[color] |= cb.attacksAll[color] & moves;
-				cb.attacksAll[color] |= moves;
-				cb.attacks[color][NIGHT] |= moves;
+				cb.updateAttacks(moves, NIGHT, color, kingArea);
 				tempScore += EvalConstants.MOBILITY_KNIGHT[Long.bitCount(moves & safeMoves)];
 				piece &= piece - 1;
 			}
@@ -904,12 +808,7 @@ public class EvalUtil {
 			piece = cb.pieces[color][BISHOP];
 			while (piece != 0) {
 				moves = MagicUtil.getBishopMoves(Long.numberOfTrailingZeros(piece), cb.allPieces ^ cb.pieces[color][QUEEN]);
-				if ((moves & kingArea) != 0) {
-					cb.kingAttackersFlag[color] |= SchroderUtil.FLAG_BISHOP;
-				}
-				cb.doubleAttacks[color] |= cb.attacksAll[color] & moves;
-				cb.attacksAll[color] |= moves;
-				cb.attacks[color][BISHOP] |= moves;
+				cb.updateAttacks(moves, BISHOP, color, kingArea);
 				tempScore += EvalConstants.MOBILITY_BISHOP[Long.bitCount(moves & safeMoves)];
 				piece &= piece - 1;
 			}
@@ -918,12 +817,7 @@ public class EvalUtil {
 			piece = cb.pieces[color][ROOK];
 			while (piece != 0) {
 				moves = MagicUtil.getRookMoves(Long.numberOfTrailingZeros(piece), cb.allPieces ^ cb.pieces[color][ROOK] ^ cb.pieces[color][QUEEN]);
-				if ((moves & kingArea) != 0) {
-					cb.kingAttackersFlag[color] |= SchroderUtil.FLAG_ROOK;
-				}
-				cb.doubleAttacks[color] |= cb.attacksAll[color] & moves;
-				cb.attacksAll[color] |= moves;
-				cb.attacks[color][ROOK] |= moves;
+				cb.updateAttacks(moves, ROOK, color, kingArea);
 				tempScore += EvalConstants.MOBILITY_ROOK[Long.bitCount(moves & safeMoves)];
 				piece &= piece - 1;
 			}
@@ -932,12 +826,7 @@ public class EvalUtil {
 			piece = cb.pieces[color][QUEEN];
 			while (piece != 0) {
 				moves = MagicUtil.getQueenMoves(Long.numberOfTrailingZeros(piece), cb.allPieces);
-				if ((moves & kingArea) != 0) {
-					cb.kingAttackersFlag[color] |= SchroderUtil.FLAG_QUEEN;
-				}
-				cb.doubleAttacks[color] |= cb.attacksAll[color] & moves;
-				cb.attacksAll[color] |= moves;
-				cb.attacks[color][QUEEN] |= moves;
+				cb.updateAttacks(moves, QUEEN, color, kingArea);
 				tempScore += EvalConstants.MOBILITY_QUEEN[Long.bitCount(moves & safeMoves)];
 				piece &= piece - 1;
 			}

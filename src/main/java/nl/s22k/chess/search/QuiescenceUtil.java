@@ -5,10 +5,10 @@ import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
+import nl.s22k.chess.eval.MaterialUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveUtil;
@@ -27,15 +27,43 @@ public class QuiescenceUtil {
 			return ChessConstants.SCORE_NOT_RUNNING;
 		}
 
-		/* stand-pat check */
-		int eval = Util.SHORT_MIN;
-		if (cb.checkingPieces == 0) {
-			eval = EvalUtil.getScore(cb);
-			if (eval >= beta) {
-				return eval;
+		/* transposition-table */
+		long ttValue = TTUtil.getValue(cb.zobristKey);
+		int score = TTUtil.getScore(ttValue, 64);
+		if (ttValue != 0) {
+			if (!EngineConstants.TEST_TT_VALUES) {
+				switch (TTUtil.getFlag(ttValue)) {
+				case TTUtil.FLAG_EXACT:
+					return score;
+				case TTUtil.FLAG_LOWER:
+					if (score >= beta) {
+						return score;
+					}
+					break;
+				case TTUtil.FLAG_UPPER:
+					if (score <= alpha) {
+						return score;
+					}
+				}
 			}
-			alpha = Math.max(alpha, eval);
 		}
+
+		if (cb.checkingPieces != 0) {
+			return alpha;
+		}
+
+		/* stand-pat check */
+		int eval = EvalUtil.getScore(cb);
+		/* use tt value as eval */
+		if (EngineConstants.USE_TT_SCORE_AS_EVAL) {
+			if (TTUtil.canRefineEval(ttValue, eval, score)) {
+				eval = score;
+			}
+		}
+		if (eval >= beta) {
+			return eval;
+		}
+		alpha = Math.max(alpha, eval);
 
 		moveGen.startPly();
 		moveGen.generateAttacks(cb);
@@ -73,7 +101,7 @@ public class QuiescenceUtil {
 				cb.changeSideToMove();
 			}
 
-			final int score = -calculateBestMove(cb, moveGen, -beta, -alpha);
+			score = MaterialUtil.isDrawByMaterial(cb) ? EvalConstants.SCORE_DRAW : -calculateBestMove(cb, moveGen, -beta, -alpha);
 
 			cb.undoMove(move);
 

@@ -15,7 +15,6 @@ public class EvalConstants {
 	//@formatter:off
 	
 	public static final int SIDE_TO_MOVE_BONUS = 16; //cannot be tuned //TODO lower in endgame
-	public static final int IN_CHECK = 20;
 	
 	public static final int SCORE_DRAW 						= 0;
 	public static final int SCORE_DRAWISH					= 10;
@@ -23,7 +22,7 @@ public class EvalConstants {
 	public static final int SCORE_MATE_BOUND 				= 30000;
 	
 	// other
-	public static final int[] OTHER_SCORES = {-8, 12, 18, 8, 18, 12, 150, 12, 56};
+	public static final int[] OTHER_SCORES = {-8, 16, 18, 8, 18, 12, -158, 12, 56, 20, -44, 28, -8};
 	public static final int IX_ROOK_FILE_SEMI_OPEN	 		= 0;
 	public static final int IX_ROOK_FILE_SEMI_OPEN_ISOLATED = 1;
 	public static final int IX_ROOK_FILE_OPEN 				= 2;
@@ -33,32 +32,34 @@ public class EvalConstants {
 	public static final int IX_BISHOP_PRISON 				= 6;
 	public static final int IX_SPACE 						= 7;
 	public static final int IX_DRAWISH 						= 8;
+	public static final int IX_CASTLING						= 9;
+	public static final int IX_ROOK_TRAPPED					= 10;
+	public static final int IX_OUTPOST						= 11;
+	public static final int IX_ONLY_MAJOR_DEFENDERS			= 12;
 	
 	// threats
-	public static final int[] THREATS_MG = {38, 68, 100, 16, 56, 144, 66, 52, 8, 16, -6};
-	public static final int[] THREATS_EG = {36, 10, -38, 16, 40, 156, 6, -12, 20, 4, 6};
+	public static final int[] THREATS_MG = {34, 68, 108, 12, 66, 52, 8, 16, -6};
+	public static final int[] THREATS_EG = {32, 14, -38, 16, 10, -12, 24, 4, 10};
 	public static final int[] THREATS = new int[THREATS_MG.length];
 	public static final int IX_MULTIPLE_PAWN_ATTACKS 		= 0;
 	public static final int IX_PAWN_ATTACKS 				= 1;
 	public static final int IX_QUEEN_ATTACKED 				= 2;
 	public static final int IX_PAWN_PUSH_THREAT 			= 3;
-	public static final int IX_NIGHT_FORK 					= 4;
-	public static final int IX_NIGHT_FORK_KING 				= 5;
-	public static final int IX_ROOK_ATTACKED 				= 6;
-	public static final int IX_QUEEN_ATTACKED_MINOR			= 7;
-	public static final int IX_MAJOR_ATTACKED				= 8;
-	public static final int IX_UNUSED_OUTPOST				= 9;
-	public static final int IX_PAWN_ATTACKED 				= 10;
+	public static final int IX_ROOK_ATTACKED 				= 4;
+	public static final int IX_QUEEN_ATTACKED_MINOR			= 5;
+	public static final int IX_MAJOR_ATTACKED				= 6;
+	public static final int IX_UNUSED_OUTPOST				= 7;
+	public static final int IX_PAWN_ATTACKED 				= 8;
 	
 	// pawn
-	public static final int[] PAWN_SCORES = {6, 10, 12, 6};
+	public static final int[] PAWN_SCORES = {10, 10, 12, 6};
 	public static final int IX_PAWN_DOUBLE 					= 0;
 	public static final int IX_PAWN_ISOLATED 				= 1;
 	public static final int IX_PAWN_BACKWARD 				= 2;
 	public static final int IX_PAWN_INVERSE					= 3;
 	
 	// imbalance
-	public static final int[] IMBALANCE_SCORES = {32, 54, 16};
+	public static final int[] IMBALANCE_SCORES = {-28, 54, 20};
 	public static final int IX_ROOK_PAIR		 			= 0;
 	public static final int IX_BISHOP_DOUBLE 				= 1;
 	public static final int IX_QUEEN_NIGHT 					= 2;
@@ -66,19 +67,13 @@ public class EvalConstants {
 	public static final int[] PHASE 					= {0, 0, 6, 6, 13, 28};
 	
 	public static final int[] MATERIAL 					= {0, 100, 396, 416, 706, 1302, 3000};
-	public static final int[] PINNED 					= {0, -2, 14, 42, 72, 88};
-	public static final int[] PINNED_ATTACKED			= {0, 28, 128, 274, 330, 210};
-	public static final int[] DISCOVERED		 		= {0, -14, 128, 110, 180, 0, 28};
-	public static final int[] KNIGHT_OUTPOST			= {0, 0, 10, 26, 24, 36, 8, 38};
-	public static final int[] BISHOP_OUTPOST			= {0, 0, 22, 22, 20, 22, 52, 50};
-	public static final int[] DOUBLE_ATTACKED 			= {0, 16, 34, 64, -4, -6, 0};
-	public static final int[] HANGING 					= {0, 16, 6, 0, -10, -18, 48}; //qsearch could set the other in check
-	public static final int[] HANGING_2 				= {0, 38, 90, 94, 52, -230};
-	public static final int[] ROOK_TRAPPED 				= {64, 62, 28};
-	public static final int[] ONLY_MAJOR_DEFENDERS 		= {0, 6, 14, 24, 4, 10, 0};
 	public static final int[] NIGHT_PAWN				= {68, -14, -2, 2, 8, 12, 20, 30, 36};
 	public static final int[] ROOK_PAWN					= {48, -4, -4, -4, -4, 0, 0, 0, 0};
-	public static final int[] BISHOP_PAWN 				= {-20, -8, -6, 0, 6, 12, 22, 32, 46};
+	
+	public static final int[] PINNED 					= {0, 2, -18, -54, -68, -84};
+	public static final int[] DISCOVERED		 		= {0, -14, 128, 110, 180, 0, 28};
+	public static final int[] DOUBLE_ATTACKED 			= {0, 16, 34, 64, -4, -6, 0};
+	public static final int[] BISHOP_PAWN 				= {20, 8, 6, 0, -6, -12, -22, -32, -46};
 	public static final int[] SPACE 					= {0, 0, 0, 0, 0, -6, -6, -8, -7, -4, -4, -2, 0, -1, 0, 3, 7};
 	
 	public static final int[] PAWN_BLOCKAGE 			= {0, 0, -10, 2, 6, 28, 66, 196};
@@ -95,49 +90,44 @@ public class EvalConstants {
 															{0, -22, -14, 0, 38, 10, 60}};
 	public static final int[][] SHIELD_BONUS 			= new int[4][7];
 
-	public static final int[] PASSED_SCORE_MG			= {0, -4, -2, 0, 18, 22, -6};
-	public static final int[] PASSED_SCORE_EG			= {0, 18, 18, 38, 62, 136, 262};
-	
+	public static final int[] PASSED_SCORE_EG			= {0, 14, 18, 34, 62, 128, 238};
 	public static final int[] PASSED_CANDIDATE			= {0, 2, 2, 8, 14, 40};
-	
-	public static final float[] PASSED_KING_MULTI 		= {0, 1.4f, 1.3f, 1.1f, 1.1f, 1.0f, 0.8f, 0.8f};														
-	public static final float[] PASSED_MULTIPLIERS	= {
+	public static final float[] PASSED_KING_MULTI 		= {0, 1.5f, 1.3f, 1.2f, 1.1f, 1.0f, 0.8f, 0.8f};														
+	public static final float[] PASSED_MULTIPLIERS		= {
 			0.5f,	// blocked
-			1.2f,	// next square attacked
+			1.3f,	// next square attacked
 			0.4f,	// enemy king in front
 			1.2f,	// next square defended
 			0.7f,	// attacked
-			1.6f,	// defended by rook from behind
+			1.7f,	// defended by rook from behind
 			0.6f,	// attacked by rook from behind
-			1.7f	// no enemy attacks in front
+			1.8f	// no enemy attacks in front
 	};	
 	
 	//concept borrowed from Ed Schroder
 	public static final int[] KS_SCORES = { //TODO negative values? //TODO first values are not used
-			0, 0, 0, 0, -140, -150, -120, -90, -40, 40, 70, 
-			80, 100, 110, 130, 160, 200, 230, 290, 330, 400, 
-			480, 550, 630, 660, 700, 790, 860, 920, 1200 };
+			0, -10, 0, 0, -150, -150, -130, -100, -50, 40, 
+			70, 80, 100, 110, 130, 160, 190, 240, 290, 
+			330, 400, 480, 540, 630, 620, 800 };
 	public static final int[] KS_QUEEN_TROPISM 		= {0, 0, 1, 1, 1, 1, 0, 0};	// index 0 and 1 are never evaluated	
-	public static final int[] KS_RANK 				= {0, 0, 1, 1, 0, 0, 0, 0};
-	public static final int[] KS_CHECK				= {0, 0, 3, 2, 3};
-	public static final int[] KS_UCHECK				= {0, 0, 1, 1, 1};
-	public static final int[] KS_CHECK_QUEEN 		= {0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 3, 3, 3, 2, 1, 1, 0};
-	public static final int[] KS_NO_FRIENDS 		= {6, 4, 0, 5, 5, 5, 6, 6, 7, 8, 9, 9};
+	public static final int[] KS_CHECK_QUEEN 		= {0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 3, 3, 3, 2, 0, 0, 0};
+	public static final int[] KS_NO_FRIENDS 		= {6, 4, 0, 5, 5, 5, 6, 6, 7, 8, 9, 10};
 	public static final int[] KS_ATTACKS 			= {0, 3, 3, 3, 3, 3, 4, 4, 5, 6, 6, 2, 9};
-	public static final int[] KS_DOUBLE_ATTACKS 	= {0, 1, 3, 5, 2, -8, 0, 0, 0};
+	public static final int[] KS_DOUBLE_ATTACKS 	= {0, 1, 3, 4, 0, -6, 0, 0, 0};
 	public static final int[] KS_ATTACK_PATTERN		= {	
 		 //                                                 Q  Q  Q  Q  Q  Q  Q  Q  Q  Q  Q  Q  Q  Q  Q  Q  
 		 // 	                    R  R  R  R  R  R  R  R                          R  R  R  R  R  R  R  R  
 		 //             B  B  B  B              B  B  B  B              B  B  B  B              B  B  B  B  
 		 //       N  N        N  N        N  N        N  N        N  N        N  N        N  N        N  N  
 		 //    P     P     P     P     P     P     P     P     P     P     P     P     P     P     P     P
-			4, 1, 2, 2, 2, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 2, 2, 1, 2, 2, 2, 2, 3, 3, 1, 2, 3, 3, 3, 3, 4, 4
+			4, 1, 2, 2, 2, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 2, 2, 1, 2, 2, 2, 2, 3, 3, 1, 1, 3, 3, 3, 3, 4, 4
 	};
 	
 	public static final int[] KS_OTHER	= {		
 			3,		// queen-touch check
-			4,		// king at blocked first rank check
-			1		// open file
+			4,		// king blocked at first rank check
+			3,		// safe check
+			1		// unsafe check
 	};		
 		
 	public static final int[] MOBILITY_KNIGHT_MG	= {-34, -16, -6, 0, 12, 16, 26, 28, 56};
@@ -230,14 +220,14 @@ public class EvalConstants {
 		};
 		
 		PSQT_MG[ChessConstants.ROOK][WHITE] = new int[] {
-				 -36,-26,-72, -4, -4,-72,-26,-36,
-				 -36,-20, 14, 22, 22, 14,-20,-36,
-				 -28,  2, -2, -8, -8, -2,  2,-28,
-				 -40,-22, 10,  6,  6, 10,-22,-40,
-				 -44,-14,-22,  2,  2,-22,-14,-44,
+				-44,-26,-68, -8, -8,-68,-26,-44,
+				 -40,-24,  6, 18, 18,  6,-24,-40,
+				 -28,  2, -6, -8, -8, -6,  2,-28,
+				 -40,-18, 10,  6,  6, 10,-18,-40,
+				 -40,-14,-22,  2,  2,-22,-14,-40,
 				 -38,-12, -2, -4, -4, -2,-12,-38,
 				 -48, -2, -6, 10, 10, -6, -2,-48,
-				 -10,-12,  0, 14, 14,  0,-12,-10
+				 -18,-12,  0, 10, 10,  0,-12,-18
 		};
 		
 		PSQT_EG[ChessConstants.ROOK][WHITE] = new int[]{	
@@ -274,25 +264,25 @@ public class EvalConstants {
 		};
 		
 		PSQT_MG[ChessConstants.KING][WHITE] = new int[] {
-				 -50,180,-26,  2,  2,-26,180,-50,
-				  48,-10,-64,-24,-24,-64,-10, 48,
-				  42, 52, 44,-44,-44, 44, 52, 42,
-				 -40,-22,-46,-92,-92,-46,-22,-40,
-				 -40,-20,-20,-76,-76,-20,-20,-40,
-				  14, 16,  2,-10,-10,  2, 16, 14,
-				  30, 10,-40,-56,-56,-40, 10, 30,
-				  34, 44,  8, 18, 18,  8, 44, 34
+				 -26,208,  2, 18, 18,  2,208,-26,
+				  52, -2,-52,-12,-12,-52, -2, 52,
+				  50, 76, 60,-36,-36, 60, 76, 50,
+				 -12, -6,-38,-92,-92,-38, -6,-12,
+				 -44,-16,-28,-80,-80,-28,-16,-44,
+				   6,  8, -2,-18,-18, -2,  8,  6,
+				  42, 26,-24,-36,-36,-24, 26, 42,
+				  38, 52, 16, -2, -2, 16, 52, 38
 		};
 		
 		PSQT_EG[ChessConstants.KING][WHITE] = new int[] {
-				 -90,-90, -2,-56,-56, -2,-90,-90,
-				 -34, 14, 40, 24, 24, 40, 14,-34,
-				  -8, 32, 36, 38, 38, 36, 32, -8,
-				   0, 38, 44, 50, 50, 44, 38,  0,
-				 -12, 14, 28, 44, 44, 28, 14,-12,
+				 -82,-82,  6,-52,-52,  6,-82,-82,
+				 -26, 18, 44, 28, 28, 44, 18,-26,
+				  -4, 36, 36, 38, 38, 36, 36, -4,
+				   0, 38, 48, 50, 50, 48, 38,  0,
+				 -12, 10, 28, 40, 40, 28, 10,-12,
 				 -18,  8, 18, 24, 24, 18,  8,-18,
-				 -40, -4, 16, 24, 24, 16, -4,-40,
-				 -74,-44,-24,-34,-34,-24,-44,-74
+				 -36,  0, 20, 24, 24, 20,  0,-36,
+				 -66,-40,-20,-26,-26,-20,-40,-66
 		};
 		
 	}

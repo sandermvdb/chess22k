@@ -29,13 +29,9 @@ public class EngineConstants {
 	public static final boolean ENABLE_HISTORY_HEURISTIC 	= true;
 	public static final boolean ENABLE_ASPIRATION 			= true;
 	public static final int ASPIRATION_WINDOW_DELTA 		= 20;
-	public static final boolean ENABLE_IID 					= true;
-	public static final int IID_REDUCTION 					= 1;
 
 	// Search extensions
 	public static final boolean ENABLE_CHECK_EXTENSION 		= true;
-	public static final boolean ENABLE_ENDGAME_EXTENSION	= true;
-	public static final int ENDGAME_EXTENSION_DEPTH			= 3;
 
 	// Search reductions
 	public static final boolean ENABLE_NULL_MOVE 			= true;

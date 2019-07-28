@@ -4,7 +4,47 @@ import static nl.s22k.chess.ChessConstants.BLACK;
 import static nl.s22k.chess.ChessConstants.KING;
 import static nl.s22k.chess.ChessConstants.WHITE;
 
+import nl.s22k.chess.eval.EvalUtil;
+import nl.s22k.chess.eval.KingSafetyEval;
+import nl.s22k.chess.eval.PassedPawnEval;
+
 public class ChessBoardTestUtil {
+
+	public static void compareScores(final ChessBoard cb) {
+		ChessBoard testCb = ChessBoardTestUtil.getHorizontalMirroredCb(cb);
+		ChessBoardTestUtil.compareScores(cb, testCb, 1);
+
+		testCb = ChessBoardTestUtil.getVerticalMirroredCb(cb);
+		ChessBoardTestUtil.compareScores(cb, testCb, -1);
+	}
+
+	private static void compareScores(final ChessBoard cb1, final ChessBoard cb2, final int factor) {
+
+		EvalUtil.calculateMobilityScoresAndSetAttacks(cb1);
+		EvalUtil.calculateMobilityScoresAndSetAttacks(cb2);
+
+		if (KingSafetyEval.calculateScores(cb2) != KingSafetyEval.calculateScores(cb1) * factor) {
+			System.out.println("Unequal king-safety: " + KingSafetyEval.calculateScores(cb1) + " " + KingSafetyEval.calculateScores(cb2) * factor);
+		}
+		if (EvalUtil.calculatePositionScores(cb1) != EvalUtil.calculatePositionScores(cb2) * factor) {
+			System.out.println("Unequal position score: " + EvalUtil.calculatePositionScores(cb1) + " " + EvalUtil.calculatePositionScores(cb2) * factor);
+		}
+		if (EvalUtil.getPawnScores(cb1) != EvalUtil.getPawnScores(cb2) * factor) {
+			System.out.println("Unequal pawns: " + EvalUtil.getPawnScores(cb1) + " " + EvalUtil.getPawnScores(cb2) * factor);
+		}
+		if (EvalUtil.getImbalances(cb1) != EvalUtil.getImbalances(cb2) * factor) {
+			System.out.println("Unequal imbalances: " + EvalUtil.getImbalances(cb1) + " " + EvalUtil.getImbalances(cb2) * factor);
+		}
+		if (EvalUtil.calculateOthers(cb2) != EvalUtil.calculateOthers(cb1) * factor) {
+			System.out.println("Unequal others: " + EvalUtil.calculateOthers(cb1) + " " + EvalUtil.calculateOthers(cb2) * factor);
+		}
+		if (EvalUtil.calculateThreats(cb2) != EvalUtil.calculateThreats(cb1) * factor) {
+			System.out.println("Unequal threats: " + EvalUtil.calculateThreats(cb1) + " " + EvalUtil.calculateThreats(cb2) * factor);
+		}
+		if (PassedPawnEval.calculateScores(cb1) != PassedPawnEval.calculateScores(cb2) * factor) {
+			System.out.println("Unequal passed-pawns: " + PassedPawnEval.calculateScores(cb1) + " " + PassedPawnEval.calculateScores(cb2) * factor);
+		}
+	}
 
 	public static void testValues(ChessBoard cb) {
 
@@ -16,8 +56,6 @@ public class ChessBoardTestUtil {
 		long pinnedPieces = cb.pinnedPieces;
 		long discoveredPieces = cb.discoveredPieces;
 		int iterativePsqt = cb.psqtScore;
-		long whiteKingArea = cb.kingArea[WHITE];
-		long blackKingArea = cb.kingArea[BLACK];
 		int phase = cb.phase;
 		long materialKey = cb.materialKey;
 		int[] testPieceIndexes = new int[64];
@@ -31,10 +69,6 @@ public class ChessBoardTestUtil {
 		// zobrist keys
 		Assert.isTrue(iterativeZK == cb.zobristKey);
 		Assert.isTrue(iterativeZKPawn == cb.pawnZobristKey);
-
-		// king area
-		Assert.isTrue(whiteKingArea == cb.kingArea[WHITE]);
-		Assert.isTrue(blackKingArea == cb.kingArea[BLACK]);
 
 		// pinned and discovered pieces
 		Assert.isTrue(pinnedPieces == cb.pinnedPieces);
@@ -58,8 +92,8 @@ public class ChessBoardTestUtil {
 		Assert.isTrue(materialKey == cb.materialKey);
 	}
 
-	public static ChessBoard getHorizontalMirroredCb(ChessBoard cb) {
-		ChessBoard testCb = ChessBoard.getTestInstance();
+	private static ChessBoard getHorizontalMirroredCb(ChessBoard cb) {
+		ChessBoard testCb = ChessBoard.getInstance(1);
 
 		for (int color = ChessConstants.WHITE; color <= ChessConstants.BLACK; color++) {
 			for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++) {
@@ -73,8 +107,8 @@ public class ChessBoardTestUtil {
 		return testCb;
 	}
 
-	public static ChessBoard getVerticalMirroredCb(ChessBoard cb) {
-		ChessBoard testCb = ChessBoard.getTestInstance();
+	private static ChessBoard getVerticalMirroredCb(ChessBoard cb) {
+		ChessBoard testCb = ChessBoard.getInstance(1);
 
 		for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++) {
 			testCb.pieces[WHITE][piece] = Util.mirrorVertical(cb.pieces[BLACK][piece]);

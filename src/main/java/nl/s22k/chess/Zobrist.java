@@ -7,14 +7,14 @@ public class Zobrist {
 	public static long sideToMove;
 	public static final long[] castling = new long[16];
 	public static final long[] epIndex = new long[48];
-	public static final long[][][] piece = new long[64][2][7];
+	public static final long[][][] piece = new long[2][7][64];
 
 	static {
 		SecureRandom r = new SecureRandom();
-		for (int bitIndex = 0; bitIndex < 64; bitIndex++) {
-			for (int colorIndex = 0; colorIndex < piece[0].length; colorIndex++) {
-				for (int pieceIndex = 0; pieceIndex < piece[0][0].length; pieceIndex++) {
-					piece[bitIndex][colorIndex][pieceIndex] = r.nextLong();
+		for (int colorIndex = 0; colorIndex <= ChessConstants.BLACK; colorIndex++) {
+			for (int pieceIndex = 0; pieceIndex <= ChessConstants.KING; pieceIndex++) {
+				for (int square = 0; square < 64; square++) {
+					piece[colorIndex][pieceIndex][square] = r.nextLong();
 				}
 			}
 		}

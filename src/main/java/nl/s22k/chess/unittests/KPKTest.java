@@ -3,8 +3,6 @@ package nl.s22k.chess.unittests;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.junit.Test;
-
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
@@ -13,8 +11,7 @@ import nl.s22k.chess.texel.Tuner;
 
 public class KPKTest {
 
-	@Test
-	public void test() {
+	public static void main(String[] args) {
 
 		// read all fens, including score
 		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\epds\\quiet-labeled.epd", true, true);

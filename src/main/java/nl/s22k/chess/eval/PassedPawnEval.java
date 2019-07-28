@@ -14,7 +14,7 @@ import nl.s22k.chess.move.StaticMoves;
 
 public class PassedPawnEval {
 
-	public static int calculatePassedPawnScores(final ChessBoard cb) {
+	public static int calculateScores(final ChessBoard cb) {
 
 		int score = 0;
 
@@ -117,7 +117,7 @@ public class PassedPawnEval {
 		multiplier *= EvalConstants.PASSED_KING_MULTI[8 - Util.getDistance(cb.kingIndex[enemyColor], index)];
 
 		final int scoreIndex = (7 * color) + ChessConstants.COLOR_FACTOR[color] * index / 8;
-		return EvalUtil.score((int) (EvalConstants.PASSED_SCORE_MG[scoreIndex] * multiplier), (int) (EvalConstants.PASSED_SCORE_EG[scoreIndex] * multiplier));
+		return (int) (EvalConstants.PASSED_SCORE_EG[scoreIndex] * multiplier);
 	}
 
 	private static int getBlackPromotionDistance(final ChessBoard cb, final int index) {

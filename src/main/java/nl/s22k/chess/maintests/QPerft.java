@@ -1,11 +1,9 @@
 package nl.s22k.chess.maintests;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import nl.s22k.chess.Assert;
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessBoardUtil;
+import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveWrapper;
 
@@ -13,21 +11,33 @@ public class QPerft {
 
 	private static MoveGenerator moveGen = new MoveGenerator();
 
-	@BeforeClass
-	public static void init() {
-		System.out.println("Do not forget to enable bishop- and rook-promotions!");
+	public static void main(String args[]) {
+		if (!EngineConstants.GENERATE_BR_PROMOTIONS) {
+			throw new RuntimeException("Generation of underpromotions must be enabled");
+		}
+
+		testPerft1();
+		testPerft2();
+		testPerft3();
+		testPerft4();
+		testPerft5();
+		long now = System.currentTimeMillis();
+		testPerft6();
+		System.out.println((System.currentTimeMillis() - now) + " rofchade = 800");
+		testPerft7();
+		// testPerft8();
 	}
 
-	public static long qperft(final ChessBoard chessBoard, final int depth) {
+	public static long qperft(final ChessBoard cb, final int depth) {
 
 		moveGen.startPly();
-		moveGen.generateMoves(chessBoard);
-		moveGen.generateAttacks(chessBoard);
+		moveGen.generateMoves(cb);
+		moveGen.generateAttacks(cb);
 
 		long counter = 0;
 		if (depth == 1) {
 			while (moveGen.hasNext()) {
-				if (chessBoard.isLegal(moveGen.next())) {
+				if (cb.isLegal(moveGen.next())) {
 					counter++;
 				}
 			}
@@ -37,12 +47,12 @@ public class QPerft {
 
 		while (moveGen.hasNext()) {
 			final int move = moveGen.next();
-			if (!chessBoard.isLegal(move)) {
+			if (!cb.isLegal(move)) {
 				continue;
 			}
-			chessBoard.doMove(move);
-			counter += qperft(chessBoard, depth - 1);
-			chessBoard.undoMove(move);
+			cb.doMove(move);
+			counter += qperft(cb, depth - 1);
+			cb.undoMove(move);
 		}
 
 		moveGen.endPly();
@@ -50,10 +60,10 @@ public class QPerft {
 
 	}
 
-	public static long qdivide(final ChessBoard chessBoard, final int depth) {
+	public static long qdivide(final ChessBoard cb, final int depth) {
 
 		moveGen.startPly();
-		moveGen.generateMoves(chessBoard);
+		moveGen.generateMoves(cb);
 		int counter = 0;
 		while (moveGen.hasNext()) {
 			final int move = moveGen.next();
@@ -62,10 +72,10 @@ public class QPerft {
 				counter++;
 				continue;
 			}
-			chessBoard.doMove(move);
-			final long divideCounter = qperft(chessBoard, depth - 1);
+			cb.doMove(move);
+			final long divideCounter = qperft(cb, depth - 1);
 			counter += divideCounter;
-			chessBoard.undoMove(move);
+			cb.undoMove(move);
 			System.out.println(new MoveWrapper(move) + ": " + divideCounter);
 		}
 
@@ -73,52 +83,52 @@ public class QPerft {
 
 	}
 
-	@Test
-	public void testPerft1() {
-		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		Assert.isTrue(20 == qperft(chessBoard, 1));
+	public static void testPerft1() {
+		System.out.println(1);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(20 == qperft(cb, 1));
 	}
 
-	@Test
-	public void testPerft2() {
-		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		Assert.isTrue(400 == qperft(chessBoard, 2));
+	public static void testPerft2() {
+		System.out.println(2);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(400 == qperft(cb, 2));
 	}
 
-	@Test
-	public void testPerft3() {
-		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		Assert.isTrue(8902 == qperft(chessBoard, 3));
+	public static void testPerft3() {
+		System.out.println(3);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(8902 == qperft(cb, 3));
 	}
 
-	@Test
-	public void testPerft4() {
-		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		Assert.isTrue(197281 == qperft(chessBoard, 4));
+	public static void testPerft4() {
+		System.out.println(4);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(197281 == qperft(cb, 4));
 	}
 
-	@Test
-	public void testPerft5() {
-		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		Assert.isTrue(4865609 == qperft(chessBoard, 5));
+	public static void testPerft5() {
+		System.out.println(5);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(4865609 == qperft(cb, 5));
 	}
 
-	@Test
-	public void testPerft6() {
-		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		Assert.isTrue(119060324 == qperft(chessBoard, 6));
+	public static void testPerft6() {
+		System.out.println(6);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(119060324 == qperft(cb, 6));
 	}
 
-	@Test
-	public void testPerft7() {
-		ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-		Assert.isTrue(3195901860L == qperft(chessBoard, 7));
+	public static void testPerft7() {
+		System.out.println(7);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(3195901860L == qperft(cb, 7));
 	}
 
-	// @Test
-	// public void testPerft8() {
-	// ChessBoard chessBoard = ChessBoardUtil.getNewCB();
-	// assertEquals(84998978956L, qperft(chessBoard, 8));
-	// }
+	public static void testPerft8() {
+		System.out.println(8);
+		ChessBoard cb = ChessBoardUtil.getNewCB();
+		Assert.isTrue(84998978956L == qperft(cb, 8));
+	}
 
 }

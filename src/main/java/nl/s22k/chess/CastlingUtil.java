@@ -107,35 +107,19 @@ public final class CastlingUtil {
 		switch (kingToIndex) {
 		case 1:
 			// white rook from 2 to 0
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.F1_H1;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.F1_H1;
-			cb.pieceIndexes[2] = EMPTY;
-			cb.pieceIndexes[0] = ROOK;
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][0] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][2];
+			castleRookUpdatePsqt(cb, 2, 0, WHITE);
 			return;
 		case 57:
 			// black rook from 58 to 56
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.F8_H8;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.F8_H8;
-			cb.pieceIndexes[58] = EMPTY;
-			cb.pieceIndexes[56] = ROOK;
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][56] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][58];
+			castleRookUpdatePsqt(cb, 58, 56, BLACK);
 			return;
 		case 5:
 			// white rook from 4 to 7
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.A1_D1;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.A1_D1;
-			cb.pieceIndexes[4] = EMPTY;
-			cb.pieceIndexes[7] = ROOK;
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][7] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][4];
+			castleRookUpdatePsqt(cb, 4, 7, WHITE);
 			return;
 		case 61:
 			// black rook from 60 to 63
-			cb.pieces[cb.colorToMoveInverse][ROOK] ^= Bitboard.A8_D8;
-			cb.friendlyPieces[cb.colorToMoveInverse] ^= Bitboard.A8_D8;
-			cb.pieceIndexes[60] = EMPTY;
-			cb.pieceIndexes[63] = ROOK;
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][63] - EvalConstants.PSQT[ROOK][cb.colorToMoveInverse][60];
+			castleRookUpdatePsqt(cb, 60, 63, BLACK);
 			return;
 		}
 		throw new RuntimeException("Incorrect king castling to-index: " + kingToIndex);
@@ -145,43 +129,34 @@ public final class CastlingUtil {
 		switch (kingToIndex) {
 		case 1:
 			// white rook from 0 to 2
-			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.F1_H1;
-			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.F1_H1;
-			cb.pieceIndexes[0] = EMPTY;
-			cb.pieceIndexes[2] = ROOK;
-			cb.zobristKey ^= Zobrist.piece[0][WHITE][ROOK] ^ Zobrist.piece[2][WHITE][ROOK];
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][2] - EvalConstants.PSQT[ROOK][cb.colorToMove][0];
+			castleRookUpdatePsqt(cb, 0, 2, WHITE);
+			cb.zobristKey ^= Zobrist.piece[WHITE][ROOK][0] ^ Zobrist.piece[WHITE][ROOK][2];
 			return;
 		case 57:
 			// black rook from 56 to 58
-			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.F8_H8;
-			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.F8_H8;
-			cb.pieceIndexes[56] = EMPTY;
-			cb.pieceIndexes[58] = ROOK;
-			cb.zobristKey ^= Zobrist.piece[56][BLACK][ROOK] ^ Zobrist.piece[58][BLACK][ROOK];
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][58] - EvalConstants.PSQT[ROOK][cb.colorToMove][56];
+			castleRookUpdatePsqt(cb, 56, 58, BLACK);
+			cb.zobristKey ^= Zobrist.piece[BLACK][ROOK][56] ^ Zobrist.piece[BLACK][ROOK][58];
 			return;
 		case 5:
 			// white rook from 7 to 4
-			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.A1_D1;
-			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.A1_D1;
-			cb.pieceIndexes[7] = EMPTY;
-			cb.pieceIndexes[4] = ROOK;
-			cb.zobristKey ^= Zobrist.piece[7][WHITE][ROOK] ^ Zobrist.piece[4][WHITE][ROOK];
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][4] - EvalConstants.PSQT[ROOK][cb.colorToMove][7];
+			castleRookUpdatePsqt(cb, 7, 4, WHITE);
+			cb.zobristKey ^= Zobrist.piece[WHITE][ROOK][7] ^ Zobrist.piece[WHITE][ROOK][4];
 			return;
 		case 61:
 			// black rook from 63 to 60
-			cb.pieces[cb.colorToMove][ROOK] ^= Bitboard.A8_D8;
-			cb.friendlyPieces[cb.colorToMove] ^= Bitboard.A8_D8;
-			cb.pieceIndexes[63] = EMPTY;
-			cb.pieceIndexes[60] = ROOK;
-			cb.zobristKey ^= Zobrist.piece[63][BLACK][ROOK] ^ Zobrist.piece[60][BLACK][ROOK];
-			cb.psqtScore += EvalConstants.PSQT[ROOK][cb.colorToMove][60] - EvalConstants.PSQT[ROOK][cb.colorToMove][63];
+			castleRookUpdatePsqt(cb, 63, 60, BLACK);
+			cb.zobristKey ^= Zobrist.piece[BLACK][ROOK][63] ^ Zobrist.piece[BLACK][ROOK][60];
 			return;
 		}
 		throw new RuntimeException("Incorrect king castling to-index: " + kingToIndex);
+	}
 
+	private static void castleRookUpdatePsqt(final ChessBoard cb, final int fromIndex, final int toIndex, final int color) {
+		cb.pieces[color][ROOK] ^= Util.POWER_LOOKUP[fromIndex] | Util.POWER_LOOKUP[toIndex];
+		cb.friendlyPieces[color] ^= Util.POWER_LOOKUP[fromIndex] | Util.POWER_LOOKUP[toIndex];
+		cb.pieceIndexes[fromIndex] = EMPTY;
+		cb.pieceIndexes[toIndex] = ROOK;
+		cb.psqtScore += EvalConstants.PSQT[ROOK][color][toIndex] - EvalConstants.PSQT[ROOK][color][fromIndex];
 	}
 
 	public static boolean isValidCastlingMove(final ChessBoard cb, final int fromIndex, final int toIndex) {

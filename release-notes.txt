@@ -1,3 +1,8 @@
+1.13 - 28-07-2019 - 3100 elo
+- fixed a crash
+- simplified some code
+
+
 1.12 - 03-12-2018 - 3100 elo
 - participated in CSVN 54
 - rewritten SMP implementation (inspired by Laser, performs worse than 1.11 at the moment...)

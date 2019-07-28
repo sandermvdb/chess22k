@@ -1,5 +1,9 @@
 package nl.s22k.chess.search;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
@@ -9,21 +13,29 @@ import nl.s22k.chess.move.MoveGenerator;
 
 public class SearchThread extends Thread {
 
-	private int threadNumber;
-
 	// Laser based SMP skip
-	private int[] SMP_SKIP_DEPTHS = { 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4 };
-	private int[] SMP_SKIP_AMOUNT = { 1, 2, 1, 2, 3, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 };
-	private int SMP_MAX_CYCLES = SMP_SKIP_AMOUNT.length;
+	private static final int[] SMP_SKIP_DEPTHS = { 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4 };
+	private static final int[] SMP_SKIP_AMOUNT = { 1, 2, 1, 2, 3, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 };
+	private static final int SMP_MAX_CYCLES = SMP_SKIP_AMOUNT.length;
+
+	private static final Map<Long, Integer> THREAD_MAP = new ConcurrentHashMap<>();
+	private int threadNumber;
 
 	public SearchThread(final int threadNumber) {
 		this.threadNumber = threadNumber;
 	}
 
+	public static final int getThreadNumber() {
+		return THREAD_MAP.get(Thread.currentThread().getId());
+	}
+
 	@Override
 	public void run() {
 
-		Thread.currentThread().setName("search " + threadNumber);
+		THREAD_MAP.put(Thread.currentThread().getId(), threadNumber);
+
+		int threadNumber = THREAD_MAP.get(Thread.currentThread().getId());
+		Thread.currentThread().setName("chess22k-search " + threadNumber);
 		int cycleIndex = (threadNumber - 1) % SMP_MAX_CYCLES;
 
 		int depth = 0;
@@ -44,6 +56,9 @@ public class SearchThread extends Thread {
 			} else {
 				if ((depth + cycleIndex) % SMP_SKIP_DEPTHS[cycleIndex] == 0) {
 					depth += SMP_SKIP_AMOUNT[cycleIndex];
+					if (depth > MainEngine.maxDepth) {
+						continue;
+					}
 				}
 			}
 
@@ -63,7 +78,7 @@ public class SearchThread extends Thread {
 				previousScore = score;
 
 				// System.out.println("start " + threadNumber + " " + depth);
-				score = NegamaxUtil.calculateBestMove(threadNumber, 0, depth, alpha, beta, 0);
+				score = NegamaxUtil.calculateBestMove(ChessBoard.getInstance(threadNumber), MoveGenerator.getInstance(threadNumber), 0, depth, alpha, beta, 0);
 				// System.out.println("done " + threadNumber + " " + depth);
 
 				if (threadNumber == 0) {

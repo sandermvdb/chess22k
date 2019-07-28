@@ -21,6 +21,7 @@ public class MaterialUtil {
 	private static final int MASK_SINGLE_BISHOP_NIGHT_WHITE = 0x90;
 	private static final int MASK_SINGLE_BISHOP_NIGHT_BLACK = 0x900000;
 	private static final int[] MASK_PAWNS_QUEENS = { 0xe00f, 0xe00f0000 };
+	private static final int MASK_PAWNS = 0xf000f;
 	private static final int[] MASK_SLIDING_PIECES = { 0xff80, 0xff800000 };
 	private static final int[] MASK_MATING_MATERIAL = { 0xff6f, 0xff6f0000 };
 
@@ -66,6 +67,10 @@ public class MaterialUtil {
 		}
 	}
 
+	public static boolean hasPawns(final int material) {
+		return (material & MASK_PAWNS) != 0;
+	}
+
 	public static boolean hasPawnsOrQueens(final int material, final int color) {
 		return (material & MASK_PAWNS_QUEENS[color]) != 0;
 	}
@@ -86,9 +91,21 @@ public class MaterialUtil {
 		return material == 0x90 || material == 0x900000;
 	}
 
-	public static boolean isKRKP(final int material) {
-		return material == 0x10400 || material == 0x4000001;
+	public static boolean isKRKN(final int material) {
+		return material == 0x100400 || material == 0x4000010;
 	}
+
+	public static boolean isKRKB(final int material) {
+		return material == 0x4000080 || material == 0x800400;
+	}
+
+	public static boolean isKQKP(final int material) {
+		return material == 0x12000 || material == 0x20000001;
+	}
+
+	// public static boolean isKRKP(final int material) {
+	// return material == 0x10400 || material == 0x4000001;
+	// }
 
 	public static boolean isDrawByMaterial(final ChessBoard cb) {
 		if (Long.bitCount(cb.allPieces) > 4) {
@@ -113,9 +130,6 @@ public class MaterialUtil {
 		case 0x81: // KBPK
 		case 0x810000: // KBPK
 			return EndGameEvaluator.isKBPKDraw(cb.pieces);
-		case 0x12000: // KQKP
-		case 0x20000001: // KQKP
-			return EndGameEvaluator.isKQKPDraw(cb);
 		}
 		return false;
 
@@ -129,6 +143,21 @@ public class MaterialUtil {
 			return !hasOnlyNights(cb.materialKey, color);
 		}
 		return (cb.materialKey & MASK_MATING_MATERIAL[color]) != 0;
+	}
+
+	public static boolean hasEvaluator(final int material) {
+		switch (material) {
+		case 0x90: // KBNK
+		case 0x12000: // KQKP
+		case 0x100400: // KRKN
+		case 0x800400: // KRKB
+		case 0x900000: // KBNK
+		case 0x4000010: // KRKN
+		case 0x4000080: // KRKB
+		case 0x20000001: // KQKP
+			return true;
+		}
+		return false;
 	}
 
 }

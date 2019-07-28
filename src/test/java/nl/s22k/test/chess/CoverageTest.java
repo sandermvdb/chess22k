@@ -14,8 +14,6 @@ public class CoverageTest {
 	@Test
 	public void doTest() {
 		ChessBoard cb = ChessBoardUtil.getNewCB(MainTest.FEN_STANDARD_MIDDLEGAME);
-
-		/* time-managed */
 		TimeUtil.setSimpleTimeWindow(5000);
 		NegamaxUtil.start(cb);
 	}

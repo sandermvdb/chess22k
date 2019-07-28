@@ -4,15 +4,25 @@ import java.util.Arrays;
 
 import nl.s22k.chess.ChessBoard;
 import nl.s22k.chess.ChessConstants.ScoreType;
+import nl.s22k.chess.Util;
 import nl.s22k.chess.search.TTUtil;
 
 public class PV {
 
-	private static final int MOVES_LENGTH = 10;
+	private static final int MOVES_LENGTH = 8;
 
 	private static int[] moves = new int[MOVES_LENGTH];
 	private static int flag;
 	private static int score;
+
+	public static void init(ChessBoard cb) {
+		final long ttValue = TTUtil.getValue(cb.zobristKey);
+		if (ttValue == 0) {
+			Arrays.fill(moves, 0);
+		} else {
+			PV.set(TTUtil.getMove(ttValue), Util.SHORT_MIN, Util.SHORT_MAX, TTUtil.getScore(ttValue, 0), cb);
+		}
+	}
 
 	public static void set(int bestMove, int alpha, int beta, int score, ChessBoard cb) {
 
@@ -32,7 +42,7 @@ public class PV {
 		cb.doMove(bestMove);
 
 		for (int i = 1; i < MOVES_LENGTH; i++) {
-			long ttValue = TTUtil.getTTValue(cb.zobristKey);
+			long ttValue = TTUtil.getValue(cb.zobristKey);
 			if (ttValue == 0) {
 				break;
 			}
