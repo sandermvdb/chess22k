@@ -1,5 +1,6 @@
 package nl.s22k.chess.eval;
 
+import static nl.s22k.chess.ChessConstants.ALL;
 import static nl.s22k.chess.ChessConstants.BISHOP;
 import static nl.s22k.chess.ChessConstants.BLACK;
 import static nl.s22k.chess.ChessConstants.KING;
@@ -17,6 +18,7 @@ import nl.s22k.chess.Statistics;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.move.MagicUtil;
 import nl.s22k.chess.move.StaticMoves;
+import nl.s22k.chess.search.ThreadData;
 
 public class EvalUtil {
 
@@ -26,71 +28,43 @@ public class EvalUtil {
 	public static final int PHASE_TOTAL = 4 * EvalConstants.PHASE[NIGHT] + 4 * EvalConstants.PHASE[BISHOP] + 4 * EvalConstants.PHASE[ROOK]
 			+ 2 * EvalConstants.PHASE[QUEEN];
 
-	public static int getScore(final ChessBoard cb) {
-
+	public static int getScore(final ChessBoard cb, final ThreadData threadData) {
 		if (Statistics.ENABLED) {
 			Statistics.evalNodes++;
 		}
 
 		if (EngineConstants.ENABLE_EVAL_CACHE && !EngineConstants.TEST_EVAL_CACHES) {
-			final int score = EvalCache.getScore(cb.zobristKey);
+			final int score = EvalCacheUtil.getScore(cb.zobristKey, threadData.evalCache);
 			if (score != ChessConstants.CACHE_MISS) {
 				return score;
 			}
 		}
 
-		return calculateScore(cb);
+		return calculateScore(cb, threadData);
 	}
 
-	public static int calculateScore(final ChessBoard cb) {
+	public static int calculateScore(final ChessBoard cb, final ThreadData threadData) {
 
-		int score = 0;
-		if (MaterialUtil.isDrawByMaterial(cb)) {
-			// do nothing
-		} else if (Long.bitCount(cb.allPieces) == 4 && MaterialUtil.hasEvaluator(cb.materialKey)) {
-			if (MaterialUtil.isKBNK(cb.materialKey)) {
-				score = EndGameEvaluator.calculateKBNKScore(cb);
-			} else if (MaterialUtil.isKRKN(cb.materialKey)) {
-				score = EndGameEvaluator.calculateKRKNScore(cb);
-			} else if (MaterialUtil.isKRKB(cb.materialKey)) {
-				score = EndGameEvaluator.calculateKRKBScore(cb);
-			} else if (MaterialUtil.isKQKP(cb.materialKey)) {
-				if (EndGameEvaluator.isKQKPDrawish(cb)) {
-					score = cb.pieces[WHITE][QUEEN] == 0 ? -50 : 50;
-				} else {
-					score = taperedEval(cb);
-				}
+		int score = MaterialUtil.SCORE_UNKNOWN;
+		if (Long.bitCount(cb.allPieces) <= 5) {
+			if (MaterialUtil.isDrawByMaterial(cb)) {
+				score = EvalConstants.SCORE_DRAW;
+			} else {
+				score = MaterialUtil.calculateEndgameScore(cb);
 			}
-		} else {
-			score = taperedEval(cb);
-
-			/* draw-by-material */
+		}
+		if (score == MaterialUtil.SCORE_UNKNOWN) {
+			score = taperedEval(cb, threadData);
 			if (score > 25) {
-				if (!MaterialUtil.hasMatingMaterial(cb, WHITE)) {
-					score = EvalConstants.SCORE_DRAW;
-				} else if (isDrawishByMaterial(cb, WHITE)) {
-					if (Statistics.ENABLED) {
-						Statistics.drawishByMaterialCount++;
-					}
-					// drive king in the corner
-					score = EndGameEvaluator.getDrawishScore(cb, WHITE);
-				}
+				score = adjustEndgame(cb, score, WHITE, threadData.materialCache);
 			} else if (score < -25) {
-				if (!MaterialUtil.hasMatingMaterial(cb, BLACK)) {
-					score = EvalConstants.SCORE_DRAW;
-				} else if (isDrawishByMaterial(cb, BLACK)) {
-					if (Statistics.ENABLED) {
-						Statistics.drawishByMaterialCount++;
-					}
-					// drive king in the corner
-					score = -EndGameEvaluator.getDrawishScore(cb, BLACK);
-				}
+				score = adjustEndgame(cb, score, BLACK, threadData.materialCache);
 			}
 		}
 
 		score *= ChessConstants.COLOR_FACTOR[cb.colorToMove];
 		if (EngineConstants.TEST_EVAL_CACHES) {
-			final int cachedScore = EvalCache.getScore(cb.zobristKey);
+			final int cachedScore = EvalCacheUtil.getScore(cb.zobristKey, threadData.evalCache);
 			if (cachedScore != ChessConstants.CACHE_MISS) {
 				if (cachedScore != score) {
 					throw new RuntimeException(String.format("Cached eval score != score: %s, %s", cachedScore, score));
@@ -98,7 +72,7 @@ public class EvalUtil {
 			}
 		}
 
-		EvalCache.addValue(cb.zobristKey, score);
+		EvalCacheUtil.addValue(cb.zobristKey, score, threadData.evalCache);
 
 		if (EngineConstants.TEST_EVAL_VALUES) {
 			ChessBoardTestUtil.compareScores(cb);
@@ -107,31 +81,43 @@ public class EvalUtil {
 		return score;
 	}
 
-	private static boolean isDrawishByMaterial(final ChessBoard cb, final int color) {
-		// no pawns or queens
+	private static int adjustEndgame(final ChessBoard cb, final int score, final int color, final int[] materialCache) {
+		if (Long.bitCount(cb.pieces[color][ALL]) > 3) {
+			return score;
+		}
 		if (MaterialUtil.hasPawnsOrQueens(cb.materialKey, color)) {
-			return false;
+			return score;
 		}
 
-		if (Long.bitCount(cb.friendlyPieces[color]) > 3) {
-			return false;
+		switch (Long.bitCount(cb.pieces[color][ALL])) {
+		case 1:
+			return EvalConstants.SCORE_DRAW;
+		case 2:
+			if (cb.pieces[color][ROOK] == 0) {
+				return EvalConstants.SCORE_DRAW;
+			}
+			// fall-through
+		case 3:
+			if (MaterialUtil.hasOnlyNights(cb.materialKey, color)) {
+				return EvalConstants.SCORE_DRAW;
+			}
+			if (getImbalances(cb, materialCache) * ChessConstants.COLOR_FACTOR[color] < EvalConstants.OTHER_SCORES[EvalConstants.IX_DRAWISH]) {
+				return score / 8;
+			}
 		}
-
-		// material difference bigger than bishop + 50
-		// TODO do not include pawn score (why...?)
-		return getImbalances(cb) * ChessConstants.COLOR_FACTOR[color] < EvalConstants.MATERIAL[BISHOP] + EvalConstants.OTHER_SCORES[EvalConstants.IX_DRAWISH];
+		return score;
 	}
 
-	private static int taperedEval(final ChessBoard cb) {
-		final int pawnScore = getPawnScores(cb);
+	private static int taperedEval(final ChessBoard cb, final ThreadData threadData) {
+		final int pawnScore = getPawnScores(cb, threadData.pawnCache);
 		final int mgEgScore = calculateMobilityScoresAndSetAttacks(cb) + calculateThreats(cb) + calculatePawnShieldBonus(cb);
-		final int phaseIndependentScore = calculateOthers(cb) + getImbalances(cb);
+		final int phaseIndependentScore = calculateOthers(cb) + getImbalances(cb, threadData.materialCache);
 
 		final int scoreMg = cb.phase == PHASE_TOTAL ? 0
 				: getMgScore(mgEgScore + cb.psqtScore) + pawnScore + KingSafetyEval.calculateScores(cb) + calculateSpace(cb) + phaseIndependentScore;
 		final int scoreEg = getEgScore(mgEgScore + cb.psqtScore) + pawnScore + PassedPawnEval.calculateScores(cb) + phaseIndependentScore;
 
-		return ((scoreMg * (PHASE_TOTAL - cb.phase)) + scoreEg * cb.phase) / PHASE_TOTAL / calculateScaleFactor(cb);
+		return (scoreMg * (PHASE_TOTAL - cb.phase) + scoreEg * cb.phase) / PHASE_TOTAL / calculateScaleFactor(cb);
 	}
 
 	public static int score(final int mgScore, final int egScore) {
@@ -153,6 +139,7 @@ public class EvalUtil {
 				return 2;
 			}
 		}
+		// TODO rook and pawns without passed pawns
 		return 1;
 	}
 
@@ -172,25 +159,27 @@ public class EvalUtil {
 		// idea taken from Laser
 		long space = cb.pieces[WHITE][PAWN] >>> 8;
 		space |= space >>> 8 | space >>> 16;
-		score += EvalConstants.SPACE[Long.bitCount(cb.friendlyPieces[WHITE])]
+		score += EvalConstants.SPACE[Long.bitCount(cb.pieces[WHITE][ALL])]
 				* Long.bitCount(space & ~cb.pieces[WHITE][PAWN] & ~cb.attacks[BLACK][PAWN] & Bitboard.FILE_CDEF);
 		space = cb.pieces[BLACK][PAWN] << 8;
 		space |= space << 8 | space << 16;
-		score -= EvalConstants.SPACE[Long.bitCount(cb.friendlyPieces[BLACK])]
+		score -= EvalConstants.SPACE[Long.bitCount(cb.pieces[BLACK][ALL])]
 				* Long.bitCount(space & ~cb.pieces[BLACK][PAWN] & ~cb.attacks[WHITE][PAWN] & Bitboard.FILE_CDEF);
 
 		return score;
 	}
 
-	public static int getPawnScores(final ChessBoard cb) {
+	public static int getPawnScores(final ChessBoard cb, final long[] pawnCache) {
 		if (!EngineConstants.TEST_EVAL_CACHES) {
-			final int score = PawnEvalCache.updateBoardAndGetScore(cb);
+			final int score = PawnCacheUtil.updateBoardAndGetScore(cb, pawnCache);
 			if (score != ChessConstants.CACHE_MISS) {
-				return PawnEvalCache.updateBoardAndGetScore(cb);
+				return score;
 			}
 		}
 
-		return calculatePawnScores(cb);
+		final int score = calculatePawnScores(cb);
+		PawnCacheUtil.addValue(cb.pawnZobristKey, score, cb.passedPawnsAndOutposts, pawnCache);
+		return score;
 	}
 
 	private static int calculatePawnScores(final ChessBoard cb) {
@@ -330,28 +319,19 @@ public class EvalUtil {
 			pawns &= pawns - 1;
 		}
 
-		if (EngineConstants.TEST_EVAL_CACHES) {
-			final int cachedScore = PawnEvalCache.updateBoardAndGetScore(cb);
-			if (cachedScore != ChessConstants.CACHE_MISS) {
-				if (cachedScore != score) {
-					throw new RuntimeException(String.format("Cached pawn eval score != score: %s, %s", cachedScore, score));
-				}
-			}
-		}
-
-		PawnEvalCache.addValue(cb.pawnZobristKey, score, cb.passedPawnsAndOutposts);
-
 		return score;
 	}
 
-	public static int getImbalances(final ChessBoard cb) {
+	public static int getImbalances(final ChessBoard cb, final int[] materialCache) {
 		if (!EngineConstants.TEST_EVAL_CACHES) {
-			final int score = MaterialCache.getScore(cb.materialKey);
+			final int score = MaterialCacheUtil.getScore(cb.materialKey, materialCache);
 			if (score != ChessConstants.CACHE_MISS) {
 				return score;
 			}
 		}
-		return calculateImbalances(cb);
+		final int score = calculateImbalances(cb);
+		MaterialCacheUtil.addValue(cb.materialKey, score, materialCache);
+		return score;
 	}
 
 	private static int calculateImbalances(final ChessBoard cb) {
@@ -393,32 +373,21 @@ public class EvalUtil {
 			score -= EvalConstants.IMBALANCE_SCORES[EvalConstants.IX_ROOK_PAIR];
 		}
 
-		if (EngineConstants.TEST_EVAL_CACHES) {
-			final int cachedScore = MaterialCache.getScore(cb.materialKey);
-			if (cachedScore != ChessConstants.CACHE_MISS) {
-				if (cachedScore != score) {
-					throw new RuntimeException(String.format("Cached material score != score: %s, %s", cachedScore, score));
-				}
-			}
-		}
-
-		MaterialCache.addValue(cb.materialKey, score);
-
 		return score;
 	}
 
 	public static int calculateThreats(final ChessBoard cb) {
 		int score = 0;
+		final long whites = cb.pieces[WHITE][ALL];
 		final long whitePawns = cb.pieces[WHITE][PAWN];
+		final long blacks = cb.pieces[BLACK][ALL];
 		final long blackPawns = cb.pieces[BLACK][PAWN];
-		final long whiteMinorAttacks = cb.attacks[WHITE][NIGHT] | cb.attacks[WHITE][BISHOP];
-		final long blackMinorAttacks = cb.attacks[BLACK][NIGHT] | cb.attacks[BLACK][BISHOP];
+		final long whiteAttacks = cb.attacks[WHITE][ALL];
 		final long whitePawnAttacks = cb.attacks[WHITE][PAWN];
+		final long whiteMinorAttacks = cb.attacks[WHITE][NIGHT] | cb.attacks[WHITE][BISHOP];
+		final long blackAttacks = cb.attacks[BLACK][ALL];
 		final long blackPawnAttacks = cb.attacks[BLACK][PAWN];
-		final long whiteAttacks = cb.attacksAll[WHITE];
-		final long blackAttacks = cb.attacksAll[BLACK];
-		final long whites = cb.friendlyPieces[WHITE];
-		final long blacks = cb.friendlyPieces[BLACK];
+		final long blackMinorAttacks = cb.attacks[BLACK][NIGHT] | cb.attacks[BLACK][BISHOP];
 
 		// double attacked pieces
 		long piece = cb.doubleAttacks[WHITE] & blacks;
@@ -495,27 +464,15 @@ public class EvalUtil {
 		int score = 0;
 		long piece;
 
+		final long whites = cb.pieces[WHITE][ALL];
 		final long whitePawns = cb.pieces[WHITE][PAWN];
+		final long blacks = cb.pieces[BLACK][ALL];
 		final long blackPawns = cb.pieces[BLACK][PAWN];
 		final long whitePawnAttacks = cb.attacks[WHITE][PAWN];
 		final long blackPawnAttacks = cb.attacks[BLACK][PAWN];
-		final long whiteAttacks = cb.attacksAll[WHITE];
-		final long blackAttacks = cb.attacksAll[BLACK];
-		final long whites = cb.friendlyPieces[WHITE];
-		final long blacks = cb.friendlyPieces[BLACK];
 
 		// side to move
 		score += ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalConstants.SIDE_TO_MOVE_BONUS;
-
-		// piece attacked and only defended by a rook or queen
-		piece = whites & blackAttacks & whiteAttacks & ~(whitePawnAttacks | cb.attacks[WHITE][NIGHT] | cb.attacks[WHITE][BISHOP]);
-		if (piece != 0) {
-			score += Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_ONLY_MAJOR_DEFENDERS];
-		}
-		piece = blacks & whiteAttacks & blackAttacks & ~(blackPawnAttacks | cb.attacks[BLACK][NIGHT] | cb.attacks[BLACK][BISHOP]);
-		if (piece != 0) {
-			score -= Long.bitCount(piece) * EvalConstants.OTHER_SCORES[EvalConstants.IX_ONLY_MAJOR_DEFENDERS];
-		}
 
 		// WHITE ROOK
 		if (cb.pieces[WHITE][ROOK] != 0) {
@@ -538,21 +495,18 @@ public class EvalUtil {
 			if ((piece & Bitboard.RANK_1) != 0) {
 				final long trapped = piece & EvalConstants.ROOK_PRISON[cb.kingIndex[WHITE]];
 				if (trapped != 0) {
-					for (int i = 8; i <= 24; i += 8) {
-						if ((trapped << i & whitePawns) != 0) {
-							score += EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_TRAPPED];
-							break;
-						}
+					if (((trapped << 8 | trapped << 16) & whitePawns) != 0) {
+						score += EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_TRAPPED];
 					}
 				}
 			}
 
 			// rook on open-file (no pawns) and semi-open-file (no friendly pawns)
 			while (piece != 0) {
-				if ((whitePawns & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
-					if ((blackPawns & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
+				if ((whitePawns & Bitboard.getFile(piece)) == 0) {
+					if ((blackPawns & Bitboard.getFile(piece)) == 0) {
 						score += EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_FILE_OPEN];
-					} else if ((blackPawns & blackPawnAttacks & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
+					} else if ((blackPawns & blackPawnAttacks & Bitboard.getFile(piece)) == 0) {
 						score += EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_FILE_SEMI_OPEN_ISOLATED];
 					} else {
 						score += EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_FILE_SEMI_OPEN];
@@ -584,11 +538,8 @@ public class EvalUtil {
 			if ((piece & Bitboard.RANK_8) != 0) {
 				final long trapped = piece & EvalConstants.ROOK_PRISON[cb.kingIndex[BLACK]];
 				if (trapped != 0) {
-					for (int i = 8; i <= 24; i += 8) {
-						if ((trapped >>> i & blackPawns) != 0) {
-							score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_TRAPPED];
-							break;
-						}
+					if (((trapped >>> 8 | trapped >>> 16) & blackPawns) != 0) {
+						score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_TRAPPED];
 					}
 				}
 			}
@@ -596,10 +547,10 @@ public class EvalUtil {
 			// rook on open-file (no pawns) and semi-open-file (no friendly pawns)
 			while (piece != 0) {
 				// TODO JITWatch unpredictable branch
-				if ((blackPawns & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
-					if ((whitePawns & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
+				if ((blackPawns & Bitboard.getFile(piece)) == 0) {
+					if ((whitePawns & Bitboard.getFile(piece)) == 0) {
 						score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_FILE_OPEN];
-					} else if ((whitePawns & whitePawnAttacks & Bitboard.FILES[Long.numberOfTrailingZeros(piece) & 7]) == 0) {
+					} else if ((whitePawns & whitePawnAttacks & Bitboard.getFile(piece)) == 0) {
 						score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_FILE_SEMI_OPEN_ISOLATED];
 					} else {
 						score -= EvalConstants.OTHER_SCORES[EvalConstants.IX_ROOK_FILE_SEMI_OPEN];
@@ -757,7 +708,7 @@ public class EvalUtil {
 		int file;
 
 		int whiteScore = 0;
-		long piece = cb.pieces[WHITE][PAWN] & ChessConstants.KING_AREA[WHITE][cb.kingIndex[WHITE]] & ~cb.attacks[BLACK][PAWN];
+		long piece = cb.pieces[WHITE][PAWN] & ChessConstants.KING_AREA[cb.kingIndex[WHITE]] & ~cb.attacks[BLACK][PAWN];
 		while (piece != 0) {
 			file = Long.numberOfTrailingZeros(piece) & 7;
 			whiteScore += EvalConstants.SHIELD_BONUS[Math.min(7 - file, file)][Long.numberOfTrailingZeros(piece) >>> 3];
@@ -768,7 +719,7 @@ public class EvalUtil {
 		}
 
 		int blackScore = 0;
-		piece = cb.pieces[BLACK][PAWN] & ChessConstants.KING_AREA[BLACK][cb.kingIndex[BLACK]] & ~cb.attacks[WHITE][PAWN];
+		piece = cb.pieces[BLACK][PAWN] & ChessConstants.KING_AREA[cb.kingIndex[BLACK]] & ~cb.attacks[WHITE][PAWN];
 		while (piece != 0) {
 			file = (63 - Long.numberOfLeadingZeros(piece)) & 7;
 			blackScore += EvalConstants.SHIELD_BONUS[Math.min(7 - file, file)][7 - (63 - Long.numberOfLeadingZeros(piece)) / 8];
@@ -784,7 +735,23 @@ public class EvalUtil {
 	public static int calculateMobilityScoresAndSetAttacks(final ChessBoard cb) {
 
 		cb.clearEvalAttacks();
-		cb.updatePawnAttacks();
+
+		for (int color = WHITE; color <= BLACK; color++) {
+			final long kingArea = ChessConstants.KING_AREA[cb.kingIndex[1 - color]];
+			long piece = cb.pieces[color][PAWN] & ~cb.pinnedPieces;
+			while (piece != 0) {
+				cb.updatePawnAttacks(StaticMoves.PAWN_ATTACKS[color][Long.numberOfTrailingZeros(piece)], color);
+				piece &= piece - 1;
+			}
+			cb.updatePawnAttacks(color, kingArea);
+
+			piece = cb.pieces[color][PAWN] & cb.pinnedPieces;
+			while (piece != 0) {
+				cb.updateAttacks(StaticMoves.PAWN_ATTACKS[color][Long.numberOfTrailingZeros(piece)]
+						& ChessConstants.PINNED_MOVEMENT[Long.numberOfTrailingZeros(piece)][cb.kingIndex[color]], PAWN, color, kingArea);
+				piece &= piece - 1;
+			}
+		}
 
 		int score = 0;
 		long moves;
@@ -792,8 +759,8 @@ public class EvalUtil {
 
 			int tempScore = 0;
 
-			final long kingArea = ChessConstants.KING_AREA[1 - color][cb.kingIndex[1 - color]];
-			final long safeMoves = ~cb.friendlyPieces[color] & ~cb.attacks[1 - color][PAWN];
+			final long kingArea = ChessConstants.KING_AREA[cb.kingIndex[1 - color]];
+			final long safeMoves = ~cb.pieces[color][ALL] & ~cb.attacks[1 - color][PAWN];
 
 			// knights
 			long piece = cb.pieces[color][NIGHT] & ~cb.pinnedPieces;
@@ -839,16 +806,16 @@ public class EvalUtil {
 		// WHITE king
 		moves = StaticMoves.KING_MOVES[cb.kingIndex[WHITE]] & ~StaticMoves.KING_MOVES[cb.kingIndex[BLACK]];
 		cb.attacks[WHITE][KING] = moves;
-		cb.doubleAttacks[WHITE] |= cb.attacksAll[WHITE] & moves;
-		cb.attacksAll[WHITE] |= moves;
-		score += EvalConstants.MOBILITY_KING[Long.bitCount(moves & ~cb.friendlyPieces[WHITE] & ~cb.attacksAll[BLACK])];
+		cb.doubleAttacks[WHITE] |= cb.attacks[WHITE][ALL] & moves;
+		cb.attacks[WHITE][ALL] |= moves;
+		score += EvalConstants.MOBILITY_KING[Long.bitCount(moves & ~cb.pieces[WHITE][ALL] & ~cb.attacks[BLACK][ALL])];
 
 		// BLACK king
 		moves = StaticMoves.KING_MOVES[cb.kingIndex[BLACK]] & ~StaticMoves.KING_MOVES[cb.kingIndex[WHITE]];
 		cb.attacks[BLACK][KING] = moves;
-		cb.doubleAttacks[BLACK] |= cb.attacksAll[BLACK] & moves;
-		cb.attacksAll[BLACK] |= moves;
-		score -= EvalConstants.MOBILITY_KING[Long.bitCount(moves & ~cb.friendlyPieces[BLACK] & ~cb.attacksAll[WHITE])];
+		cb.doubleAttacks[BLACK] |= cb.attacks[BLACK][ALL] & moves;
+		cb.attacks[BLACK][ALL] |= moves;
+		score -= EvalConstants.MOBILITY_KING[Long.bitCount(moves & ~cb.pieces[BLACK][ALL] & ~cb.attacks[WHITE][ALL])];
 
 		return score;
 	}

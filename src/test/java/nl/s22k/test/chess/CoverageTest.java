@@ -3,9 +3,11 @@ package nl.s22k.test.chess;
 import org.junit.Test;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.move.MoveWrapper;
-import nl.s22k.chess.search.NegamaxUtil;
+import nl.s22k.chess.search.SearchUtil;
+import nl.s22k.chess.search.TTUtil;
 import nl.s22k.chess.search.TimeUtil;
 import nl.s22k.chess.unittests.MainTest;
 
@@ -13,14 +15,17 @@ public class CoverageTest {
 
 	@Test
 	public void doTest() {
-		ChessBoard cb = ChessBoardUtil.getNewCB(MainTest.FEN_STANDARD_MIDDLEGAME);
+		ChessBoard cb = ChessBoardInstances.get(0);
+		ChessBoardUtil.setFen(MainTest.FEN_STANDARD_MIDDLEGAME, cb);
 		TimeUtil.setSimpleTimeWindow(5000);
-		NegamaxUtil.start(cb);
+		TTUtil.init(false);
+		SearchUtil.start(cb);
 	}
 
 	// @Test
 	public void doTestMovesPerformed() {
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoard cb = ChessBoardInstances.get(0);
+		ChessBoardUtil.setStartFen(cb);
 
 		final String moves = "d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 d5c4 a2a4 b8a6 e2e3 c8g4 f1c4 e7e6 h2h3 g4h5 "
 				+ "e1g1 a6b4 d1e2 f8e7 a4a5 e8g8 f1d1 d8c7 a5a6 b4a6 c4a6 b7a6 e3e4 f8d8 a1a6 a8b8 g2g4 h5g6 "
@@ -50,7 +55,7 @@ public class CoverageTest {
 
 		/* time-managed */
 		TimeUtil.setSimpleTimeWindow(5000);
-		NegamaxUtil.start(cb);
+		SearchUtil.start(cb);
 	}
 
 }

@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Util;
@@ -11,6 +12,7 @@ import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveUtil;
+import nl.s22k.chess.search.ThreadData;
 import nl.s22k.chess.texel.Tuner;
 
 /**
@@ -19,9 +21,11 @@ import nl.s22k.chess.texel.Tuner;
  */
 public class SeeTest {
 
-	private static MoveGenerator moveGen = new MoveGenerator();
+	private static ThreadData threadData = new ThreadData(0);
 
 	public static void main(String[] args) {
+
+		ChessBoard cb = ChessBoardInstances.get(0);
 
 		// read all fens, including score
 		Map<String, Double> fens = Tuner.loadFens("d:\\backup\\chess\\epds\\violent.epd", false, true);
@@ -31,11 +35,11 @@ public class SeeTest {
 		double totalAttacks = 0;
 		final long start = System.currentTimeMillis();
 		for (Entry<String, Double> entry : fens.entrySet()) {
-			ChessBoard cb = ChessBoardUtil.getNewCB(entry.getKey());
-			moveGen.startPly();
-			moveGen.generateAttacks(cb);
-			while (moveGen.hasNext()) {
-				final int move = moveGen.next();
+			ChessBoardUtil.setFen(entry.getKey(), cb);
+			threadData.startPly();
+			MoveGenerator.generateAttacks(threadData, cb);
+			while (threadData.hasNext()) {
+				final int move = threadData.next();
 				if (!cb.isLegal(move)) {
 					continue;
 				}
@@ -52,7 +56,7 @@ public class SeeTest {
 				// move, true);
 				// }
 			}
-			moveGen.endPly();
+			threadData.endPly();
 		}
 		System.out.println(String.format("%.0f %.0f = %.4f", sameScore, totalAttacks, sameScore / totalAttacks));
 		System.out.println("msec: " + (System.currentTimeMillis() - start));
@@ -63,13 +67,13 @@ public class SeeTest {
 
 		cb.doMove(move);
 
-		moveGen.startPly();
-		moveGen.generateAttacks(cb);
+		threadData.startPly();
+		MoveGenerator.generateAttacks(threadData, cb);
 
 		boolean movePerformed = false;
-		while (moveGen.hasNext()) {
+		while (threadData.hasNext()) {
 			// only attacks on the same square
-			int currentMove = moveGen.next();
+			int currentMove = threadData.next();
 			if (!cb.isLegal(currentMove)) {
 				continue;
 			}
@@ -85,7 +89,7 @@ public class SeeTest {
 				bestScore = score;
 			}
 		}
-		moveGen.endPly();
+		threadData.endPly();
 
 		if (!movePerformed) {
 			bestScore = ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.calculateMaterialScore(cb);

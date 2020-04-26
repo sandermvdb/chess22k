@@ -10,7 +10,6 @@ public class Tuning {
 	public int step;
 	public String name;
 	public List<Integer> skipValues;
-	public int tunedValues;
 	public boolean showAverage;
 
 	public Tuning(int[] values, int step, String name, Integer... skipValues) {
@@ -26,9 +25,14 @@ public class Tuning {
 		}
 		this.name = name;
 		this.skipValues = Arrays.asList(skipValues);
-		tunedValues = values.length - this.skipValues.size();
-		orgValues = new int[values.length];
-		System.arraycopy(values, 0, orgValues, 0, values.length);
+		if (values != null) {
+			orgValues = new int[values.length];
+			System.arraycopy(values, 0, orgValues, 0, values.length);
+		}
+	}
+
+	public int getNumberOfTunedValues() {
+		return values.length - this.skipValues.size();
 	}
 
 	public void printNewValues() {
@@ -65,10 +69,6 @@ public class Tuning {
 
 	public boolean skip(int i) {
 		return skipValues.contains(i);
-	}
-
-	public boolean scoreIsZero(int i) {
-		return values[i] == 0;
 	}
 
 	public boolean isUpdated() {

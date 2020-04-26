@@ -17,8 +17,9 @@ import nl.s22k.chess.Statistics;
 public class ErrorLogger {
 
 	private static final Logger logger = Logger.getLogger(ErrorLogger.class.getName());
+	public static String startFen = "";
 
-	public static void log(ChessBoard cb, Throwable t) {
+	public static void log(ChessBoard cb, Throwable t, boolean systemExit) {
 		try {
 
 			// print to System.out
@@ -39,10 +40,10 @@ public class ErrorLogger {
 			// print info
 			System.out.println();
 			System.out.println();
-			System.out.println("chess22k " + MainEngine.getVersion());
+			System.out.println("chess22k " + UciOut.getVersion());
 			System.out.println();
 			System.out.println("start fen");
-			System.out.println(MainEngine.startFen);
+			System.out.println(startFen);
 			System.out.println();
 			System.out.println("crashed fen");
 			System.out.println(cb);
@@ -60,7 +61,9 @@ public class ErrorLogger {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
-			System.exit(1);
+			if (systemExit) {
+				System.exit(1);
+			}
 		}
 	}
 

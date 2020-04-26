@@ -1,3 +1,9 @@
+1.14 - 26-04-2020 - 3100 elo
+- check validity of tt move (caused crashes when lots of threads were used)
+- improved SMP scaling (caches per thread)
+- some code-cleanup
+
+
 1.13 - 28-07-2019 - 3100 elo
 - fixed a crash
 - simplified some code
@@ -5,7 +11,7 @@
 
 1.12 - 03-12-2018 - 3100 elo
 - participated in CSVN 54
-- rewritten SMP implementation (inspired by Laser, performs worse than 1.11 at the moment...)
+- rewritten SMP implementation (inspired by Laser)
 - added some endgame knowledge
 - implemented counter move heuristic
 - improved LMR reductions calculation (inspired by Ethereal)

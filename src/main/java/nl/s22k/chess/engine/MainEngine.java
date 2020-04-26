@@ -4,37 +4,29 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.eval.EvalCache;
-import nl.s22k.chess.eval.EvalUtil;
-import nl.s22k.chess.eval.KingSafetyEval;
-import nl.s22k.chess.eval.MaterialCache;
-import nl.s22k.chess.eval.PassedPawnEval;
-import nl.s22k.chess.eval.PawnEvalCache;
-import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveWrapper;
-import nl.s22k.chess.move.PV;
 import nl.s22k.chess.search.NegamaxUtil;
+import nl.s22k.chess.search.SearchUtil;
 import nl.s22k.chess.search.TTUtil;
+import nl.s22k.chess.search.ThreadData;
 import nl.s22k.chess.search.TimeUtil;
 
 public class MainEngine {
 
 	private static ChessBoard cb;
-	public static boolean noOutput = false;
-	public static String startFen = "";
+	private static ThreadData threadData;
 
-	private static boolean ponder = true;
+	public static boolean pondering = false;
 	private static boolean maxTimeExceeded = false;
+	private static boolean calculating = false;
 
 	public static int maxDepth = EngineConstants.MAX_PLIES;
-	public static int nrOfThreads = 1;
-	public static boolean pondering = false;
 
 	private static Object synchronizedObject = new Object();
-	private static boolean calculating = false;
 
 	private static Thread searchThread;
 	static {
@@ -51,16 +43,16 @@ public class MainEngine {
 						}
 
 						maxTimeExceeded = false;
-						NegamaxUtil.start(cb);
+						SearchUtil.start(cb);
 
 						// calculation ready
 						calculating = false;
 						maxTimeThread.interrupt();
 						infoThread.interrupt();
 
-						sendBestMove();
+						UciOut.sendBestMove(threadData);
 					} catch (Throwable t) {
-						ErrorLogger.log(cb, t);
+						ErrorLogger.log(cb, t, true);
 					}
 				}
 			}
@@ -85,7 +77,8 @@ public class MainEngine {
 						Thread.sleep(TimeUtil.getMaxTimeMs());
 						if (pondering) {
 							maxTimeExceeded = true;
-						} else if (PV.getBestMove() != 0) {
+						} else if (threadData.getBestMove() != 0) {
+							System.out.println("info string max time exceeded");
 							NegamaxUtil.isRunning = false;
 						}
 
@@ -99,7 +92,7 @@ public class MainEngine {
 		maxTimeThread.setDaemon(true);
 	}
 
-	private static Thread infoThread;
+	public static Thread infoThread;
 	static {
 		infoThread = new Thread() {
 			@Override
@@ -108,7 +101,7 @@ public class MainEngine {
 					try {
 						Thread.sleep(2000);
 						if (calculating) {
-							sendInfo();
+							UciOut.sendInfo();
 						}
 					} catch (InterruptedException e) {
 						// do nothing
@@ -122,7 +115,9 @@ public class MainEngine {
 	}
 
 	public static void main(String[] args) {
-		cb = ChessBoardUtil.getNewCB();
+		Thread.currentThread().setName("chess22k-main");
+		cb = ChessBoardInstances.get(0);
+		threadData = ThreadData.getInstance(0);
 		searchThread.start();
 		maxTimeThread.start();
 		infoThread.start();
@@ -130,59 +125,54 @@ public class MainEngine {
 	}
 
 	private static void start() {
+		Scanner sc = new Scanner(System.in);
 		try {
-			Scanner sc = new Scanner(System.in);
-
 			while (sc.hasNextLine()) {
-				String[] tokens = sc.nextLine().split(" ");
-				if (tokens[0].equals("uci")) {
-					System.out.println("id name chess22k " + getVersion());
-					System.out.println("id author Sander MvdB");
-					System.out.println("option name Hash type spin default 128 min 1 max 16384");
-					System.out.println("option name Threads type spin default 1 min 1 max " + EngineConstants.MAX_THREADS);
-					if (EngineConstants.ENABLE_PONDERING) {
-						System.out.println("option name Ponder type check default false");
-					}
-					System.out.println("uciok");
-				} else if (tokens[0].equals("isready")) {
-					TTUtil.init(false);
-					System.out.println("readyok");
-				} else if (tokens[0].equals("ucinewgame")) {
-					TTUtil.clearValues();
-					PawnEvalCache.clearValues();
-					MaterialCache.clearValues();
-					EvalCache.clearValues();
-				} else if (tokens[0].equals("position")) {
-					position(tokens);
-				} else if (tokens[0].equals("go")) {
-					go(tokens, cb.moveCounter, cb.colorToMove);
-				} else if (tokens[0].equals("ponderhit")) {
-					pondering = false;
-					if (maxTimeExceeded) {
-						NegamaxUtil.isRunning = false;
-					}
-				} else if (tokens[0].equals("eval")) {
-					eval();
-				} else if (tokens[0].equals("setoption")) {
-					setOption(tokens[2], tokens[4]);
-				} else if (tokens[0].equals("quit")) {
-					sc.close();
-					System.exit(0);
-				} else if (tokens[0].equals("stop")) {
-					NegamaxUtil.isRunning = false;
-				} else {
-					System.out.println("Unknown command: " + tokens[0]);
-				}
+				readLine(sc.nextLine());
 			}
 		} catch (Throwable t) {
-			ErrorLogger.log(cb, t);
+			ErrorLogger.log(cb, t, true);
+		} finally {
+			sc.close();
 		}
+	}
 
+	public synchronized static void readLine(String line) {
+		String[] tokens = line.split(" ");
+		if (tokens[0].equals("uci")) {
+			UciOut.sendUci();
+		} else if (tokens[0].equals("isready")) {
+			System.out.println("readyok");
+		} else if (tokens[0].equals("ucinewgame")) {
+			TTUtil.init(false);
+			TTUtil.clearValues();
+		} else if (tokens[0].equals("position")) {
+			position(tokens);
+		} else if (tokens[0].equals("go")) {
+			go(tokens);
+		} else if (tokens[0].equals("ponderhit")) {
+			pondering = false;
+			if (MainEngine.maxTimeExceeded) {
+				NegamaxUtil.isRunning = false;
+			}
+		} else if (tokens[0].equals("eval")) {
+			UciOut.eval(cb, threadData);
+		} else if (tokens[0].equals("setoption")) {
+			if (tokens.length > 4) {
+				setOption(tokens[2], tokens[4]);
+			}
+		} else if (tokens[0].equals("quit")) {
+			System.exit(0);
+		} else if (tokens[0].equals("stop")) {
+			NegamaxUtil.isRunning = false;
+		} else {
+			System.out.println("Unknown command: " + tokens[0]);
+		}
 	}
 
 	private static void position(String[] tokens) {
 		if (tokens[1].equals("startpos")) {
-			cb = ChessBoardUtil.getNewCB();
+			ChessBoardUtil.setStartFen(cb);
 			if (tokens.length == 2) {
 				// position startpos
 				doMoves(new String[] {});
@@ -197,7 +187,7 @@ public class MainEngine {
 				fen += " " + tokens[6];
 				fen += " " + tokens[7];
 			}
-			cb = ChessBoardUtil.getNewCB(fen);
+			ChessBoardUtil.setFen(fen, cb);
 
 			if (tokens.length == 6 || tokens.length == 7 || tokens.length == 8) {
 				// position fen 4k3/8/8/8/8/3K4 b kq - 0 1
@@ -207,8 +197,8 @@ public class MainEngine {
 				doMoves(Arrays.copyOfRange(tokens, 9, tokens.length));
 			}
 		}
+		ErrorLogger.startFen = cb.toString();
 		TTUtil.halfMoveCounter = cb.moveCounter;
-		startFen = cb.toString();
 	}
 
 	private static void setOption(String optionName, String optionValue) {
@@ -217,23 +207,23 @@ public class MainEngine {
 			int value = Integer.parseInt(optionValue);
 			TTUtil.setSizeMB(value);
 		} else if (optionName.toLowerCase().equals("threads")) {
-			nrOfThreads = Integer.parseInt(optionValue);
-			ChessBoard.initInstances(nrOfThreads);
-			MoveGenerator.initInstances(nrOfThreads);
+			UciOptions.setThreadCount(Integer.parseInt(optionValue));
+			cb = ChessBoardInstances.get(0);
+			threadData = ThreadData.getInstance(0);
 		} else if (optionName.toLowerCase().equals("ponder")) {
-			ponder = Boolean.parseBoolean(optionValue);
+			UciOptions.setPonder(Boolean.parseBoolean(optionValue));
 		} else {
 			System.out.println("Unknown option: " + optionName);
 		}
 	}
 
-	private static void go(String[] goCommandTokens, int moveCount, int colorToMove) {
+	private static void go(String[] goCommandTokens) {
 		// go movestogo 30 wtime 3600000 btime 3600000
 		// go wtime 40847 btime 48019 winc 0 binc 0 movestogo 20
 
 		Statistics.reset();
 		TimeUtil.reset();
-		TimeUtil.setMoveCount(moveCount);
+		TimeUtil.setMoveCount(cb.moveCounter);
 		maxDepth = EngineConstants.MAX_PLIES;
 		pondering = false;
 
@@ -251,9 +241,6 @@ public class MainEngine {
 				if (goCommandTokens[i].equals("infinite")) {
 					// TODO are we clearing the values again?
 					TTUtil.clearValues();
-					PawnEvalCache.clearValues();
-					EvalCache.clearValues();
-					MaterialCache.clearValues();
 				} else if (goCommandTokens[i].equals("ponder")) {
 					pondering = true;
 				} else if (goCommandTokens[i].equals("movetime")) {
@@ -263,11 +250,11 @@ public class MainEngine {
 				} else if (goCommandTokens[i].equals("depth")) {
 					maxDepth = Integer.parseInt(goCommandTokens[i + 1]);
 				} else if (goCommandTokens[i].equals("wtime")) {
-					if (colorToMove == ChessConstants.WHITE) {
+					if (cb.colorToMove == ChessConstants.WHITE) {
 						TimeUtil.setTotalTimeLeft(Integer.parseInt(goCommandTokens[i + 1]));
 					}
 				} else if (goCommandTokens[i].equals("btime")) {
-					if (colorToMove == ChessConstants.BLACK) {
+					if (cb.colorToMove == ChessConstants.BLACK) {
 						TimeUtil.setTotalTimeLeft(Integer.parseInt(goCommandTokens[i + 1]));
 					}
 				} else if (goCommandTokens[i].equals("winc") || goCommandTokens[i].equals("binc")) {
@@ -290,80 +277,6 @@ public class MainEngine {
 			MoveWrapper move = new MoveWrapper(moveToken, cb);
 			cb.doMove(move.move);
 		}
-	}
-
-	private static void eval() {
-		final int mobilityScore = EvalUtil.calculateMobilityScoresAndSetAttacks(cb);
-		System.out.println(" Material imbalance: " + EvalUtil.getImbalances(cb));
-		System.out.println("          Position : " + getMgEgString(cb.psqtScore));
-		System.out.println("          Mobility : " + getMgEgString(mobilityScore));
-		System.out.println("              Pawn : " + EvalUtil.getPawnScores(cb));
-		System.out.println("       Pawn-passed : " + getMgEgString(PassedPawnEval.calculateScores(cb)));
-		System.out.println("       Pawn shield : " + getMgEgString(EvalUtil.calculatePawnShieldBonus(cb)));
-		System.out.println("       King-safety : " + KingSafetyEval.calculateScores(cb));
-		System.out.println("           Threats : " + getMgEgString(EvalUtil.calculateThreats(cb)));
-		System.out.println("             Other : " + EvalUtil.calculateOthers(cb));
-		System.out.println("             Space : " + EvalUtil.calculateSpace(cb));
-		System.out.println("-----------------------------");
-		System.out.println("             Total : " + ChessConstants.COLOR_FACTOR[cb.colorToMove] * EvalUtil.getScore(cb));
-	}
-
-	private static String getMgEgString(int mgEgScore) {
-		return EvalUtil.getMgScore(mgEgScore) + "/" + EvalUtil.getEgScore(mgEgScore);
-	}
-
-	private static void sendBestMove() {
-		if (noOutput) {
-			return;
-		}
-
-		Statistics.print();
-		if (ponder && PV.getPonderMove() != 0) {
-			System.out.println("bestmove " + new MoveWrapper(PV.getBestMove()) + " ponder " + new MoveWrapper(PV.getPonderMove()));
-		} else {
-			System.out.println("bestmove " + new MoveWrapper(PV.getBestMove()));
-		}
-	}
-
-	public static void sendInfo() {
-		if (noOutput) {
-			return;
-		}
-		ChessBoard.calculateTotalMoveCount();
-		System.out.println("info nodes " + ChessBoard.totalMoveCount + " nps " + calculateNps() + " hashfull " + TTUtil.getUsagePercentage());
-	}
-
-	public static void sendPlyInfo() {
-		if (noOutput) {
-			return;
-		}
-
-		// restart info thread
-		infoThread.interrupt();
-
-		ChessBoard.calculateTotalMoveCount();
-
-		// info depth 1 seldepth 2 score cp 50 pv d2d4 d7d5 e2e3 hashfull 0 nps 1000 nodes 22
-		// info depth 4 seldepth 10 score cp 40 upperbound pv d2d4 d7d5 e2e3 hashfull 0 nps 30000 nodes 1422
-		System.out.println("info depth " + Statistics.depth + " time " + TimeUtil.getPassedTimeMs() + " score cp " + PV.getScore() + PV.getScoreType() + "nps "
-				+ calculateNps() + " nodes " + ChessBoard.totalMoveCount + " hashfull " + TTUtil.getUsagePercentage() + " pv " + PV.asString());
-	}
-
-	public static long calculateNps() {
-		return ChessBoard.totalMoveCount * 1000 / Math.max(TimeUtil.getPassedTimeMs(), 1);
-	}
-
-	public static String getVersion() {
-		String version = null;
-		Package pkg = new MainEngine().getClass().getPackage();
-		if (pkg != null) {
-			version = pkg.getImplementationVersion();
-			if (version == null) {
-				version = pkg.getSpecificationVersion();
-			}
-		}
-		version = version == null ? "" : version.trim();
-		return version.isEmpty() ? "v?" : version;
 	}
 
 }

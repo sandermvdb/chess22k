@@ -26,8 +26,8 @@ public class MoveUtil {
 	private static final int MASK_6_BITS = 0x3f; // 6
 	private static final int MASK_12_BITS = 0xfff;
 
-	private static final int MASK_ATTACK = 7 << 15; // 3
-	private static final int MASK_PROMOTION = 1 << 21; // 1
+	private static final int MASK_ATTACK = 7 << SHIFT_ATTACK; // 3
+	private static final int MASK_PROMOTION = 1 << SHIFT_PROMOTION; // 1
 	private static final int MASK_QUIET = MASK_PROMOTION | MASK_ATTACK;
 
 	public static int getFromIndex(final int move) {
@@ -82,10 +82,6 @@ public class MoveUtil {
 		return attackedPieceIndex << SHIFT_ATTACK | sourcePieceIndex << SHIFT_SOURCE | toIndex << SHIFT_TO | fromIndex;
 	}
 
-	public static int createSeeAttackMove(final long fromSquare, final int sourcePieceIndex) {
-		return sourcePieceIndex << SHIFT_SOURCE | Long.numberOfTrailingZeros(fromSquare);
-	}
-
 	public static int createPromotionAttack(final int promotionPiece, final int fromIndex, final int toIndex, final int attackedPieceIndex) {
 		return 1 << SHIFT_PROMOTION | promotionPiece << SHIFT_MOVE_TYPE | attackedPieceIndex << SHIFT_ATTACK | ChessConstants.PAWN << SHIFT_SOURCE
 				| toIndex << SHIFT_TO | fromIndex;
@@ -105,14 +101,6 @@ public class MoveUtil {
 
 	public static boolean isPawnPush78(final int move) {
 		return getSourcePieceIndex(move) == ChessConstants.PAWN && (getToIndex(move) > 47 || getToIndex(move) < 16);
-	}
-
-	public static boolean isPawnPush678(final int move, final int color) {
-		if (color == ChessConstants.WHITE) {
-			return getSourcePieceIndex(move) == ChessConstants.PAWN && getToIndex(move) > 39;
-		} else {
-			return getSourcePieceIndex(move) == ChessConstants.PAWN && getToIndex(move) < 24;
-		}
 	}
 
 	/**

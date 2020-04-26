@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.eval.KPKBitbase;
@@ -21,7 +22,8 @@ public class KPKTest {
 		int ok = 0;
 		int nok = 0;
 		for (Entry<String, Double> entry : fens.entrySet()) {
-			ChessBoard cb = ChessBoardUtil.getNewCB(entry.getKey());
+			ChessBoard cb = ChessBoardInstances.get(0);
+			ChessBoardUtil.setFen(entry.getKey(), cb);
 			if (Long.bitCount(cb.allPieces) > 3) {
 				continue;
 			}
@@ -38,8 +40,8 @@ public class KPKTest {
 
 		System.out.println();
 		System.out.println("Tested " + tested);
-		System.out.println("OK     " + ok);
-		System.out.println("NOK    " + nok);
+		System.out.println("OK " + ok);
+		System.out.println("NOK " + nok);
 
 	}
 

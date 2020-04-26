@@ -2,14 +2,17 @@ package nl.s22k.chess.maintests;
 
 import nl.s22k.chess.Assert;
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveWrapper;
+import nl.s22k.chess.search.ThreadData;
 
 public class QPerft {
 
-	private static MoveGenerator moveGen = new MoveGenerator();
+	private static ThreadData threadData = ThreadData.getInstance(0);
+	private static ChessBoard cb = ChessBoardInstances.get(0);
 
 	public static void main(String args[]) {
 		if (!EngineConstants.GENERATE_BR_PROMOTIONS) {
@@ -30,23 +33,23 @@ public class QPerft {
 
 	public static long qperft(final ChessBoard cb, final int depth) {
 
-		moveGen.startPly();
-		moveGen.generateMoves(cb);
-		moveGen.generateAttacks(cb);
+		threadData.startPly();
+		MoveGenerator.generateMoves(threadData, cb);
+		MoveGenerator.generateAttacks(threadData, cb);
 
 		long counter = 0;
 		if (depth == 1) {
-			while (moveGen.hasNext()) {
-				if (cb.isLegal(moveGen.next())) {
+			while (threadData.hasNext()) {
+				if (cb.isLegal(threadData.next())) {
 					counter++;
 				}
 			}
-			moveGen.endPly();
+			threadData.endPly();
 			return counter;
 		}
 
-		while (moveGen.hasNext()) {
-			final int move = moveGen.next();
+		while (threadData.hasNext()) {
+			final int move = threadData.next();
 			if (!cb.isLegal(move)) {
 				continue;
 			}
@@ -55,18 +58,18 @@ public class QPerft {
 			cb.undoMove(move);
 		}
 
-		moveGen.endPly();
+		threadData.endPly();
 		return counter;
 
 	}
 
 	public static long qdivide(final ChessBoard cb, final int depth) {
 
-		moveGen.startPly();
-		moveGen.generateMoves(cb);
+		threadData.startPly();
+		MoveGenerator.generateMoves(threadData, cb);
 		int counter = 0;
-		while (moveGen.hasNext()) {
-			final int move = moveGen.next();
+		while (threadData.hasNext()) {
+			final int move = threadData.next();
 			if (depth == 1) {
 				System.out.println(new MoveWrapper(move) + ": " + 1);
 				counter++;
@@ -85,49 +88,49 @@ public class QPerft {
 
 	public static void testPerft1() {
 		System.out.println(1);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(20 == qperft(cb, 1));
 	}
 
 	public static void testPerft2() {
 		System.out.println(2);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(400 == qperft(cb, 2));
 	}
 
 	public static void testPerft3() {
 		System.out.println(3);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(8902 == qperft(cb, 3));
 	}
 
 	public static void testPerft4() {
 		System.out.println(4);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(197281 == qperft(cb, 4));
 	}
 
 	public static void testPerft5() {
 		System.out.println(5);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(4865609 == qperft(cb, 5));
 	}
 
 	public static void testPerft6() {
 		System.out.println(6);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(119060324 == qperft(cb, 6));
 	}
 
 	public static void testPerft7() {
 		System.out.println(7);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(3195901860L == qperft(cb, 7));
 	}
 
 	public static void testPerft8() {
 		System.out.println(8);
-		ChessBoard cb = ChessBoardUtil.getNewCB();
+		ChessBoardUtil.setStartFen(cb);
 		Assert.isTrue(84998978956L == qperft(cb, 8));
 	}
 

@@ -29,12 +29,14 @@ public class ChessBoardTestUtil {
 		if (EvalUtil.calculatePositionScores(cb1) != EvalUtil.calculatePositionScores(cb2) * factor) {
 			System.out.println("Unequal position score: " + EvalUtil.calculatePositionScores(cb1) + " " + EvalUtil.calculatePositionScores(cb2) * factor);
 		}
-		if (EvalUtil.getPawnScores(cb1) != EvalUtil.getPawnScores(cb2) * factor) {
-			System.out.println("Unequal pawns: " + EvalUtil.getPawnScores(cb1) + " " + EvalUtil.getPawnScores(cb2) * factor);
-		}
-		if (EvalUtil.getImbalances(cb1) != EvalUtil.getImbalances(cb2) * factor) {
-			System.out.println("Unequal imbalances: " + EvalUtil.getImbalances(cb1) + " " + EvalUtil.getImbalances(cb2) * factor);
-		}
+		// if (EvalUtil.getPawnScores(cb1) != EvalUtil.getPawnScores(cb2) * factor) {
+		// System.out.println("Unequal pawns: " + EvalUtil.getPawnScores(cb1) + " " + EvalUtil.getPawnScores(cb2) *
+		// factor);
+		// }
+		// if (EvalUtil.getImbalances(cb1) != EvalUtil.getImbalances(cb2) * factor) {
+		// System.out.println("Unequal imbalances: " + EvalUtil.getImbalances(cb1) + " " + EvalUtil.getImbalances(cb2) *
+		// factor);
+		// }
 		if (EvalUtil.calculateOthers(cb2) != EvalUtil.calculateOthers(cb1) * factor) {
 			System.out.println("Unequal others: " + EvalUtil.calculateOthers(cb1) + " " + EvalUtil.calculateOthers(cb2) * factor);
 		}
@@ -50,11 +52,7 @@ public class ChessBoardTestUtil {
 
 		long iterativeZK = cb.zobristKey;
 		long iterativeZKPawn = cb.pawnZobristKey;
-		long iterativeWhitePieces = cb.friendlyPieces[WHITE];
-		long iterativeBlackPieces = cb.friendlyPieces[BLACK];
 		long iterativeAllPieces = cb.allPieces;
-		long pinnedPieces = cb.pinnedPieces;
-		long discoveredPieces = cb.discoveredPieces;
 		int iterativePsqt = cb.psqtScore;
 		int phase = cb.phase;
 		long materialKey = cb.materialKey;
@@ -70,15 +68,8 @@ public class ChessBoardTestUtil {
 		Assert.isTrue(iterativeZK == cb.zobristKey);
 		Assert.isTrue(iterativeZKPawn == cb.pawnZobristKey);
 
-		// pinned and discovered pieces
-		Assert.isTrue(pinnedPieces == cb.pinnedPieces);
-		Assert.isTrue(discoveredPieces == cb.discoveredPieces);
-
 		// combined pieces
-		Assert.isTrue(iterativeWhitePieces == cb.friendlyPieces[WHITE]);
-		Assert.isTrue(iterativeBlackPieces == cb.friendlyPieces[BLACK]);
 		Assert.isTrue(iterativeAllPieces == cb.allPieces);
-		Assert.isTrue((iterativeBlackPieces & iterativeWhitePieces) == 0);
 
 		// psqt
 		Assert.isTrue(iterativePsqt == cb.psqtScore);
@@ -93,7 +84,7 @@ public class ChessBoardTestUtil {
 	}
 
 	private static ChessBoard getHorizontalMirroredCb(ChessBoard cb) {
-		ChessBoard testCb = ChessBoard.getInstance(1);
+		ChessBoard testCb = ChessBoardInstances.get(1);
 
 		for (int color = ChessConstants.WHITE; color <= ChessConstants.BLACK; color++) {
 			for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++) {
@@ -108,7 +99,7 @@ public class ChessBoardTestUtil {
 	}
 
 	private static ChessBoard getVerticalMirroredCb(ChessBoard cb) {
-		ChessBoard testCb = ChessBoard.getInstance(1);
+		ChessBoard testCb = ChessBoardInstances.get(1);
 
 		for (int piece = ChessConstants.PAWN; piece <= ChessConstants.KING; piece++) {
 			testCb.pieces[WHITE][piece] = Util.mirrorVertical(cb.pieces[BLACK][piece]);

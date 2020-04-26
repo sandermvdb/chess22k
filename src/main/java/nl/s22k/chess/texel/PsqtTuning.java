@@ -1,5 +1,7 @@
 package nl.s22k.chess.texel;
 
+import java.util.Arrays;
+
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.eval.EvalConstants;
 
@@ -10,7 +12,6 @@ public class PsqtTuning extends Tuning {
 	public PsqtTuning(int[][] psqtValues, int step, String name) {
 		super(psqtValues[ChessConstants.WHITE], step, name, true);
 		this.psqtValues = psqtValues;
-		this.tunedValues = 32;
 		orgValues = new int[64];
 		System.arraycopy(psqtValues[ChessConstants.WHITE], 0, orgValues, 0, 64);
 	}
@@ -18,9 +19,12 @@ public class PsqtTuning extends Tuning {
 	public PsqtTuning(int[][] psqtValues, int step, String name, boolean pawnPsqt) {
 		super(psqtValues[ChessConstants.WHITE], step, name, true, 0, 1, 2, 3, 4, 5, 6, 7, 56, 57, 58, 59, 60, 61, 62, 63);
 		this.psqtValues = psqtValues;
-		this.tunedValues = 24;
 		orgValues = new int[64];
 		System.arraycopy(psqtValues[ChessConstants.WHITE], 0, orgValues, 0, 64);
+	}
+
+	public int getNumberOfTunedValues() {
+		return super.getNumberOfTunedValues() / 2;
 	}
 
 	@Override
@@ -43,9 +47,10 @@ public class PsqtTuning extends Tuning {
 			for (int i = 0; i < 64; i++) {
 				sum += psqtValues[ChessConstants.WHITE][i];
 			}
-			return name + ": " + sum / 64;
+			return name + ": (" + sum / 64 + ")" + Arrays.toString(psqtValues[ChessConstants.WHITE]);
+		} else {
+			return name + ": " + Arrays.toString(psqtValues[ChessConstants.WHITE]);
 		}
-		return name;
 	}
 
 	public void addStep(int i) {
@@ -74,10 +79,6 @@ public class PsqtTuning extends Tuning {
 
 		// remove from black mirrored
 		psqtValues[ChessConstants.BLACK][EvalConstants.MIRRORED_LEFT_RIGHT[EvalConstants.MIRRORED_UP_DOWN[i]]] += step;
-	}
-
-	public boolean scoreIsZero(int i) {
-		return psqtValues[ChessConstants.WHITE][i] == 0;
 	}
 
 	public int numberOfParameters() {

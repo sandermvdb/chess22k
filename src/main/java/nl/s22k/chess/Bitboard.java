@@ -134,11 +134,15 @@ public class Bitboard {
 	// special ranks
 	public static final long RANK_12 = RANK_1 | RANK_2;
 	public static final long RANK_78 = RANK_7 | RANK_8;
+	public static final long RANK_123 = RANK_1 | RANK_2 | RANK_3;
 	public static final long RANK_234 = RANK_2 | RANK_3 | RANK_4;
 	public static final long RANK_567 = RANK_5 | RANK_6 | RANK_7;
+	public static final long RANK_678 = RANK_6 | RANK_7 | RANK_8;
+	public static final long RANK_1234 = RANK_1 | RANK_2 | RANK_3 | RANK_4;
+	public static final long RANK_5678 = RANK_5 | RANK_6 | RANK_7 | RANK_8;
 	public static final long RANK_23456 = RANK_2 | RANK_3 | RANK_4 | RANK_5 | RANK_6;
-	public static final long RANK_34567 = RANK_3 | RANK_4 | RANK_5 | RANK_6 | RANK_7;
 	public static final long RANK_234567 = RANK_2 | RANK_3 | RANK_4 | RANK_5 | RANK_6 | RANK_7;
+	public static final long RANK_34567 = RANK_3 | RANK_4 | RANK_5 | RANK_6 | RANK_7;
 	public static final long RANK_PROMOTION[] = { RANK_7, RANK_2 };
 	public static final long RANK_NON_PROMOTION[] = { ~RANK_PROMOTION[0], ~RANK_PROMOTION[1] };
 	public static final long RANK_FIRST[] = { RANK_1, RANK_8 };
@@ -173,15 +177,6 @@ public class Bitboard {
 			FILE_D | FILE_B, //
 			FILE_C | FILE_A, //
 			FILE_B };
-
-	public static final long KING_SIDE = FILE_F | FILE_G | FILE_H;
-	public static final long QUEEN_SIDE = FILE_A | FILE_B | FILE_C;
-
-	public static final long WHITE_SIDE = RANK_1 | RANK_2 | RANK_3 | RANK_4;
-	public static final long BLACK_SIDE = RANK_5 | RANK_6 | RANK_7 | RANK_8;
-
-	public static final long WHITE_SPACE_ZONE = (RANK_2 | RANK_3 | RANK_4) & (FILE_C | FILE_D | FILE_E | FILE_F);
-	public static final long BLACK_SPACE_ZONE = (RANK_7 | RANK_6 | RANK_5) & (FILE_C | FILE_D | FILE_E | FILE_F);
 
 	public static long getWhitePawnAttacks(final long pawns) {
 		return pawns << 9 & Bitboard.NOT_FILE_H | pawns << 7 & Bitboard.NOT_FILE_A;
@@ -226,6 +221,14 @@ public class Bitboard {
 
 	public static long getBlackAdjacentMask(final int index) {
 		return getBlackPassedPawnMask(index) & ~FILES[index & 7];
+	}
+
+	public static long getFile(final long square) {
+		return FILES[Long.numberOfTrailingZeros(square) & 7];
+	}
+
+	public static long getRank(final long square) {
+		return RANKS[Long.numberOfTrailingZeros(square) / 8];
 	}
 
 }

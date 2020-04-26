@@ -1,23 +1,17 @@
 package nl.s22k.chess.search;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import nl.s22k.chess.Assert;
-import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
-import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
-import nl.s22k.chess.engine.MainEngine;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.MaterialUtil;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveGenerator;
 import nl.s22k.chess.move.MoveUtil;
-import nl.s22k.chess.move.PV;
 
 public final class NegamaxUtil {
 
@@ -37,15 +31,15 @@ public final class NegamaxUtil {
 		// Ethereal LMR formula with depth and number of performed moves
 		for (int depth = 1; depth < 64; depth++) {
 			for (int moveNumber = 1; moveNumber < 64; moveNumber++) {
-				LMR_TABLE[depth][moveNumber] = (int) (0.5f + Math.log(depth) * Math.log(moveNumber * 1.2f) / 2.5f);
+				LMR_TABLE[depth][moveNumber] = (int) (0.6f + Math.log(depth) * Math.log(moveNumber * 1.2f) / 2.5f);
 			}
 		}
 	}
 
-	public static AtomicInteger nrOfActiveThreads = new AtomicInteger(0);
 	public static boolean isRunning = false;
 
-	public static int calculateBestMove(final ChessBoard cb, final MoveGenerator moveGen, int ply, int depth, int alpha, int beta, final int nullMoveCounter) {
+	public static int calculateBestMove(final ChessBoard cb, final ThreadData threadData, final int ply, int depth, int alpha, int beta,
+			final int nullMoveCounter) {
 
 		if (!isRunning) {
 			return ChessConstants.SCORE_NOT_RUNNING;
@@ -73,7 +67,7 @@ public final class NegamaxUtil {
 
 		// TODO JITWatch unpredictable branch
 		if (depth == 0) {
-			return QuiescenceUtil.calculateBestMove(cb, moveGen, alpha, beta);
+			return QuiescenceUtil.calculateBestMove(cb, threadData, alpha, beta);
 		}
 
 		/* transposition-table */
@@ -108,7 +102,7 @@ public final class NegamaxUtil {
 		final boolean isPv = beta - alpha != 1;
 		if (!isPv && cb.checkingPieces == 0) {
 
-			eval = EvalUtil.getScore(cb);
+			eval = EvalUtil.getScore(cb, threadData);
 
 			/* use tt value as eval */
 			if (EngineConstants.USE_TT_SCORE_AS_EVAL) {
@@ -130,7 +124,7 @@ public final class NegamaxUtil {
 			/* razoring */
 			if (EngineConstants.ENABLE_RAZORING && depth < RAZORING_MARGIN.length && Math.abs(alpha) < EvalConstants.SCORE_MATE_BOUND) {
 				if (eval + RAZORING_MARGIN[depth] < alpha) {
-					score = QuiescenceUtil.calculateBestMove(cb, moveGen, alpha - RAZORING_MARGIN[depth], alpha - RAZORING_MARGIN[depth] + 1);
+					score = QuiescenceUtil.calculateBestMove(cb, threadData, alpha - RAZORING_MARGIN[depth], alpha - RAZORING_MARGIN[depth] + 1);
 					if (score + RAZORING_MARGIN[depth] <= alpha) {
 						if (Statistics.ENABLED) {
 							Statistics.razored[depth]++;
@@ -146,8 +140,8 @@ public final class NegamaxUtil {
 					cb.doNullMove();
 					// TODO less reduction if stm (other side) has only 1 major piece
 					final int reduction = depth / 4 + 3 + Math.min((eval - beta) / 80, 3);
-					score = depth - reduction <= 0 ? -QuiescenceUtil.calculateBestMove(cb, moveGen, -beta, -beta + 1)
-							: -calculateBestMove(cb, moveGen, ply + 1, depth - reduction, -beta, -beta + 1, nullMoveCounter + 1);
+					score = depth - reduction <= 0 ? -QuiescenceUtil.calculateBestMove(cb, threadData, -beta, -beta + 1)
+							: -calculateBestMove(cb, threadData, ply + 1, depth - reduction, -beta, -beta + 1, nullMoveCounter + 1);
 					cb.undoNullMove();
 					if (score >= beta) {
 						if (Statistics.ENABLED) {
@@ -162,7 +156,7 @@ public final class NegamaxUtil {
 			}
 		}
 
-		final int parentMove = ply == 0 ? 0 : moveGen.previous();
+		final int parentMove = ply == 0 ? 0 : threadData.previous();
 		int bestMove = 0;
 		int bestScore = Util.SHORT_MIN - 1;
 		int ttMove = 0;
@@ -171,60 +165,55 @@ public final class NegamaxUtil {
 		int killer2Move = 0;
 		int movesPerformed = 0;
 
-		moveGen.startPly();
+		threadData.startPly();
 		int phase = PHASE_TT;
 		while (phase <= PHASE_QUIET) {
 			switch (phase) {
 			case PHASE_TT:
 				if (ttValue != 0) {
 					ttMove = TTUtil.getMove(ttValue);
-
-					// verify TT-move?
-					if (EngineConstants.VERIFY_TT_MOVE) {
-						throw new RuntimeException("verify tt move is not implemented");
+					if (cb.isValidMove(ttMove)) {
+						threadData.addMove(ttMove);
 					}
-
-					moveGen.addMove(ttMove);
+					// else {
+					// throw new RuntimeException("invalid tt-move found: " + new MoveWrapper(ttMove));
+					// }
 				}
 				break;
 			case PHASE_ATTACKING:
-				// TODO no ordering at ALL-nodes?
-				moveGen.generateAttacks(cb);
-				moveGen.setMVVLVAScores();
-				moveGen.sort();
+				MoveGenerator.generateAttacks(threadData, cb);
+				threadData.setMVVLVAScores();
+				threadData.sort();
 				break;
 			case PHASE_KILLER_1:
-				killer1Move = moveGen.getKiller1(ply);
-				if (killer1Move != 0 && killer1Move != ttMove && cb.isValidQuietMove(killer1Move)) {
-					moveGen.addMove(killer1Move);
+				killer1Move = threadData.getKiller1(ply);
+				if (killer1Move != 0 && killer1Move != ttMove && cb.isValidMove(killer1Move)) {
+					threadData.addMove(killer1Move);
 					break;
-				} else {
-					phase++;
 				}
+				phase++;
 			case PHASE_KILLER_2:
-				killer2Move = moveGen.getKiller2(ply);
-				if (killer2Move != 0 && killer2Move != ttMove && cb.isValidQuietMove(killer2Move)) {
-					moveGen.addMove(killer2Move);
+				killer2Move = threadData.getKiller2(ply);
+				if (killer2Move != 0 && killer2Move != ttMove && cb.isValidMove(killer2Move)) {
+					threadData.addMove(killer2Move);
 					break;
-				} else {
-					phase++;
 				}
+				phase++;
 			case PHASE_COUNTER:
-				counterMove = moveGen.getCounter(cb.colorToMove, parentMove);
-				if (counterMove != 0 && counterMove != ttMove && counterMove != killer1Move && counterMove != killer2Move && cb.isValidQuietMove(counterMove)) {
-					moveGen.addMove(counterMove);
+				counterMove = threadData.getCounter(cb.colorToMove, parentMove);
+				if (counterMove != 0 && counterMove != ttMove && counterMove != killer1Move && counterMove != killer2Move && cb.isValidMove(counterMove)) {
+					threadData.addMove(counterMove);
 					break;
-				} else {
-					phase++;
 				}
+				phase++;
 			case PHASE_QUIET:
-				moveGen.generateMoves(cb);
-				moveGen.setHHScores(cb.colorToMove);
-				moveGen.sort();
+				MoveGenerator.generateMoves(threadData, cb);
+				threadData.setHHScores(cb.colorToMove);
+				threadData.sort();
 			}
 
-			while (moveGen.hasNext()) {
-				final int move = moveGen.next();
+			while (threadData.hasNext()) {
+				final int move = threadData.next();
 
 				if (phase == PHASE_QUIET) {
 					if (move == ttMove || move == killer1Move || move == killer2Move || move == counterMove || !cb.isLegal(move)) {
@@ -236,16 +225,11 @@ public final class NegamaxUtil {
 					}
 				}
 
-				if (EngineConstants.ASSERT) {
-					if (MoveUtil.isQuiet(move)) {
-						Assert.isTrue(cb.isValidQuietMove(move));
-					}
-				}
-
 				// pruning allowed?
-				if (!isPv && cb.checkingPieces == 0 && movesPerformed > 0 && moveGen.getScore() < 100 && !cb.isDiscoveredMove(MoveUtil.getFromIndex(move))) {
+				if (!isPv && cb.checkingPieces == 0 && movesPerformed > 0 && threadData.getMoveScore() < 100
+						&& !cb.isDiscoveredMove(MoveUtil.getFromIndex(move))) {
 
-					if (MoveUtil.isQuiet(move)) {
+					if (phase == PHASE_QUIET) {
 
 						/* late move pruning */
 						if (EngineConstants.ENABLE_LMP && depth <= 4 && movesPerformed >= depth * 3 + 3) {
@@ -259,7 +243,7 @@ public final class NegamaxUtil {
 						if (EngineConstants.ENABLE_FUTILITY_PRUNING && depth < FUTILITY_MARGIN.length) {
 							if (!MoveUtil.isPawnPush78(move)) {
 								if (eval == Util.SHORT_MIN) {
-									eval = EvalUtil.getScore(cb);
+									eval = EvalUtil.getScore(cb, threadData);
 								}
 								if (eval + FUTILITY_MARGIN[depth] <= alpha) {
 									if (Statistics.ENABLED) {
@@ -287,17 +271,11 @@ public final class NegamaxUtil {
 				} else {
 					score = alpha + 1; // initial is above alpha
 
-					if (EngineConstants.ASSERT) {
-						cb.changeSideToMove();
-						Assert.isTrue(0 == CheckUtil.getCheckingPieces(cb));
-						cb.changeSideToMove();
-					}
-
 					int reduction = 1;
 					if (depth > 2 && movesPerformed > 1 && MoveUtil.isQuiet(move) && !MoveUtil.isPawnPush78(move)) {
 
 						reduction = LMR_TABLE[Math.min(depth, 63)][Math.min(movesPerformed, 63)];
-						if (moveGen.getScore() > 40) {
+						if (threadData.getMoveScore() > 40) {
 							reduction -= 1;
 						}
 						if (move == killer1Move || move == killer2Move || move == counterMove) {
@@ -311,32 +289,27 @@ public final class NegamaxUtil {
 
 					/* LMR */
 					if (EngineConstants.ENABLE_LMR && reduction != 1) {
-						score = -calculateBestMove(cb, moveGen, ply + 1, depth - reduction, -alpha - 1, -alpha, 0);
+						score = -calculateBestMove(cb, threadData, ply + 1, depth - reduction, -alpha - 1, -alpha, 0);
 					}
 
 					/* PVS */
 					if (EngineConstants.ENABLE_PVS && score > alpha && movesPerformed > 1) {
-						score = -calculateBestMove(cb, moveGen, ply + 1, depth - 1, -alpha - 1, -alpha, 0);
+						score = -calculateBestMove(cb, threadData, ply + 1, depth - 1, -alpha - 1, -alpha, 0);
 					}
 
 					/* normal bounds */
 					if (score > alpha) {
-						score = -calculateBestMove(cb, moveGen, ply + 1, depth - 1, -beta, -alpha, 0);
+						score = -calculateBestMove(cb, threadData, ply + 1, depth - 1, -beta, -alpha, 0);
 					}
 				}
 				cb.undoMove(move);
-
-				if (!isRunning) {
-					moveGen.endPly();
-					return ChessConstants.SCORE_NOT_RUNNING;
-				}
 
 				if (score > bestScore) {
 					bestScore = score;
 					bestMove = move;
 
-					if (ply == 0 && SearchThread.getThreadNumber() == 0) {
-						PV.set(bestMove, alphaOrig, beta, bestScore, cb);
+					if (ply == 0 && isRunning) {
+						threadData.setBestMove(cb, bestMove, alphaOrig, beta, bestScore, depth);
 					}
 
 					alpha = Math.max(alpha, score);
@@ -348,9 +321,9 @@ public final class NegamaxUtil {
 
 						/* killer and history */
 						if (MoveUtil.isQuiet(move) && cb.checkingPieces == 0) {
-							moveGen.addCounterMove(cb.colorToMove, parentMove, move);
-							moveGen.addKillerMove(move, ply);
-							moveGen.addHHValue(cb.colorToMove, move, depth);
+							threadData.addCounterMove(cb.colorToMove, parentMove, move);
+							threadData.addKillerMove(move, ply);
+							threadData.addHHValue(cb.colorToMove, move, depth);
 						}
 
 						phase += 10;
@@ -359,12 +332,12 @@ public final class NegamaxUtil {
 				}
 
 				if (MoveUtil.isQuiet(move)) {
-					moveGen.addBFValue(cb.colorToMove, move, depth);
+					threadData.addBFValue(cb.colorToMove, move, depth);
 				}
 			}
 			phase++;
 		}
-		moveGen.endPly();
+		threadData.endPly();
 
 		/* checkmate or stalemate */
 		if (movesPerformed == 0) {
@@ -397,9 +370,7 @@ public final class NegamaxUtil {
 			TTUtil.addValue(cb.zobristKey, bestScore, ply, depth, flag, bestMove);
 		}
 
-		if (Statistics.ENABLED) {
-			Statistics.setBestMove(cb, bestMove, ttMove, ttValue, flag, counterMove, killer1Move, killer2Move);
-		}
+		Statistics.setBestMove(cb, bestMove, ttMove, ttValue, flag, counterMove, killer1Move, killer2Move);
 
 		if (EngineConstants.TEST_TT_VALUES) {
 			SearchTestUtil.testTTValues(score, bestScore, depth, bestMove, flag, ttValue, ply);
@@ -420,41 +391,6 @@ public final class NegamaxUtil {
 			return 1;
 		}
 		return 0;
-	}
-
-	public static void start(final ChessBoard cb) {
-
-		isRunning = true;
-		cb.moveCount = 0;
-		TTUtil.init(false);
-
-		PV.init(cb);
-
-		if (MainEngine.nrOfThreads == 1) {
-			SearchThread thread = new SearchThread(0);
-			NegamaxUtil.nrOfActiveThreads.incrementAndGet();
-			thread.run();
-			isRunning = false;
-		} else {
-
-			// start slave threads
-			for (int i = 1; i < MainEngine.nrOfThreads; i++) {
-				ChessBoardUtil.copy(cb, ChessBoard.getInstance(i));
-				NegamaxUtil.nrOfActiveThreads.incrementAndGet();
-				new SearchThread(i).start();
-			}
-
-			// start main thread
-			SearchThread thread = new SearchThread(0);
-			NegamaxUtil.nrOfActiveThreads.incrementAndGet();
-			thread.run();
-			isRunning = false;
-
-			// wait for all slave threads to be ready
-			while (nrOfActiveThreads.get() != 0) {
-				Thread.yield();
-			}
-		}
 	}
 
 }

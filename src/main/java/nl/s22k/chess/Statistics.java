@@ -3,14 +3,10 @@ package nl.s22k.chess;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import nl.s22k.chess.engine.MainEngine;
-import nl.s22k.chess.eval.EvalCache;
-import nl.s22k.chess.eval.MaterialCache;
-import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.eval.SEEUtil;
 import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.search.TTUtil;
-import nl.s22k.chess.search.TimeUtil;
+import nl.s22k.chess.search.ThreadData;
 
 public class Statistics {
 
@@ -19,23 +15,20 @@ public class Statistics {
 	public static long evalNodes, abNodes, seeNodes, pvNodes, cutNodes, allNodes, qNodes;
 	public static long ttHits, ttMisses;
 	public static int staleMateCount, mateCount;
-	public static int depth;
 	public static int epCount, castleCount, promotionCount;
 	public static long pawnEvalCacheHits, pawnEvalCacheMisses;
 	public static long materialCacheMisses, materialCacheHits;
 	public static int bestMoveTT, bestMoveTTLower, bestMoveTTUpper, bestMoveCounter, bestMoveKiller1, bestMoveKiller2, bestMoveKillerEvasive1,
 			bestMoveKillerEvasive2, bestMoveOther, bestMovePromotion, bestMoveWinningCapture, bestMoveLosingCapture;
 	public static int repetitions, repetitionTests;
-	public static int checkExtensions, endGameExtensions;
+	public static int checkExtensions;
 	public static int nullMoveHit, nullMoveMiss;
 	public static long evalCacheHits, evalCacheMisses;
-	public static int iidCount;
 	public static final int[] razored = new int[10];
 	public static final int[] futile = new int[10];
 	public static final int[] staticNullMoved = new int[10];
 	public static final int[] lmped = new int[10];
 	public static final int[] failHigh = new int[64];
-	public static int drawishByMaterialCount;
 
 	public static void reset() {
 
@@ -53,7 +46,6 @@ public class Statistics {
 		pvNodes = 1; // so we never divide by zero
 		cutNodes = 0;
 		allNodes = 0;
-		drawishByMaterialCount = 0;
 		pawnEvalCacheMisses = 0;
 		pawnEvalCacheHits = 0;
 		castleCount = 0;
@@ -63,7 +55,6 @@ public class Statistics {
 		ttMisses = 0;
 		staleMateCount = 0;
 		mateCount = 0;
-		depth = 0;
 		abNodes = 0;
 		promotionCount = 0;
 		seeNodes = 0;
@@ -82,20 +73,16 @@ public class Statistics {
 		bestMoveWinningCapture = 0;
 		bestMoveLosingCapture = 0;
 		checkExtensions = 0;
-		endGameExtensions = 0;
 		repetitionTests = 0;
 		evalCacheHits = 0;
 		evalCacheMisses = 0;
-		iidCount = 0;
 	}
 
 	public static void print() {
 		if (!ENABLED) {
 			return;
 		}
-		System.out.println("Time          " + TimeUtil.getPassedTimeMs() + "ms");
-		System.out.println("NPS           " + MainEngine.calculateNps() / 1000 + "k");
-		System.out.println("Depth         " + depth);
+		long totalMoveCount = ChessBoardUtil.calculateTotalMoveCount();
 		System.out.println("AB-nodes      " + abNodes);
 		System.out.println("PV-nodes      " + pvNodes + " = 1/" + (pvNodes + cutNodes + allNodes) / pvNodes);
 		System.out.println("Cut-nodes     " + cutNodes);
@@ -106,19 +93,18 @@ public class Statistics {
 		System.out.println("Q-nodes       " + qNodes);
 		System.out.println("See-nodes     " + seeNodes);
 		System.out.println("Evaluated     " + evalNodes);
-		ChessBoard.calculateTotalMoveCount();
-		System.out.println("Moves         " + ChessBoard.totalMoveCount);
-		System.out.println("IID           " + iidCount);
+		System.out.println("Moves         " + totalMoveCount);
 
+		ThreadData threadData = ThreadData.getInstance(0);
 		System.out.println("### Caches #######");
 		printPercentage("TT            ", ttHits, ttMisses);
 		System.out.println("usage         " + TTUtil.getUsagePercentage() / 10 + "%");
 		printPercentage("Eval          ", evalCacheHits, evalCacheMisses);
-		System.out.println("usage         " + EvalCache.getUsage() + "%");
+		System.out.println("usage         " + Util.getUsagePercentage(threadData.evalCache) + "%");
 		printPercentage("Pawn eval     ", pawnEvalCacheHits, pawnEvalCacheMisses);
-		System.out.println("usage         " + PawnEvalCache.getUsage() + "%");
+		System.out.println("usage         " + Util.getUsagePercentage(threadData.pawnCache) + "%");
 		printPercentage("Material      ", materialCacheHits, materialCacheMisses);
-		System.out.println("usage         " + MaterialCache.getUsage() + "%");
+		System.out.println("usage         " + Util.getUsagePercentage(threadData.materialCache) + "%");
 
 		System.out.println("## Best moves #####");
 		System.out.println("TT            " + bestMoveTT);
@@ -138,11 +124,9 @@ public class Statistics {
 		System.out.println("Checkmate     " + mateCount);
 		System.out.println("Stalemate     " + staleMateCount);
 		System.out.println("Repetitions   " + repetitions + "(" + repetitionTests + ")");
-		System.out.println("Drawish-mtrl  " + drawishByMaterialCount);
 
 		System.out.println("### Extensions #####");
 		System.out.println("Check         " + checkExtensions);
-		System.out.println("Endgame       " + endGameExtensions);
 
 		System.out.println("### Pruning #####");
 		printPercentage("Null-move     ", nullMoveHit, nullMoveMiss);
@@ -164,12 +148,15 @@ public class Statistics {
 	}
 
 	private static void printPercentage(String message, long hitCount, long failCount) {
-		if (hitCount != 0 && failCount != 0) {
+		if (hitCount + failCount != 0) {
 			System.out.println(message + hitCount + "/" + (failCount + hitCount) + " (" + hitCount * 100 / (hitCount + failCount) + "%)");
 		}
 	}
 
 	public static void setBestMove(ChessBoard cb, int bestMove, int ttMove, long ttValue, int flag, int counterMove, int killer1Move, int killer2Move) {
+		if (!ENABLED) {
+			return;
+		}
 		if (flag == TTUtil.FLAG_LOWER) {
 			Statistics.cutNodes++;
 		} else if (flag == TTUtil.FLAG_UPPER) {

@@ -1,9 +1,11 @@
 package nl.s22k.chess.unittests;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.Statistics;
-import nl.s22k.chess.search.NegamaxUtil;
+import nl.s22k.chess.search.SearchUtil;
+import nl.s22k.chess.search.TTUtil;
 import nl.s22k.chess.search.TimeUtil;
 
 public class MainTest {
@@ -30,10 +32,11 @@ public class MainTest {
 
 	public static void main(String[] args) {
 
-		ChessBoard cb = ChessBoardUtil.getNewCB(FEN_STANDARD_OPENING);
+		ChessBoard cb = ChessBoardInstances.get(0);
+		ChessBoardUtil.setFen(FEN_STANDARD_OPENING, cb);
 		TimeUtil.setSimpleTimeWindow(5000);
-		// NegamaxUtil.maxDepth = 20;
-		NegamaxUtil.start(cb);
+		TTUtil.init(false);
+		SearchUtil.start(cb);
 		Statistics.print();
 
 	}

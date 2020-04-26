@@ -10,14 +10,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.eval.EvalConstants;
-import nl.s22k.chess.eval.MaterialCache;
-import nl.s22k.chess.eval.PawnEvalCache;
+import nl.s22k.chess.search.ThreadData;
 
 public class EvalEvaluator {
 
-	private static int numberOfThreads = 7;
+	private static int numberOfThreads = 16;
 	private static ErrorCalculator[] workers = new ErrorCalculator[numberOfThreads];
 	private static ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
 
@@ -28,9 +27,10 @@ public class EvalEvaluator {
 		System.out.println("Fens found : " + fens.size());
 
 		// init workers
-		ChessBoard.initInstances(numberOfThreads);
+		ChessBoardInstances.init(numberOfThreads);
+		ThreadData.initInstances(numberOfThreads);
 		for (int i = 0; i < numberOfThreads; i++) {
-			workers[i] = new ErrorCalculator(ChessBoard.getInstance(i));
+			workers[i] = new ErrorCalculator(ChessBoardInstances.get(i), ThreadData.getInstance(i));
 		}
 
 		// add fens to workers
@@ -57,8 +57,9 @@ public class EvalEvaluator {
 		for (Tuning tuningObject : tuningObjects) {
 			tuningObject.clearValues();
 			EvalConstants.initMgEg();
-			PawnEvalCache.clearValues();
-			MaterialCache.clearValues();
+			for (int i = 0; i < numberOfThreads; i++) {
+				ThreadData.getInstance(i).clearCaches();
+			}
 			final double newError = calculateErrorMultiThreaded();
 			System.out.println(String.format("%f - %s", newError, tuningObject.name));
 			tuningObject.restoreValues();

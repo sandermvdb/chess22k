@@ -6,21 +6,26 @@ import java.nio.file.Files;
 import java.util.List;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
-import nl.s22k.chess.engine.MainEngine;
+import nl.s22k.chess.engine.UciOut;
 import nl.s22k.chess.move.MoveWrapper;
-import nl.s22k.chess.move.PV;
-import nl.s22k.chess.search.NegamaxUtil;
+import nl.s22k.chess.search.SearchUtil;
+import nl.s22k.chess.search.TTUtil;
+import nl.s22k.chess.search.ThreadData;
 import nl.s22k.chess.search.TimeUtil;
 
 public class BestMoveTest {
 
 	public static int positionTestOK, positionTestNOK;
+	public static ThreadData threadData = ThreadData.getInstance(0);
 
 	public static void main(String[] args) {
-		MainEngine.noOutput = true;
+		UciOut.noOutput = true;
+		TTUtil.init(false);
 
 		doTest(getEpdStrings("WAC-201.epd"));
+		// doTest(getEpdStrings("EigenmannEndgame.epd"));
 
 		System.out.println("");
 		System.out.println("Total: " + positionTestOK + "/" + (positionTestOK + positionTestNOK));
@@ -41,13 +46,14 @@ public class BestMoveTest {
 		int correctCounter = 0;
 		for (String epdString : epdStrings) {
 			EPD epd = new EPD(epdString);
-			ChessBoard cb = ChessBoardUtil.getNewCB(epd.getFen());
+			ChessBoard cb = ChessBoardInstances.get(0);
+			ChessBoardUtil.setFen(epd.getFen(), cb);
 
 			TimeUtil.reset();
 			TimeUtil.setSimpleTimeWindow(5000);
-			NegamaxUtil.start(cb);
+			SearchUtil.start(cb);
 
-			MoveWrapper bestMove = new MoveWrapper(PV.getBestMove());
+			MoveWrapper bestMove = new MoveWrapper(threadData.getBestMove());
 			if (epd.isBestMove()) {
 				if (epd.moveEquals(bestMove)) {
 					System.out.println(epd.getId() + " BM OK");

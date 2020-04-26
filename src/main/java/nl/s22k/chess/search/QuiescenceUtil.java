@@ -1,9 +1,6 @@
 package nl.s22k.chess.search;
 
-import nl.s22k.chess.Assert;
-import nl.s22k.chess.CheckUtil;
 import nl.s22k.chess.ChessBoard;
-import nl.s22k.chess.ChessConstants;
 import nl.s22k.chess.Statistics;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
@@ -15,16 +12,12 @@ import nl.s22k.chess.move.MoveUtil;
 
 public class QuiescenceUtil {
 
-	private static final int FUTILITY_MARGIN = 200;
+	private static final int FUTILITY_MARGIN = 150;
 
-	public static int calculateBestMove(final ChessBoard cb, final MoveGenerator moveGen, int alpha, final int beta) {
+	public static int calculateBestMove(final ChessBoard cb, final ThreadData threadData, int alpha, final int beta) {
 
 		if (Statistics.ENABLED) {
 			Statistics.qNodes++;
-		}
-
-		if (!NegamaxUtil.isRunning) {
-			return ChessConstants.SCORE_NOT_RUNNING;
 		}
 
 		/* transposition-table */
@@ -53,7 +46,7 @@ public class QuiescenceUtil {
 		}
 
 		/* stand-pat check */
-		int eval = EvalUtil.getScore(cb);
+		int eval = EvalUtil.getScore(cb, threadData);
 		/* use tt value as eval */
 		if (EngineConstants.USE_TT_SCORE_AS_EVAL) {
 			if (TTUtil.canRefineEval(ttValue, eval, score)) {
@@ -63,15 +56,16 @@ public class QuiescenceUtil {
 		if (eval >= beta) {
 			return eval;
 		}
+
 		alpha = Math.max(alpha, eval);
 
-		moveGen.startPly();
-		moveGen.generateAttacks(cb);
-		moveGen.setMVVLVAScores();
-		moveGen.sort();
+		threadData.startPly();
+		MoveGenerator.generateAttacks(threadData, cb);
+		threadData.setMVVLVAScores();
+		threadData.sort();
 
-		while (moveGen.hasNext()) {
-			final int move = moveGen.next();
+		while (threadData.hasNext()) {
+			final int move = threadData.next();
 
 			// skip under promotions
 			if (MoveUtil.isPromotion(move)) {
@@ -94,25 +88,17 @@ public class QuiescenceUtil {
 			}
 
 			cb.doMove(move);
-
-			if (EngineConstants.ASSERT) {
-				cb.changeSideToMove();
-				Assert.isTrue(0 == CheckUtil.getCheckingPieces(cb));
-				cb.changeSideToMove();
-			}
-
-			score = MaterialUtil.isDrawByMaterial(cb) ? EvalConstants.SCORE_DRAW : -calculateBestMove(cb, moveGen, -beta, -alpha);
-
+			score = MaterialUtil.isDrawByMaterial(cb) ? EvalConstants.SCORE_DRAW : -calculateBestMove(cb, threadData, -beta, -alpha);
 			cb.undoMove(move);
 
 			if (score >= beta) {
-				moveGen.endPly();
+				threadData.endPly();
 				return score;
 			}
 			alpha = Math.max(alpha, score);
 		}
 
-		moveGen.endPly();
+		threadData.endPly();
 		return alpha;
 	}
 }

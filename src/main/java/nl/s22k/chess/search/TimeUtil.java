@@ -4,8 +4,6 @@ import nl.s22k.chess.engine.MainEngine;
 
 public class TimeUtil {
 
-	private static final int MOVE_MARGIN = 1;
-
 	public static long startTime = System.nanoTime();
 
 	private static int movesToGo;
@@ -52,25 +50,25 @@ public class TimeUtil {
 				timeWindowNs = 1_000_000 * (totalTimeLeftMs / 50 + incrementWindow / 2);
 			}
 		} else {
-			// safety margin for last move (sometimes we take more time than our time slot)
 			// if we have more than 50% of the time left, continue with next ply
-			int moveMargin = movesToGo == 1 ? 0 : MOVE_MARGIN;
-			timeWindowNs = 1_000_000 * totalTimeLeftMs / (movesToGo + moveMargin) / 2;
+			timeWindowNs = 1_000_000 * totalTimeLeftMs / movesToGo / 2;
 		}
 
-		if (movesToGo == 1) {
-			// always leave at least 200msec in the last move
+		if (!isTTHit) {
+			timeWindowNs *= 2;
+		}
+
+		switch (movesToGo) {
+		case 1:
 			maxTimeMs = Math.max(50, totalTimeLeftMs - 200);
-		} else {
-			// increase timewindow if we don't have a TT hit
-			if (isTTHit) {
-				// max time is 3 times the window
-				maxTimeMs = timeWindowNs / 1_000_000 * 3;
-			} else {
-				// double timewindow but only double max time
-				timeWindowNs *= 2;
-				maxTimeMs = timeWindowNs / 1_000_000 * 2;
-			}
+			break;
+		case 2:
+		case 3:
+		case 4:
+			maxTimeMs = totalTimeLeftMs / movesToGo;
+			break;
+		default:
+			maxTimeMs = timeWindowNs / 1_000_000 * 4;
 		}
 
 	}

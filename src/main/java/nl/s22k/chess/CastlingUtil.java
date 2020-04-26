@@ -1,12 +1,12 @@
 package nl.s22k.chess;
 
+import static nl.s22k.chess.ChessConstants.ALL;
 import static nl.s22k.chess.ChessConstants.BLACK;
 import static nl.s22k.chess.ChessConstants.EMPTY;
 import static nl.s22k.chess.ChessConstants.ROOK;
 import static nl.s22k.chess.ChessConstants.WHITE;
 
 import nl.s22k.chess.eval.EvalConstants;
-import nl.s22k.chess.eval.MaterialUtil;;
 
 public final class CastlingUtil {
 
@@ -152,8 +152,8 @@ public final class CastlingUtil {
 	}
 
 	private static void castleRookUpdatePsqt(final ChessBoard cb, final int fromIndex, final int toIndex, final int color) {
+		cb.pieces[color][ALL] ^= Util.POWER_LOOKUP[fromIndex] | Util.POWER_LOOKUP[toIndex];
 		cb.pieces[color][ROOK] ^= Util.POWER_LOOKUP[fromIndex] | Util.POWER_LOOKUP[toIndex];
-		cb.friendlyPieces[color] ^= Util.POWER_LOOKUP[fromIndex] | Util.POWER_LOOKUP[toIndex];
 		cb.pieceIndexes[fromIndex] = EMPTY;
 		cb.pieceIndexes[toIndex] = ROOK;
 		cb.psqtScore += EvalConstants.PSQT[ROOK][color][toIndex] - EvalConstants.PSQT[ROOK][color][fromIndex];
@@ -170,8 +170,7 @@ public final class CastlingUtil {
 		long kingIndexes = ChessConstants.IN_BETWEEN[fromIndex][toIndex] | Util.POWER_LOOKUP[toIndex];
 		while (kingIndexes != 0) {
 			// king does not move through a checked position?
-			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingIndexes), cb.colorToMove, cb.pieces[cb.colorToMoveInverse], cb.allPieces,
-					MaterialUtil.getMajorPieces(cb.materialKey, cb.colorToMoveInverse))) {
+			if (CheckUtil.isInCheckIncludingKing(Long.numberOfTrailingZeros(kingIndexes), cb.colorToMove, cb.pieces[cb.colorToMoveInverse], cb.allPieces)) {
 				return false;
 			}
 			kingIndexes &= kingIndexes - 1;

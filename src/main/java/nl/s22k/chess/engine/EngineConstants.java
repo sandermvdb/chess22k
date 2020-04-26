@@ -7,9 +7,9 @@ public class EngineConstants {
 	public static final int MAX_PLIES 					= 64;
 	public static final int MAX_MOVES 					= 768;
 	public static final int MAX_THREADS					= 64;
-	public static final boolean ENABLE_PONDERING		= true;
+	public static final int PV_LENGTH 					= 12;
+	
 	public static final boolean GENERATE_BR_PROMOTIONS 	= false;
-
 	public static final boolean ASSERT 					= false;
 
 	public static final boolean TEST_EVAL_VALUES 		= false;
@@ -21,7 +21,6 @@ public class EngineConstants {
 
 	// TT values
 	public static int POWER_2_TT_ENTRIES 					= 23;
-	public static final boolean VERIFY_TT_MOVE 				= false;
 
 	// Search improvements
 	public static final boolean ENABLE_COUNTER_MOVES 		= true;
@@ -49,9 +48,9 @@ public class EngineConstants {
 
 	// Evaluation-function
 	public static final boolean ENABLE_EVAL_CACHE		= true;
-	public static final int POWER_2_EVAL_ENTRIES 		= 14;
+	public static final int POWER_2_EVAL_ENTRIES 		= 12;
 	public static final boolean ENABLE_MATERIAL_CACHE	= true;
 	public static final int POWER_2_MATERIAL_ENTRIES 	= 11;
 	public static final boolean ENABLE_PAWN_EVAL_CACHE 	= true;
-	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 13;
+	public static final int POWER_2_PAWN_EVAL_ENTRIES 	= 12;
 }

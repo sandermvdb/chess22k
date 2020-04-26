@@ -2,8 +2,8 @@ package nl.s22k.chess;
 
 public class Util {
 
-	public static final short SHORT_MIN = -32767;
-	public static final short SHORT_MAX = 32767;
+	public static final int SHORT_MIN = -32767;
+	public static final int SHORT_MAX = 32767;
 
 	private static final byte[][] DISTANCE = new byte[64][64];
 	static {
@@ -64,7 +64,6 @@ public class Util {
 	}
 
 	public static int getUsagePercentage(long keys[]) {
-
 		int usage = 0;
 		for (int i = 0; i < 1000; i++) {
 			if (keys[i] != 0) {
@@ -75,7 +74,6 @@ public class Util {
 	}
 
 	public static int getUsagePercentage(int keys[]) {
-
 		int usage = 0;
 		for (int i = 0; i < 1000; i++) {
 			if (keys[i] != 0) {

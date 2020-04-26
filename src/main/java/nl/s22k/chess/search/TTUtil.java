@@ -8,7 +8,6 @@ import nl.s22k.chess.Statistics;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
 import nl.s22k.chess.eval.EvalConstants;
-import nl.s22k.chess.move.MoveUtil;
 import nl.s22k.chess.move.MoveWrapper;
 
 public class TTUtil {
@@ -77,9 +76,7 @@ public class TTUtil {
 
 		if (EngineConstants.ASSERT) {
 			Assert.isTrue(depth >= 1);
-			Assert.isTrue(move != 0);
 			Assert.isTrue(score >= Util.SHORT_MIN && score <= Util.SHORT_MAX);
-			Assert.isTrue(MoveUtil.getSourcePieceIndex(move) != 0);
 			Assert.isTrue(score != ChessConstants.SCORE_NOT_RUNNING);
 		}
 
@@ -95,6 +92,7 @@ public class TTUtil {
 			}
 
 			long currentValue = keys[i + 1];
+
 			int currentDepth = getDepth(currentValue);
 			if ((xorKey ^ currentValue) == key) {
 				if (currentDepth > depth && flag != FLAG_EXACT) {
@@ -186,6 +184,7 @@ public class TTUtil {
 		case 4096:
 		case 8192:
 		case 16384:
+		case 32768:
 			int power2Entries = (int) (Math.log(value) / Math.log(2) + 16);
 			if (EngineConstants.POWER_2_TT_ENTRIES != power2Entries) {
 				EngineConstants.POWER_2_TT_ENTRIES = power2Entries;

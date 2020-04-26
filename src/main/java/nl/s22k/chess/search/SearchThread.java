@@ -1,126 +1,133 @@
 package nl.s22k.chess.search;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Callable;
 
 import nl.s22k.chess.ChessBoard;
-import nl.s22k.chess.Statistics;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.Util;
 import nl.s22k.chess.engine.EngineConstants;
+import nl.s22k.chess.engine.ErrorLogger;
 import nl.s22k.chess.engine.MainEngine;
-import nl.s22k.chess.eval.EvalConstants;
-import nl.s22k.chess.move.MoveGenerator;
+import nl.s22k.chess.engine.UciOut;
 
-public class SearchThread extends Thread {
+public class SearchThread implements Callable<Void> {
 
 	// Laser based SMP skip
 	private static final int[] SMP_SKIP_DEPTHS = { 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4 };
 	private static final int[] SMP_SKIP_AMOUNT = { 1, 2, 1, 2, 3, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 };
 	private static final int SMP_MAX_CYCLES = SMP_SKIP_AMOUNT.length;
 
-	private static final Map<Long, Integer> THREAD_MAP = new ConcurrentHashMap<>();
 	private int threadNumber;
+	private ChessBoard cb;
+	private ThreadData threadData;
 
 	public SearchThread(final int threadNumber) {
 		this.threadNumber = threadNumber;
-	}
-
-	public static final int getThreadNumber() {
-		return THREAD_MAP.get(Thread.currentThread().getId());
+		cb = ChessBoardInstances.get(threadNumber);
+		threadData = ThreadData.getInstance(threadNumber);
 	}
 
 	@Override
-	public void run() {
+	public Void call() {
+		try {
+			Thread.currentThread().setName("chess22k-search-" + threadNumber);
+			if (threadNumber == 0) {
+				runMain();
+				NegamaxUtil.isRunning = false;
+			} else {
+				runHelper();
+			}
+		} catch (Throwable t) {
+			ErrorLogger.log(ChessBoardInstances.get(threadNumber), t, false);
+		}
+		return null;
+	}
 
-		THREAD_MAP.put(Thread.currentThread().getId(), threadNumber);
-
-		int threadNumber = THREAD_MAP.get(Thread.currentThread().getId());
-		Thread.currentThread().setName("chess22k-search " + threadNumber);
-		int cycleIndex = (threadNumber - 1) % SMP_MAX_CYCLES;
+	private void runMain() {
+		threadData.clearHistoryHeuristics();
+		threadData.initPV(cb);
 
 		int depth = 0;
-		int alpha = Util.SHORT_MIN;
-		int beta = Util.SHORT_MAX;
-		int score = Util.SHORT_MIN;
-		int previousScore;
-		boolean panic = false;
+		int score = 0;
+		int alpha;
+		int beta;
+		boolean failLow = false;
 
-		MoveGenerator.getInstance(threadNumber).clearHistoryHeuristics();
-
-		while (depth < MainEngine.maxDepth && NegamaxUtil.isRunning) {
+		while (NegamaxUtil.isRunning) {
+			if (depth == MainEngine.maxDepth) {
+				return;
+			}
 
 			depth++;
 
-			if (threadNumber == 0) {
-				Statistics.depth = depth;
-			} else {
-				if ((depth + cycleIndex) % SMP_SKIP_DEPTHS[cycleIndex] == 0) {
-					depth += SMP_SKIP_AMOUNT[cycleIndex];
-					if (depth > MainEngine.maxDepth) {
-						continue;
-					}
-				}
-			}
-
-			int delta = EngineConstants.ASPIRATION_WINDOW_DELTA;
+			int delta = EngineConstants.ENABLE_ASPIRATION && depth > 5 && Math.abs(score) < 1000 ? EngineConstants.ASPIRATION_WINDOW_DELTA : Util.SHORT_MAX * 2;
+			alpha = Math.max(score - delta, Util.SHORT_MIN);
+			beta = Math.min(score + delta, Util.SHORT_MAX);
 
 			while (NegamaxUtil.isRunning) {
-
-				if (threadNumber == 0 && depth != 1 && !TimeUtil.isTimeLeft()) {
-					if (panic) {
-						// only panic once
-						panic = false;
-					} else {
-						break;
-					}
+				if (!TimeUtil.isTimeLeft() && depth != 1 && !failLow) {
+					return;
 				}
-
-				previousScore = score;
 
 				// System.out.println("start " + threadNumber + " " + depth);
-				score = NegamaxUtil.calculateBestMove(ChessBoard.getInstance(threadNumber), MoveGenerator.getInstance(threadNumber), 0, depth, alpha, beta, 0);
+				score = NegamaxUtil.calculateBestMove(cb, threadData, 0, depth, alpha, beta, 0);
 				// System.out.println("done " + threadNumber + " " + depth);
 
-				if (threadNumber == 0) {
-					MainEngine.sendPlyInfo();
-				}
-				if (score + 100 < previousScore && Math.abs(score) < EvalConstants.SCORE_MATE_BOUND) {
-					panic = true;
-				}
-				if (score <= alpha && alpha != Util.SHORT_MIN) {
-					if (!TimeUtil.isTimeLeft()) {
-						panic = true;
-					}
-					if (score < -1000) {
-						alpha = Util.SHORT_MIN;
-						beta = Util.SHORT_MAX;
-					} else {
-						alpha = Math.max(alpha - delta, Util.SHORT_MIN);
-					}
+				UciOut.sendPlyInfo(threadData);
+				failLow = false;
+				if (score <= alpha) {
+					failLow = true;
+					alpha = Math.max(alpha - delta, Util.SHORT_MIN);
 					delta *= 2;
-				} else if (score >= beta && beta != Util.SHORT_MAX) {
-					if (score > 1000) {
-						alpha = Util.SHORT_MIN;
-						beta = Util.SHORT_MAX;
-					} else {
-						beta = Math.min(beta + delta, Util.SHORT_MAX);
-					}
+				} else if (score >= beta) {
+					beta = Math.min(beta + delta, Util.SHORT_MAX);
 					delta *= 2;
 				} else {
-					if (EngineConstants.ENABLE_ASPIRATION && depth > 5) {
-						if (Math.abs(score) > 1000) {
-							alpha = Util.SHORT_MIN;
-							beta = Util.SHORT_MAX;
-						} else {
-							delta = (delta + EngineConstants.ASPIRATION_WINDOW_DELTA) / 2;
-							alpha = Math.max(score - delta, Util.SHORT_MIN);
-							beta = Math.min(score + delta, Util.SHORT_MAX);
-						}
-					}
 					break;
 				}
 			}
 		}
-		NegamaxUtil.nrOfActiveThreads.decrementAndGet();
+	}
+
+	private void runHelper() {
+		threadData.clearHistoryHeuristics();
+		int cycleIndex = (threadNumber - 1) % SMP_MAX_CYCLES;
+
+		int depth = 0;
+		int score = 0;
+		int alpha;
+		int beta;
+
+		while (depth < MainEngine.maxDepth && NegamaxUtil.isRunning) {
+
+			depth++;
+			if ((depth + cycleIndex) % SMP_SKIP_DEPTHS[cycleIndex] == 0) {
+				depth += SMP_SKIP_AMOUNT[cycleIndex];
+				if (depth > MainEngine.maxDepth) {
+					return;
+				}
+			}
+
+			int delta = EngineConstants.ENABLE_ASPIRATION && depth > 5 && Math.abs(score) < 1000 ? EngineConstants.ASPIRATION_WINDOW_DELTA : Util.SHORT_MAX * 2;
+			alpha = Math.max(score - delta, Util.SHORT_MIN);
+			beta = Math.min(score + delta, Util.SHORT_MAX);
+
+			while (NegamaxUtil.isRunning) {
+
+				// System.out.println("start " + threadNumber + " " + depth);
+				score = NegamaxUtil.calculateBestMove(cb, threadData, 0, depth, alpha, beta, 0);
+				// System.out.println("done " + threadNumber + " " + depth);
+
+				if (score <= alpha) {
+					alpha = Math.max(alpha - delta, Util.SHORT_MIN);
+					delta *= 2;
+				} else if (score >= beta) {
+					beta = Math.min(beta + delta, Util.SHORT_MAX);
+					delta *= 2;
+				} else {
+					break;
+				}
+			}
+		}
 	}
 }

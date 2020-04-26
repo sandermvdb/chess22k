@@ -15,18 +15,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import nl.s22k.chess.ChessBoard;
+import nl.s22k.chess.ChessBoardInstances;
 import nl.s22k.chess.ChessBoardUtil;
 import nl.s22k.chess.eval.EvalConstants;
-import nl.s22k.chess.eval.MaterialCache;
-import nl.s22k.chess.eval.PawnEvalCache;
 import nl.s22k.chess.move.MoveGenerator;
+import nl.s22k.chess.search.ThreadData;
 import nl.s22k.chess.search.TimeUtil;
 
 public class Tuner {
 
-	private static MoveGenerator moveGen = new MoveGenerator();
+	private static ChessBoard cb = ChessBoardInstances.get(0);
+	private static ThreadData threadData = new ThreadData(0);
 
-	private static int numberOfThreads = 7;
+	private static int numberOfThreads = 16;
 	private static ErrorCalculator[] workers = new ErrorCalculator[numberOfThreads];
 	private static ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
 
@@ -53,21 +54,15 @@ public class Tuner {
 		// tunings.add(new Tuning(EvalConstants.NIGHT_PAWN, STEP, "Night pawn"));
 		// tunings.add(new Tuning(EvalConstants.ROOK_PAWN, STEP, "Rook pawn"));
 		// tunings.add(new Tuning(EvalConstants.BISHOP_PAWN, STEP, "Bishop pawn"));
-		// tunings.add(new Tuning(EvalConstants.SPACE, 1, "Space", 0, 1, 2, 3, 4));
+		// tunings.add(new Tuning(EvalConstants.SPACE, STEP, "Space"));
 		//
 		// /* pawns */
 		// tunings.add(new Tuning(EvalConstants.PASSED_SCORE_EG, STEP, "Passed score eg", 0));
 		// tunings.add(new MultiTuning(EvalConstants.PASSED_MULTIPLIERS, "Passed multi"));
 		// tunings.add(new MultiTuning(EvalConstants.PASSED_KING_MULTI, "Passed king multi"));
 		// tunings.add(new Tuning(EvalConstants.PASSED_CANDIDATE, STEP, "Passed candidate", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_MG[0], STEP, "Shield 0 mg", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_MG[1], STEP, "Shield 1 mg", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_MG[2], STEP, "Shield 2 mg", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_MG[3], STEP, "Shield 3 mg", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_EG[0], STEP, "Shield 0 eg", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_EG[1], STEP, "Shield 1 eg", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_EG[2], STEP, "Shield 2 eg", 0));
-		// tunings.add(new Tuning(EvalConstants.SHIELD_BONUS_EG[3], STEP, "Shield 3 eg", 0));
+		// tunings.add(new TableTuning(EvalConstants.SHIELD_BONUS_MG, STEP, "Shield mg"));
+		// tunings.add(new TableTuning(EvalConstants.SHIELD_BONUS_EG, STEP, "Shield eg"));
 		// tunings.add(new Tuning(EvalConstants.PAWN_BLOCKAGE, STEP, "Pawn blockage", 0, 1));
 		// tunings.add(new Tuning(EvalConstants.PAWN_CONNECTED, STEP, "Pawn connected", 0, 1));
 		// tunings.add(new Tuning(EvalConstants.PAWN_NEIGHBOUR, STEP, "Pawn neighbour", 0, 1));
@@ -76,36 +71,38 @@ public class Tuner {
 		// tunings.add(new Tuning(EvalConstants.KS_SCORES, 10, "KS"));
 		// tunings.add(new Tuning(EvalConstants.KS_QUEEN_TROPISM, 1, "KS queen", 0, 1));
 		// tunings.add(new Tuning(EvalConstants.KS_CHECK_QUEEN, 1, "KS check q", 0, 1, 2, 3));
-		// tunings.add(new Tuning(EvalConstants.KS_NO_FRIENDS, 1, "KS no friends"));
+		// tunings.add(new Tuning(EvalConstants.KS_FRIENDS, 1, "KS friends"));
+		// tunings.add(new Tuning(EvalConstants.KS_WEAK, 1, "KS weak"));
 		// tunings.add(new Tuning(EvalConstants.KS_ATTACKS, 1, "KS attacks"));
+		// tunings.add(new Tuning(EvalConstants.KS_NIGHT_DEFENDERS, 1, "KS night defenders"));
 		// tunings.add(new Tuning(EvalConstants.KS_DOUBLE_ATTACKS, 1, "KS double attacks"));
 		// tunings.add(new Tuning(EvalConstants.KS_ATTACK_PATTERN, 1, "KS pattern"));
 		// tunings.add(new Tuning(EvalConstants.KS_OTHER, 1, "KS other"));
 		//
 		// /* mobility */
-		// tunings.add(new Tuning(EvalConstants.MOBILITY_KNIGHT_MG, STEP, "Mobility n", true));
+		// tunings.add(new Tuning(EvalConstants.MOBILITY_KNIGHT_MG, STEP, "Mobility n mg", true));
 		// tunings.add(new Tuning(EvalConstants.MOBILITY_KNIGHT_EG, STEP, "Mobility n eg", true));
-		// tunings.add(new Tuning(EvalConstants.MOBILITY_BISHOP_MG, STEP, "Mobility b", true));
+		// tunings.add(new Tuning(EvalConstants.MOBILITY_BISHOP_MG, STEP, "Mobility b mg", true));
 		// tunings.add(new Tuning(EvalConstants.MOBILITY_BISHOP_EG, STEP, "Mobility b eg", true));
-		// tunings.add(new Tuning(EvalConstants.MOBILITY_ROOK_MG, STEP, "Mobility r", true));
+		// tunings.add(new Tuning(EvalConstants.MOBILITY_ROOK_MG, STEP, "Mobility r mg", true));
 		// tunings.add(new Tuning(EvalConstants.MOBILITY_ROOK_EG, STEP, "Mobility r eg", true));
-		// tunings.add(new Tuning(EvalConstants.MOBILITY_QUEEN_MG, STEP, "Mobility q", true));
+		// tunings.add(new Tuning(EvalConstants.MOBILITY_QUEEN_MG, STEP, "Mobility q mg", true));
 		// tunings.add(new Tuning(EvalConstants.MOBILITY_QUEEN_EG, STEP, "Mobility q eg", true));
-		// tunings.add(new Tuning(EvalConstants.MOBILITY_KING_MG, STEP, "Mobility k", true));
+		// tunings.add(new Tuning(EvalConstants.MOBILITY_KING_MG, STEP, "Mobility k mg", true));
 		// tunings.add(new Tuning(EvalConstants.MOBILITY_KING_EG, STEP, "Mobility k eg", true));
 		//
 		// /* psqt */
-		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.PAWN], STEP, "PSQT p", true));
+		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.PAWN], STEP, "PSQT p mg", true));
 		// tunings.add(new PsqtTuning(EvalConstants.PSQT_EG[ChessConstants.PAWN], STEP, "PSQT p eg", true));
-		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.NIGHT], STEP, "PSQT n"));
+		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.NIGHT], STEP, "PSQT n mg"));
 		// tunings.add(new PsqtTuning(EvalConstants.PSQT_EG[ChessConstants.NIGHT], STEP, "PSQT n eg"));
-		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.BISHOP], STEP, "PSQT b"));
+		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.BISHOP], STEP, "PSQT b mg"));
 		// tunings.add(new PsqtTuning(EvalConstants.PSQT_EG[ChessConstants.BISHOP], STEP, "PSQT b eg"));
-		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.ROOK], STEP, "PSQT r"));
+		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.ROOK], STEP, "PSQT r mg"));
 		// tunings.add(new PsqtTuning(EvalConstants.PSQT_EG[ChessConstants.ROOK], STEP, "PSQT r eg"));
-		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.QUEEN], STEP, "PSQT q"));
+		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.QUEEN], STEP, "PSQT q mg"));
 		// tunings.add(new PsqtTuning(EvalConstants.PSQT_EG[ChessConstants.QUEEN], STEP, "PSQT q eg"));
-		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.KING], STEP, "PSQT k"));
+		// tunings.add(new PsqtTuning(EvalConstants.PSQT_MG[ChessConstants.KING], STEP, "PSQT k mg"));
 		// tunings.add(new PsqtTuning(EvalConstants.PSQT_EG[ChessConstants.KING], STEP, "PSQT k eg"));
 
 		return tunings;
@@ -117,9 +114,10 @@ public class Tuner {
 		System.out.println("Fens found : " + fens.size());
 
 		// init workers
-		ChessBoard.initInstances(numberOfThreads);
+		ChessBoardInstances.init(numberOfThreads);
+		ThreadData.initInstances(numberOfThreads);
 		for (int i = 0; i < numberOfThreads; i++) {
-			workers[i] = new ErrorCalculator(ChessBoard.getInstance(i));
+			workers[i] = new ErrorCalculator(ChessBoardInstances.get(i), ThreadData.getInstance(i));
 		}
 
 		// add fens to workers
@@ -139,6 +137,9 @@ public class Tuner {
 		localOptimize(tuningObjects);
 		executor.shutdown();
 		System.out.println(String.format("\nDone: %s -> %s\n", orgError, bestError));
+	}
+
+	public static void printAll(List<Tuning> tuningObjects) {
 		for (Tuning tuningObject : tuningObjects) {
 			if (tuningObject.isUpdated()) {
 				tuningObject.printNewValues();
@@ -153,6 +154,7 @@ public class Tuner {
 
 		Map<String, Double> fens = new HashMap<String, Double>();
 		int checkCount = 0;
+		int checkmate = 0;
 		int stalemate = 0;
 
 		try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
@@ -160,33 +162,49 @@ public class Tuner {
 
 			while (line != null) {
 
-				String[] values = line.split(" c9 ");
 				double score = 0;
+				String fenString;
 				if (containsResult) {
-					if (values[1].equals("\"1/2-1/2\";")) {
+					String scoreString = getScoreStringFromLine(line);
+					fenString = getFenStringFromLine(line);
+					if (scoreString.equals("\"1/2-1/2\";")) {
 						score = 0.5;
-					} else if (values[1].equals("\"1-0\";")) {
+					} else if (scoreString.equals("\"1-0\";")) {
 						score = 1;
-					} else if (values[1].equals("\"0-1\";")) {
+					} else if (scoreString.equals("\"0-1\";")) {
 						score = 0;
 					} else {
-						throw new RuntimeException("Unknown result: " + values[1]);
+						throw new RuntimeException("Unknown result: " + scoreString);
 					}
+				} else {
+					fenString = line;
 				}
 
-				ChessBoard cb = ChessBoardUtil.getNewCB(values[0]);
-				if (includingCheck || cb.checkingPieces == 0) {
-					moveGen.startPly();
-					moveGen.generateAttacks(cb);
-					moveGen.generateMoves(cb);
-					if (moveGen.hasNext()) {
-						fens.put(values[0], score);
+				ChessBoardUtil.setFen(fenString, cb);
+
+				if (cb.checkingPieces == 0) {
+					threadData.startPly();
+					MoveGenerator.generateAttacks(threadData, cb);
+					MoveGenerator.generateMoves(threadData, cb);
+					if (threadData.hasNext()) {
+						fens.put(fenString, score);
 					} else {
 						stalemate++;
 					}
-					moveGen.endPly();
+					threadData.endPly();
 				} else {
 					checkCount++;
+					if (includingCheck) {
+						threadData.startPly();
+						MoveGenerator.generateAttacks(threadData, cb);
+						MoveGenerator.generateMoves(threadData, cb);
+						if (threadData.hasNext()) {
+							fens.put(fenString, score);
+						} else {
+							checkmate++;
+						}
+						threadData.endPly();
+					}
 				}
 
 				line = br.readLine();
@@ -195,9 +213,26 @@ public class Tuner {
 			throw new RuntimeException(e);
 		}
 
-		System.out.println("In check   : " + checkCount);
-		System.out.println("Stalemate  : " + stalemate);
+		System.out.println("In check : " + checkCount);
+		System.out.println("Checkmate : " + checkmate);
+		System.out.println("Stalemate : " + stalemate);
 		return fens;
+	}
+
+	private static String getFenStringFromLine(String line) {
+		if (line.contains("c9")) {
+			return line.split(" c9 ")[0];
+		} else {
+			return line.substring(0, line.indexOf("\""));
+		}
+	}
+
+	private static String getScoreStringFromLine(String line) {
+		if (line.contains("c9")) {
+			return line.split(" c9 ")[1];
+		} else {
+			return line.substring(line.indexOf("\""));
+		}
 	}
 
 	private static void printInfo(List<Tuning> tuningObjects) {
@@ -212,7 +247,7 @@ public class Tuner {
 			} else {
 				System.out.println(tuningObject.name);
 			}
-			totalValues += tuningObject.tunedValues;
+			totalValues += tuningObject.getNumberOfTunedValues();
 		}
 		System.out.println(String.format("\nInitial error: %s (%s ms)", calculateErrorMultiThreaded(), TimeUtil.getPassedTimeMs()));
 		System.out.println("Total values to be tuned: " + totalValues + "\n");
@@ -222,7 +257,9 @@ public class Tuner {
 		double bestError = calculateErrorMultiThreaded();
 		orgError = bestError;
 		boolean improved = true;
+		int run = 1;
 		while (improved) {
+			System.out.println("Run " + run++);
 			improved = false;
 			for (Tuning tuningObject : tuningObjects) {
 				for (int i = 0; i < tuningObject.numberOfParameters(); i++) {
@@ -231,10 +268,9 @@ public class Tuner {
 					}
 					tuningObject.addStep(i);
 					EvalConstants.initMgEg();
-					PawnEvalCache.clearValues();
-					MaterialCache.clearValues();
+					threadData.clearCaches();
 					double newError = calculateErrorMultiThreaded();
-					if (newError < bestError) {
+					if (newError < bestError - 0.00000001) {
 						bestError = newError;
 						System.out.println(String.format("%f - %s", bestError, tuningObject));
 						improved = true;
@@ -242,10 +278,9 @@ public class Tuner {
 						tuningObject.removeStep(i);
 						tuningObject.removeStep(i);
 						EvalConstants.initMgEg();
-						PawnEvalCache.clearValues();
-						MaterialCache.clearValues();
+						threadData.clearCaches();
 						newError = calculateErrorMultiThreaded();
-						if (newError < bestError) {
+						if (newError < bestError - 0.00000001) {
 							bestError = newError;
 							System.out.println(String.format("%f - %s", bestError, tuningObject));
 							improved = true;
@@ -255,6 +290,7 @@ public class Tuner {
 					}
 				}
 			}
+			printAll(tuningObjects);
 		}
 		Tuner.bestError = bestError;
 	}

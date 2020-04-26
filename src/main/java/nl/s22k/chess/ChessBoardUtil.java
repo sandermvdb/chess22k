@@ -1,5 +1,6 @@
 package nl.s22k.chess;
 
+import static nl.s22k.chess.ChessConstants.ALL;
 import static nl.s22k.chess.ChessConstants.BISHOP;
 import static nl.s22k.chess.ChessConstants.BLACK;
 import static nl.s22k.chess.ChessConstants.KING;
@@ -11,24 +12,18 @@ import static nl.s22k.chess.ChessConstants.WHITE;
 
 import java.util.Arrays;
 
+import nl.s22k.chess.engine.UciOptions;
 import nl.s22k.chess.eval.EvalConstants;
 import nl.s22k.chess.eval.EvalUtil;
 import nl.s22k.chess.eval.MaterialUtil;
 
 public class ChessBoardUtil {
 
-	public static ChessBoard getNewCB() {
-		return getNewCB(ChessConstants.FEN_START);
+	public static void setStartFen(ChessBoard cb) {
+		setFen(ChessConstants.FEN_START, cb);
 	}
 
-	public static ChessBoard getNewCB(String fen) {
-		ChessBoard cb = ChessBoard.getInstance();
-		setFenValues(fen, cb);
-		init(cb);
-		return cb;
-	}
-
-	public static void setFenValues(String fen, ChessBoard cb) {
+	public static void setFen(String fen, ChessBoard cb) {
 		cb.moveCounter = 0;
 
 		String[] fenArray = fen.split(" ");
@@ -90,41 +85,8 @@ public class ChessBoardUtil {
 					- Long.bitCount(cb.pieces[BLACK][PAWN] & Bitboard.RANK_7);
 			cb.moveCounter = pawnsNotAtStartingPosition * 2;
 		}
-	}
 
-	public static void calculateZobristKeys(ChessBoard cb) {
-		cb.zobristKey = 0;
-
-		for (int color = 0; color < 2; color++) {
-			for (int piece = PAWN; piece <= KING; piece++) {
-				long pieces = cb.pieces[color][piece];
-				while (pieces != 0) {
-					cb.zobristKey ^= Zobrist.piece[color][piece][Long.numberOfTrailingZeros(pieces)];
-					pieces &= pieces - 1;
-				}
-			}
-		}
-
-		cb.zobristKey ^= Zobrist.castling[cb.castlingRights];
-		if (cb.colorToMove == WHITE) {
-			cb.zobristKey ^= Zobrist.sideToMove;
-		}
-		cb.zobristKey ^= Zobrist.epIndex[cb.epIndex];
-	}
-
-	public static void calculatePawnZobristKeys(ChessBoard cb) {
-		cb.pawnZobristKey = 0;
-
-		long pieces = cb.pieces[WHITE][PAWN];
-		while (pieces != 0) {
-			cb.pawnZobristKey ^= Zobrist.piece[WHITE][PAWN][Long.numberOfTrailingZeros(pieces)];
-			pieces &= pieces - 1;
-		}
-		pieces = cb.pieces[BLACK][PAWN];
-		while (pieces != 0) {
-			cb.pawnZobristKey ^= Zobrist.piece[BLACK][PAWN][Long.numberOfTrailingZeros(pieces)];
-			pieces &= pieces - 1;
-		}
+		init(cb);
 	}
 
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
@@ -217,8 +179,6 @@ public class ChessBoardUtil {
 		// small arrays
 		target.kingIndex[WHITE] = source.kingIndex[WHITE];
 		target.kingIndex[BLACK] = source.kingIndex[BLACK];
-		target.friendlyPieces[WHITE] = source.friendlyPieces[WHITE];
-		target.friendlyPieces[BLACK] = source.friendlyPieces[BLACK];
 
 		// large arrays
 		System.arraycopy(source.pieceIndexes, 0, target.pieceIndexes, 0, source.pieceIndexes.length);
@@ -231,17 +191,17 @@ public class ChessBoardUtil {
 
 	public static void init(ChessBoard cb) {
 
-		calculateMaterialZobrist(cb);
+		MaterialUtil.setKey(cb);
 
 		cb.kingIndex[WHITE] = Long.numberOfTrailingZeros(cb.pieces[WHITE][KING]);
 		cb.kingIndex[BLACK] = Long.numberOfTrailingZeros(cb.pieces[BLACK][KING]);
 
 		cb.colorToMoveInverse = 1 - cb.colorToMove;
-		cb.friendlyPieces[WHITE] = cb.pieces[WHITE][PAWN] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][KING] | cb.pieces[WHITE][ROOK]
+		cb.pieces[WHITE][ALL] = cb.pieces[WHITE][PAWN] | cb.pieces[WHITE][BISHOP] | cb.pieces[WHITE][NIGHT] | cb.pieces[WHITE][KING] | cb.pieces[WHITE][ROOK]
 				| cb.pieces[WHITE][QUEEN];
-		cb.friendlyPieces[BLACK] = cb.pieces[BLACK][PAWN] | cb.pieces[BLACK][BISHOP] | cb.pieces[BLACK][NIGHT] | cb.pieces[BLACK][KING] | cb.pieces[BLACK][ROOK]
+		cb.pieces[BLACK][ALL] = cb.pieces[BLACK][PAWN] | cb.pieces[BLACK][BISHOP] | cb.pieces[BLACK][NIGHT] | cb.pieces[BLACK][KING] | cb.pieces[BLACK][ROOK]
 				| cb.pieces[BLACK][QUEEN];
-		cb.allPieces = cb.friendlyPieces[WHITE] | cb.friendlyPieces[BLACK];
+		cb.allPieces = cb.pieces[WHITE][ALL] | cb.pieces[BLACK][ALL];
 		cb.emptySpaces = ~cb.allPieces;
 
 		Arrays.fill(cb.pieceIndexes, ChessConstants.EMPTY);
@@ -255,8 +215,7 @@ public class ChessBoardUtil {
 			}
 		}
 
-		cb.checkingPieces = CheckUtil.getCheckingPieces(cb);
-		cb.setPinnedAndDiscoPieces();
+		cb.setCheckingPinnedAndDiscoPieces();
 		cb.psqtScore = EvalUtil.calculatePositionScores(cb);
 
 		cb.phase = EvalUtil.PHASE_TOTAL - (Long.bitCount(cb.pieces[WHITE][NIGHT] | cb.pieces[BLACK][NIGHT]) * EvalConstants.PHASE[NIGHT]
@@ -264,24 +223,23 @@ public class ChessBoardUtil {
 				+ Long.bitCount(cb.pieces[WHITE][ROOK] | cb.pieces[BLACK][ROOK]) * EvalConstants.PHASE[ROOK]
 				+ Long.bitCount(cb.pieces[WHITE][QUEEN] | cb.pieces[BLACK][QUEEN]) * EvalConstants.PHASE[QUEEN]);
 
-		calculatePawnZobristKeys(cb);
-		calculateZobristKeys(cb);
+		Zobrist.setPawnKey(cb);
+		Zobrist.setKey(cb);
 	}
 
-	private static void calculateMaterialZobrist(final ChessBoard cb) {
-		cb.materialKey = 0;
-		for (int color = WHITE; color <= BLACK; color++) {
-			for (int piece = PAWN; piece <= QUEEN; piece++) {
-				cb.materialKey += Long.bitCount(cb.pieces[color][piece]) * MaterialUtil.VALUES[color][piece];
-			}
+	public static long calculateTotalMoveCount() {
+		long totalMoveCount = 0;
+		for (int i = 0; i < UciOptions.threadCount; i++) {
+			totalMoveCount += ChessBoardInstances.get(i).moveCount;
 		}
+		return totalMoveCount;
 	}
 
 	public static String toString(ChessBoard cb) {
 		// TODO castling, EP, moves
 		StringBuilder sb = new StringBuilder();
 		for (int i = 63; i >= 0; i--) {
-			if ((cb.friendlyPieces[WHITE] & Util.POWER_LOOKUP[i]) != 0) {
+			if ((cb.pieces[WHITE][ALL] & Util.POWER_LOOKUP[i]) != 0) {
 				sb.append(ChessConstants.FEN_WHITE_PIECES[cb.pieceIndexes[i]]);
 			} else {
 				sb.append(ChessConstants.FEN_BLACK_PIECES[cb.pieceIndexes[i]]);
